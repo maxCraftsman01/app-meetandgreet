@@ -52,9 +52,10 @@ Deno.serve(async (req) => {
 
     if (method === "POST") {
       const body = await req.json();
+      const { property_id, guest_name, check_in, check_out, source, net_payout, status, external_id } = body;
       const { data, error } = await supabase
         .from("manual_reservations")
-        .insert(body)
+        .insert({ property_id, guest_name, check_in, check_out, source, net_payout, status, external_id })
         .select()
         .single();
       if (error) throw error;

@@ -113,3 +113,10 @@ export async function deleteReservation(adminPin: string, id: string) {
   });
 }
 
+export async function getAdminPendingIcal(adminPin: string) {
+  return callFunction("admin-pending-ical", {
+    method: "GET",
+    headers: { "x-admin-pin": adminPin },
+  });
+}
+

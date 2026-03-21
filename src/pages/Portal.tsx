@@ -217,15 +217,17 @@ const Portal = () => {
   const days = eachDayOfInterval({ start: monthStart, end: monthEnd });
   const startPad = getDay(monthStart);
 
+  const [selectedDay, setSelectedDay] = useState<{ date: Date; info: any } | null>(null);
+
   // Smart overlay: manual reservation takes priority over iCal
-  const getDayInfo = (day: Date): { status: string; label: string; isManual: boolean; isPending: boolean } => {
+  const getDayInfo = (day: Date): { status: string; label: string; isManual: boolean; isPending: boolean; reservation?: ManualReservation; booking?: Booking } => {
     // Check manual reservations first
     for (const r of propertyManual) {
       if (r.status === "Cancelled") continue;
       const start = startOfDay(parseISO(r.check_in));
       const end = startOfDay(parseISO(r.check_out));
       if (isWithinInterval(day, { start, end: endOfDay(end) })) {
-        return { status: "booked", label: `${r.guest_name} (${r.source})`, isManual: true, isPending: false };
+        return { status: "booked", label: `${r.guest_name} (${r.source})`, isManual: true, isPending: false, reservation: r };
       }
     }
     // Then check iCal bookings
@@ -236,7 +238,7 @@ const Portal = () => {
         if (b.status === "blocked") {
           return { status: "blocked", label: "Blocked", isManual: false, isPending: false };
         }
-        return { status: "booked", label: "Booked (Pending Verification)", isManual: false, isPending: true };
+        return { status: "booked", label: `${b.summary || "Booked"} (Pending Verification)`, isManual: false, isPending: true, booking: b };
       }
     }
     return { status: "available", label: "Available", isManual: false, isPending: false };
@@ -387,11 +389,13 @@ const Portal = () => {
                 const pendingStyle = info.isPending
                   ? "bg-orange-100 border-orange-400 text-orange-700"
                   : statusColors[info.status];
+                const isClickable = info.isManual || info.isPending;
                 return (
                   <div
                     key={day.toISOString()}
                     title={info.label}
-                    className={`relative aspect-square flex items-center justify-center rounded-lg text-sm font-medium transition-colors duration-150 ${pendingStyle} ${isToday(day) ? "ring-2 ring-foreground ring-offset-1" : ""} border`}
+                    onClick={() => isClickable ? setSelectedDay({ date: day, info }) : null}
+                    className={`relative aspect-square flex items-center justify-center rounded-lg text-sm font-medium transition-colors duration-150 ${pendingStyle} ${isToday(day) ? "ring-2 ring-foreground ring-offset-1" : ""} border ${isClickable ? "cursor-pointer hover:opacity-80" : ""}`}
                   >
                     {format(day, "d")}
                   </div>
@@ -417,6 +421,49 @@ const Portal = () => {
                 <span className="text-xs text-muted-foreground">Blocked</span>
               </div>
             </div>
+
+            {/* Booking detail on click */}
+            {selectedDay && (
+              <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mt-4 pt-4 border-t border-border"
+              >
+                <div className="flex items-start justify-between">
+                  <div className="space-y-1">
+                    <p className="text-sm font-semibold">
+                      {selectedDay.info.reservation
+                        ? selectedDay.info.reservation.guest_name
+                        : selectedDay.info.booking?.summary || "Guest"}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {format(selectedDay.date, "MMMM d, yyyy")}
+                    </p>
+                    {selectedDay.info.reservation && (
+                      <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1">
+                        <span>{selectedDay.info.reservation.source}</span>
+                        <span>·</span>
+                        <span className="font-medium text-foreground">
+                          {selectedDay.info.reservation.net_payout.toLocaleString()} {selectedProperty?.currency}
+                        </span>
+                        <span>·</span>
+                        <span className={`px-1.5 py-0.5 rounded-full font-medium ${
+                          selectedDay.info.reservation.status === "Paid" ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"
+                        }`}>
+                          {selectedDay.info.reservation.status}
+                        </span>
+                      </div>
+                    )}
+                    {selectedDay.info.isPending && (
+                      <p className="text-xs text-orange-600 font-medium mt-1">Pending admin verification</p>
+                    )}
+                  </div>
+                  <Button variant="ghost" size="sm" className="text-xs h-7" onClick={() => setSelectedDay(null)}>
+                    Close
+                  </Button>
+                </div>
+              </motion.div>
+            )}
           </Card>
         </motion.div>
 

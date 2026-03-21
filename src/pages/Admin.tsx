@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, LogOut, Copy, RefreshCw, Pencil, Trash2, Check, Building2, List } from "lucide-react";
+import { Plus, LogOut, Copy, RefreshCw, Pencil, Trash2, Check, Building2, List, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -13,6 +13,7 @@ import { getAdminProperties, createProperty, updateProperty, deleteProperty, fet
 import { toast } from "sonner";
 import { ManageReservations } from "@/components/ManageReservations";
 import { MasterReservationList } from "@/components/MasterReservationList";
+import { PendingPayouts } from "@/components/PendingPayouts";
 
 interface Property {
   id: string;
@@ -44,7 +45,7 @@ const Admin = () => {
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState("properties");
+  const [activeTab, setActiveTab] = useState("pending");
 
   const session = getSession();
 
@@ -229,6 +230,10 @@ const Admin = () => {
       <main className="container px-4 py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList>
+            <TabsTrigger value="pending">
+              <Clock className="w-4 h-4 mr-1.5" />
+              Pending Payouts
+            </TabsTrigger>
             <TabsTrigger value="properties">
               <Building2 className="w-4 h-4 mr-1.5" />
               Properties
@@ -238,6 +243,26 @@ const Admin = () => {
               All Reservations
             </TabsTrigger>
           </TabsList>
+
+          <TabsContent value="pending">
+            <Card className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-semibold flex items-center gap-2">
+                  <Clock className="w-4 h-4" />
+                  Pending iCal Events
+                </h3>
+                <p className="text-xs text-muted-foreground">Click "Add Payout" to confirm a reservation</p>
+              </div>
+              {loading ? (
+                <div className="text-center py-8 text-muted-foreground">Loading...</div>
+              ) : (
+                <PendingPayouts
+                  adminPin={session!.pin}
+                  properties={properties.map((p) => ({ id: p.id, name: p.name, currency: p.currency }))}
+                />
+              )}
+            </Card>
+          </TabsContent>
 
           <TabsContent value="properties">
             {loading ? (
