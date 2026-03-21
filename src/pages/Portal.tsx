@@ -58,6 +58,7 @@ interface Booking {
   start_date: string;
   end_date: string;
   status: string;
+  source_url: string | null;
 }
 
 interface Property {
