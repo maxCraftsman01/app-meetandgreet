@@ -156,9 +156,11 @@ export function PendingPayouts({ adminPin, properties, propertyId }: Props) {
                     <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-orange-100 text-orange-800">
                       Pending
                     </span>
-                    <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
-                      {evt.property_name}
-                    </span>
+                    {!propertyId && (
+                      <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+                        {evt.property_name}
+                      </span>
+                    )}
                   </div>
                   <div className="text-xs text-muted-foreground flex items-center gap-2 flex-wrap">
                     <span>
