@@ -84,6 +84,7 @@ const Index = () => {
         properties: result.properties,
       });
       if (result.role === "admin") navigate("/admin");
+      else if (result.role === "cleaner") navigate("/cleaner");
       else navigate("/portal");
     } catch {
       setError("Invalid PIN. Please try again.");
