@@ -136,8 +136,22 @@ export async function markAsCleaned(cleanerPin: string, reservationId: string) {
   });
 }
 
+// Admin mark cleaned
+export async function adminMarkCleaned(adminPin: string, reservationId: string) {
+  return callFunction("cleaner-operations", {
+    method: "PUT",
+    headers: { "x-admin-pin": adminPin },
+    body: { reservation_id: reservationId },
+  });
+}
+
 // Admin daily operations
 export async function getDailyOperations(adminPin: string) {
+  return callFunction("cleaner-operations", {
+    method: "GET",
+    headers: { "x-admin-pin": adminPin },
+  });
+}
   return callFunction("cleaner-operations", {
     method: "GET",
     headers: { "x-admin-pin": adminPin },

@@ -67,9 +67,15 @@ Deno.serve(async (req) => {
     if (method === "PUT") {
       const id = url.searchParams.get("id");
       const body = await req.json();
+      // Preserve cleaning_status unless explicitly provided
+      const { cleaning_status, ...updateFields } = body;
+      const updateData: Record<string, unknown> = { ...updateFields, updated_at: new Date().toISOString() };
+      if (cleaning_status !== undefined) {
+        updateData.cleaning_status = cleaning_status;
+      }
       const { data, error } = await supabase
         .from("manual_reservations")
-        .update({ ...body, updated_at: new Date().toISOString() })
+        .update(updateData)
         .eq("id", id)
         .select()
         .single();

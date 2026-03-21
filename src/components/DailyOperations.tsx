@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { RefreshCw, Bell, CheckCircle2, AlertTriangle, Clock, Sparkles, Building2 } from "lucide-react";
+import { RefreshCw, Bell, CheckCircle2, AlertTriangle, Clock, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { getDailyOperations } from "@/lib/api";
+import { getDailyOperations, adminMarkCleaned } from "@/lib/api";
 import { toast } from "sonner";
 
 interface PropertyStatus {
@@ -46,6 +46,7 @@ const STATUS_ICONS: Record<string, typeof AlertTriangle> = {
 export function DailyOperations({ adminPin }: { adminPin: string }) {
   const [properties, setProperties] = useState<PropertyStatus[]>([]);
   const [loading, setLoading] = useState(true);
+  const [markingId, setMarkingId] = useState<string | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -68,6 +69,21 @@ export function DailyOperations({ adminPin }: { adminPin: string }) {
     toast.success(`Notification sent to ${prop.owner_name}: ${prop.name} is ready!`);
   };
 
+  const handleMarkCleaned = async (prop: PropertyStatus) => {
+    const resId = prop.arrival_reservation?.id;
+    if (!resId) return;
+    setMarkingId(resId);
+    try {
+      await adminMarkCleaned(adminPin, resId);
+      toast.success(`${prop.name} marked as cleaned`);
+      await load();
+    } catch {
+      toast.error("Failed to update cleaning status");
+    } finally {
+      setMarkingId(null);
+    }
+  };
+
   const counts = {
     "same-day": properties.filter((p) => p.status === "same-day").length,
     "checkout-only": properties.filter((p) => p.status === "checkout-only").length,
@@ -82,9 +98,62 @@ export function DailyOperations({ adminPin }: { adminPin: string }) {
     return <div className="flex justify-center py-12 text-muted-foreground">Loading...</div>;
   }
 
-  // Sort: urgent first
-  const priority: Record<string, number> = { "same-day": 0, "checkout-only": 1, "arrival-pending": 2, "arrival-ready": 3, idle: 4 };
-  const sorted = [...properties].sort((a, b) => (priority[a.status] ?? 5) - (priority[b.status] ?? 5));
+  // Group into sections
+  const cleaningNeeded = properties.filter((p) => p.status === "same-day" || p.status === "arrival-pending");
+  const readyForGuest = properties.filter((p) => p.status === "arrival-ready");
+  const otherActivity = properties.filter((p) => p.status === "checkout-only");
+
+  // Sort: urgent first within each group
+  const priority: Record<string, number> = { "same-day": 0, "arrival-pending": 1 };
+  cleaningNeeded.sort((a, b) => (priority[a.status] ?? 2) - (priority[b.status] ?? 2));
+
+  const allSorted = [...properties].sort(
+    (a, b) => ({ "same-day": 0, "checkout-only": 1, "arrival-pending": 2, "arrival-ready": 3, idle: 4 }[a.status] ?? 5) - ({ "same-day": 0, "checkout-only": 1, "arrival-pending": 2, "arrival-ready": 3, idle: 4 }[b.status] ?? 5)
+  );
+
+  const renderCard = (p: PropertyStatus, i: number) => {
+    return (
+      <motion.div
+        key={p.id}
+        initial={{ opacity: 0, x: -12 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ delay: i * 0.06, duration: 0.4 }}
+      >
+        <Card className="p-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className={`w-3 h-3 rounded-full shrink-0 ${DOT_COLORS[p.status]}`} />
+            <div>
+              <p className="font-medium text-sm">{p.name}</p>
+              <p className="text-xs text-muted-foreground">
+                {STATUS_LABELS[p.status]}
+                {p.arrival_reservation && ` · ${p.arrival_reservation.guest_name}`}
+              </p>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            {(p.status === "same-day" || p.status === "arrival-pending") && p.arrival_reservation?.id && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-xs"
+                disabled={markingId === p.arrival_reservation.id}
+                onClick={() => handleMarkCleaned(p)}
+              >
+                <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
+                {markingId === p.arrival_reservation.id ? "Updating..." : "Confirm Cleaning"}
+              </Button>
+            )}
+            {p.status === "arrival-ready" && (
+              <Button variant="outline" size="sm" className="text-xs" onClick={() => handleNotifyOwner(p)}>
+                <Bell className="w-3.5 h-3.5 mr-1" />
+                Notify Owner
+              </Button>
+            )}
+          </div>
+        </Card>
+      </motion.div>
+    );
+  };
 
   return (
     <div className="space-y-6">
@@ -110,11 +179,11 @@ export function DailyOperations({ adminPin }: { adminPin: string }) {
         ))}
       </div>
 
-      {/* Live Map: colored dots grid */}
+      {/* Live Map */}
       <Card className="p-5">
         <h4 className="text-sm font-medium mb-4">Property Map</h4>
         <div className="flex flex-wrap gap-3">
-          {sorted.map((p, i) => (
+          {allSorted.map((p, i) => (
             <motion.div
               key={p.id}
               initial={{ opacity: 0, scale: 0.8 }}
@@ -139,39 +208,38 @@ export function DailyOperations({ adminPin }: { adminPin: string }) {
         </div>
       </Card>
 
-      {/* Detailed list */}
-      <div className="space-y-3">
-        {sorted.filter((p) => p.status !== "idle").map((p, i) => {
-          const Icon = STATUS_ICONS[p.status] || Sparkles;
-          return (
-            <motion.div
-              key={p.id}
-              initial={{ opacity: 0, x: -12 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: i * 0.06, duration: 0.4 }}
-            >
-              <Card className="p-4 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className={`w-3 h-3 rounded-full shrink-0 ${DOT_COLORS[p.status]}`} />
-                  <div>
-                    <p className="font-medium text-sm">{p.name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {STATUS_LABELS[p.status]}
-                      {p.arrival_reservation && ` · ${p.arrival_reservation.guest_name}`}
-                    </p>
-                  </div>
-                </div>
-                {p.status === "arrival-ready" && (
-                  <Button variant="outline" size="sm" className="text-xs" onClick={() => handleNotifyOwner(p)}>
-                    <Bell className="w-3.5 h-3.5 mr-1" />
-                    Notify Owner
-                  </Button>
-                )}
-              </Card>
-            </motion.div>
-          );
-        })}
-      </div>
+      {/* Cleaning Needed section */}
+      {cleaningNeeded.length > 0 && (
+        <div className="space-y-3">
+          <h4 className="text-sm font-semibold flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 text-orange-500" />
+            Cleaning Needed ({cleaningNeeded.length})
+          </h4>
+          {cleaningNeeded.map((p, i) => renderCard(p, i))}
+        </div>
+      )}
+
+      {/* Ready for Guest section */}
+      {readyForGuest.length > 0 && (
+        <div className="space-y-3">
+          <h4 className="text-sm font-semibold flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+            Ready for Guest ({readyForGuest.length})
+          </h4>
+          {readyForGuest.map((p, i) => renderCard(p, i))}
+        </div>
+      )}
+
+      {/* Other Activity section */}
+      {otherActivity.length > 0 && (
+        <div className="space-y-3">
+          <h4 className="text-sm font-semibold flex items-center gap-2">
+            <Clock className="w-4 h-4 text-yellow-500" />
+            Check-outs Only ({otherActivity.length})
+          </h4>
+          {otherActivity.map((p, i) => renderCard(p, i))}
+        </div>
+      )}
     </div>
   );
 }
