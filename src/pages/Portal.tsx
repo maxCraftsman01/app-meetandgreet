@@ -405,49 +405,31 @@ const Portal = () => {
             animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
             transition={{ delay: 0.1, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
           >
-            <div className="grid gap-4 sm:grid-cols-3">
-              <Card className="p-5">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-status-booked-light flex items-center justify-center">
-                    <CalendarDays className="w-5 h-5 text-status-booked" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Booked Nights</p>
-                    <p className="text-2xl font-semibold tabular-nums">
-                      {financials.bookedNights}
-                      <span className="text-sm font-normal text-muted-foreground">
-                        /{financials.daysInMonth}
-                      </span>
-                    </p>
-                  </div>
-                </div>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <Card className="p-4 sm:p-5">
+                <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-1">Reservations</p>
+                <p className="text-2xl sm:text-3xl font-semibold tabular-nums">
+                  {propertyBookings.filter((b) => b.status !== "blocked").length}
+                </p>
               </Card>
 
-              <Card className="p-5">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-status-available-light flex items-center justify-center">
-                    <TrendingUp className="w-5 h-5 text-status-available" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Occupancy</p>
-                    <p className="text-2xl font-semibold tabular-nums">{financials.occupancy}%</p>
-                  </div>
-                </div>
+              <Card className="p-4 sm:p-5">
+                <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-1">Nights Booked</p>
+                <p className="text-2xl sm:text-3xl font-semibold tabular-nums">
+                  {financials.bookedNights}
+                </p>
               </Card>
 
-              <Card className="p-5">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
-                    <DollarSign className="w-5 h-5 text-foreground" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Est. Revenue</p>
-                    <p className="text-2xl font-semibold tabular-nums">
-                      {selectedProperty.currency === "EUR" ? "€" : selectedProperty.currency}{" "}
-                      {financials.revenue.toLocaleString()}
-                    </p>
-                  </div>
-                </div>
+              <Card className="p-4 sm:p-5">
+                <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-1">Occupancy</p>
+                <p className="text-2xl sm:text-3xl font-semibold tabular-nums">{financials.occupancy}%</p>
+              </Card>
+
+              <Card className="p-4 sm:p-5">
+                <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-1">Est. Revenue</p>
+                <p className="text-2xl sm:text-3xl font-semibold tabular-nums">
+                  {financials.revenue.toLocaleString()} {selectedProperty.currency}
+                </p>
               </Card>
             </div>
           </motion.div>
