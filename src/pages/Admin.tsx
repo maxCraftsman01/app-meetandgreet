@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, LogOut, Copy, RefreshCw, Pencil, Trash2, Check, Building2, List, Clock, ChevronDown } from "lucide-react";
+import { Plus, LogOut, Copy, RefreshCw, Pencil, Trash2, Check, Building2, List, Clock, ChevronDown, Activity } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { ManageReservations } from "@/components/ManageReservations";
 import { MasterReservationList } from "@/components/MasterReservationList";
 import { PendingPayouts } from "@/components/PendingPayouts";
+import { DailyOperations } from "@/components/DailyOperations";
 
 interface Property {
   id: string;
@@ -31,9 +32,12 @@ const emptyForm = {
   name: "",
   owner_name: "",
   owner_pin: "",
+  cleaner_pin: "",
   ical_urls: "",
   nightly_rate: "",
   currency: "EUR",
+  keybox_code: "",
+  cleaning_notes: "",
 };
 
 const Admin = () => {
@@ -95,9 +99,12 @@ const Admin = () => {
         name: form.name,
         owner_name: form.owner_name,
         owner_pin: form.owner_pin,
+        cleaner_pin: form.cleaner_pin,
         ical_urls: form.ical_urls.split("\n").map((u) => u.trim()).filter(Boolean),
         nightly_rate: parseFloat(form.nightly_rate) || 0,
         currency: form.currency,
+        keybox_code: form.keybox_code,
+        cleaning_notes: form.cleaning_notes,
       };
       if (editingId) {
         await updateProperty(session!.pin, editingId, payload);
@@ -134,9 +141,12 @@ const Admin = () => {
       name: p.name,
       owner_name: p.owner_name,
       owner_pin: p.owner_pin,
+      cleaner_pin: (p as any).cleaner_pin || "",
       ical_urls: (p.ical_urls || []).join("\n"),
       nightly_rate: String(p.nightly_rate),
       currency: p.currency,
+      keybox_code: (p as any).keybox_code || "",
+      cleaning_notes: (p as any).cleaning_notes || "",
     });
     setDialogOpen(true);
   };
@@ -219,6 +229,16 @@ const Admin = () => {
                       </div>
                     </div>
                   </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label>Cleaner PIN (8 digits)</Label>
+                      <Input value={form.cleaner_pin} onChange={(e) => setForm({ ...form, cleaner_pin: e.target.value.replace(/\D/g, "").slice(0, 8) })} placeholder="87654321" maxLength={8} className="font-mono" />
+                    </div>
+                    <div>
+                      <Label>Keybox Code</Label>
+                      <Input value={form.keybox_code} onChange={(e) => setForm({ ...form, keybox_code: e.target.value })} placeholder="1234" className="font-mono" />
+                    </div>
+                  </div>
                   <div>
                     <Label>iCal URLs (one per line)</Label>
                     <textarea
@@ -226,6 +246,16 @@ const Admin = () => {
                       onChange={(e) => setForm({ ...form, ical_urls: e.target.value })}
                       placeholder={"https://airbnb.com/calendar.ics\nhttps://booking.com/calendar.ics"}
                       rows={3}
+                      className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                    />
+                  </div>
+                  <div>
+                    <Label>Cleaning Notes</Label>
+                    <textarea
+                      value={form.cleaning_notes}
+                      onChange={(e) => setForm({ ...form, cleaning_notes: e.target.value })}
+                      placeholder="Special instructions for cleaning..."
+                      rows={2}
                       className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                     />
                   </div>
@@ -252,6 +282,10 @@ const Admin = () => {
             <TabsTrigger value="master-list">
               <List className="w-4 h-4 mr-1.5" />
               All Reservations
+            </TabsTrigger>
+            <TabsTrigger value="daily-ops">
+              <Activity className="w-4 h-4 mr-1.5" />
+              Daily Ops
             </TabsTrigger>
           </TabsList>
 
@@ -375,6 +409,12 @@ const Admin = () => {
                 adminPin={session!.pin}
                 properties={properties.map((p) => ({ id: p.id, name: p.name, currency: p.currency }))}
               />
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="daily-ops">
+            <Card className="p-6">
+              <DailyOperations adminPin={session!.pin} />
             </Card>
           </TabsContent>
         </Tabs>

@@ -120,3 +120,27 @@ export async function getAdminPendingIcal(adminPin: string) {
   });
 }
 
+// Cleaner operations
+export async function getCleanerTasks(cleanerPin: string) {
+  return callFunction("cleaner-operations", {
+    method: "GET",
+    headers: { "x-cleaner-pin": cleanerPin },
+  });
+}
+
+export async function markAsCleaned(cleanerPin: string, reservationId: string) {
+  return callFunction("cleaner-operations", {
+    method: "PUT",
+    headers: { "x-cleaner-pin": cleanerPin },
+    body: { reservation_id: reservationId },
+  });
+}
+
+// Admin daily operations
+export async function getDailyOperations(adminPin: string) {
+  return callFunction("cleaner-operations", {
+    method: "GET",
+    headers: { "x-admin-pin": adminPin },
+  });
+}
+

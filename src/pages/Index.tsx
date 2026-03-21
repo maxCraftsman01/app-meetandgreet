@@ -19,6 +19,7 @@ const Index = () => {
     const session = getSession();
     if (session?.role === "admin") navigate("/admin");
     else if (session?.role === "owner") navigate("/portal");
+    else if (session?.role === "cleaner") navigate("/cleaner");
   }, [navigate]);
 
   useEffect(() => {
@@ -83,6 +84,7 @@ const Index = () => {
         properties: result.properties,
       });
       if (result.role === "admin") navigate("/admin");
+      else if (result.role === "cleaner") navigate("/cleaner");
       else navigate("/portal");
     } catch {
       setError("Invalid PIN. Please try again.");

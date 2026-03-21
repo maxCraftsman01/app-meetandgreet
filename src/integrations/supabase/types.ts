@@ -59,10 +59,12 @@ export type Database = {
         Row: {
           check_in: string
           check_out: string
+          cleaning_status: string
           created_at: string
           external_id: string | null
           guest_name: string
           id: string
+          last_cleaned_at: string | null
           net_payout: number
           property_id: string
           source: string
@@ -72,10 +74,12 @@ export type Database = {
         Insert: {
           check_in: string
           check_out: string
+          cleaning_status?: string
           created_at?: string
           external_id?: string | null
           guest_name: string
           id?: string
+          last_cleaned_at?: string | null
           net_payout?: number
           property_id: string
           source?: string
@@ -85,10 +89,12 @@ export type Database = {
         Update: {
           check_in?: string
           check_out?: string
+          cleaning_status?: string
           created_at?: string
           external_id?: string | null
           guest_name?: string
           id?: string
+          last_cleaned_at?: string | null
           net_payout?: number
           property_id?: string
           source?: string
@@ -107,30 +113,39 @@ export type Database = {
       }
       properties: {
         Row: {
+          cleaner_pin: string | null
+          cleaning_notes: string | null
           created_at: string
           currency: string
           ical_urls: string[] | null
           id: string
+          keybox_code: string | null
           name: string
           nightly_rate: number
           owner_name: string
           owner_pin: string
         }
         Insert: {
+          cleaner_pin?: string | null
+          cleaning_notes?: string | null
           created_at?: string
           currency?: string
           ical_urls?: string[] | null
           id?: string
+          keybox_code?: string | null
           name: string
           nightly_rate?: number
           owner_name: string
           owner_pin: string
         }
         Update: {
+          cleaner_pin?: string | null
+          cleaning_notes?: string | null
           created_at?: string
           currency?: string
           ical_urls?: string[] | null
           id?: string
+          keybox_code?: string | null
           name?: string
           nightly_rate?: number
           owner_name?: string

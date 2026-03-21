@@ -1,7 +1,7 @@
 const SESSION_KEY = "hams_session";
 
 interface Session {
-  role: "admin" | "owner";
+  role: "admin" | "owner" | "cleaner";
   pin: string;
   properties?: Array<{ id: string; name: string; owner_name: string }>;
 }
