@@ -6,33 +6,33 @@
 
 @layer base {
   :root {
-    --background: 36 33% 97%;
-    --foreground: 28 25% 22%;
+    --background: 39 40% 97%;
+    --foreground: 32 18% 25%;
 
-    --card: 36 30% 99%;
-    --card-foreground: 28 25% 22%;
+    --card: 40 35% 99%;
+    --card-foreground: 32 18% 25%;
 
-    --popover: 36 30% 99%;
-    --popover-foreground: 28 25% 22%;
+    --popover: 40 35% 99%;
+    --popover-foreground: 32 18% 25%;
 
-    --primary: 28 45% 32%;
-    --primary-foreground: 36 33% 97%;
+    --primary: 36 42% 48%;
+    --primary-foreground: 40 40% 98%;
 
-    --secondary: 34 20% 93%;
-    --secondary-foreground: 28 25% 22%;
+    --secondary: 38 28% 93%;
+    --secondary-foreground: 32 18% 25%;
 
-    --muted: 34 20% 93%;
-    --muted-foreground: 28 12% 50%;
+    --muted: 38 28% 93%;
+    --muted-foreground: 36 12% 48%;
 
-    --accent: 34 20% 93%;
-    --accent-foreground: 28 25% 22%;
+    --accent: 38 28% 93%;
+    --accent-foreground: 32 18% 25%;
 
     --destructive: 0 72% 56%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 34 18% 88%;
-    --input: 34 18% 88%;
-    --ring: 28 45% 32%;
+    --border: 38 22% 87%;
+    --input: 38 22% 87%;
+    --ring: 36 42% 48%;
 
     --radius: 0.625rem;
 
@@ -41,21 +41,21 @@
     --status-booked-light: 8 76% 94%;
     --status-available: 152 56% 46%;
     --status-available-light: 152 56% 92%;
-    --status-blocked: 28 8% 62%;
-    --status-blocked-light: 28 8% 92%;
+    --status-blocked: 36 8% 62%;
+    --status-blocked-light: 36 8% 92%;
 
     /* Surfaces */
-    --surface-elevated: 36 30% 99%;
-    --surface-sunken: 34 24% 95%;
+    --surface-elevated: 40 35% 99%;
+    --surface-sunken: 38 30% 95%;
 
-    --sidebar-background: 36 28% 97%;
-    --sidebar-foreground: 28 20% 26%;
-    --sidebar-primary: 28 45% 32%;
-    --sidebar-primary-foreground: 36 33% 97%;
-    --sidebar-accent: 34 18% 94%;
-    --sidebar-accent-foreground: 28 25% 22%;
-    --sidebar-border: 34 16% 89%;
-    --sidebar-ring: 28 45% 42%;
+    --sidebar-background: 39 32% 97%;
+    --sidebar-foreground: 32 16% 28%;
+    --sidebar-primary: 36 42% 48%;
+    --sidebar-primary-foreground: 40 40% 98%;
+    --sidebar-accent: 38 24% 94%;
+    --sidebar-accent-foreground: 32 18% 25%;
+    --sidebar-border: 38 20% 88%;
+    --sidebar-ring: 36 42% 52%;
   }
 }
 
