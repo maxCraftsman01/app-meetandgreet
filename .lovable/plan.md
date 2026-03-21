@@ -1,45 +1,29 @@
 
 
-## Your Idea is Great — With One Enhancement
+## Finalized Cleaning Workflow & Status Logic
 
-Your instinct is spot-on: embedding pending payouts inside each property card makes the workflow much more intuitive. Instead of switching to a separate tab and scanning a mixed list, the admin sees everything in context.
+Most of this is already implemented. Here's what needs to change:
 
-**One thing to consider:** Right now the "Pending Payouts" tab shows events from ALL properties in one list. By moving it per-property, you lose that global overview. I'd recommend keeping the "All Reservations" (master list) tab but removing the dedicated "Pending Payouts" tab — the per-property view replaces it. If you ever want a quick "how many pending across everything?" glance, we can add a small badge/counter to the header later.
+### 1. Ensure `cleaning_status` defaults to `'pending'` on creation
+- **Already done** in the database schema (`cleaning_status text NOT NULL DEFAULT 'pending'`).
+- Verify the `admin-reservations` edge function does NOT set `cleaning_status` on POST — it doesn't, so the DB default applies. No change needed.
 
-## Plan
+### 2. Add "Confirm Cleaning Complete" toggle to Admin Daily Ops
+- **Cleaner Portal**: Already has "Mark as Cleaned" button — no change needed.
+- **Admin DailyOperations.tsx**: Add a "Confirm Cleaning Complete" button on cards with `arrival-pending` or `same-day` status. Clicking calls the existing `markAsCleaned` API (reuse the same edge function endpoint). Once done, reload and card turns green.
 
-### 1. Move Pending Payouts into Property Cards
-- Inside each property card (below the existing `ManageReservations` section), add a collapsible "Pending Payouts" section
-- It will use the existing `PendingPayouts` component but filtered to only show events for that specific property
-- Clicking expands/collapses the list (using an accordion or toggle)
+### 3. Split Daily Ops into "Cleaning Needed" and "Ready for Guest" sections
+- In `DailyOperations.tsx`, replace the single sorted list with two grouped sections:
+  - **Cleaning Needed**: Properties with status `same-day` or `arrival-pending` (Red/Orange cards with the cleaning toggle button).
+  - **Ready for Guest**: Properties with status `arrival-ready` (Green cards with "Notify Owner" button).
+  - **Other Activity**: `checkout-only` shown separately (Yellow, informational).
+- Keep the summary counters and property map as-is.
 
-### 2. Update PendingPayouts Component
-- Add an optional `propertyId` prop to filter events to a single property
-- When `propertyId` is provided, only show iCal events matching that property
-- Simplify the display (remove the property name badge since it's already in context)
+### 4. Data Integrity — preserve `cleaning_status` on reservation edits
+- In `admin-reservations` edge function PUT handler, strip `cleaning_status` from the update body unless explicitly provided. This prevents accidental resets when editing dates.
 
-### 3. Remove the Separate "Pending Payouts" Tab
-- Remove the tab from the admin panel since it's now per-property
-- Default the admin view to the "Properties" tab
-- Keep "All Reservations" master list tab as-is
-
-### 4. UI Layout Inside Property Card
-```text
-┌─────────────────────────────┐
-│ Property Name        [✏️][🗑️]│
-│ Owner · Rate · Bookings     │
-│ PIN: 12345678    [Copy Link]│
-│─────────────────────────────│
-│ ▶ Manage Reservations       │
-│─────────────────────────────│
-│ ▶ Pending Payouts (3)       │  ← new, with count badge
-│   └ Guest 1  Mar 22-25 [Add]│
-│   └ Guest 2  Apr 1-5   [Add]│
-└─────────────────────────────┘
-```
-
-### Technical Details
-- **Files modified:** `src/pages/Admin.tsx`, `src/components/PendingPayouts.tsx`
-- **No database or edge function changes needed** — the existing `admin-pending-ical` endpoint returns `property_id` on each event, so filtering is done client-side
-- The `PendingPayouts` component will accept `propertyId?: string` and filter `pendingEvents` accordingly
+### Files Modified
+- `src/components/DailyOperations.tsx` — add cleaning toggle button, split list into sections
+- `supabase/functions/admin-reservations/index.ts` — preserve `cleaning_status` on updates
+- `src/lib/api.ts` — add admin-facing `markAsCleaned` variant using admin pin
 
