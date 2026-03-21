@@ -21,6 +21,7 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/admin" element={<Admin />} />
           <Route path="/portal" element={<Portal />} />
+          <Route path="/cleaner" element={<Cleaner />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
