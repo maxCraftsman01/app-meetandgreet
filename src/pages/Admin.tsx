@@ -32,9 +32,12 @@ const emptyForm = {
   name: "",
   owner_name: "",
   owner_pin: "",
+  cleaner_pin: "",
   ical_urls: "",
   nightly_rate: "",
   currency: "EUR",
+  keybox_code: "",
+  cleaning_notes: "",
 };
 
 const Admin = () => {
