@@ -55,6 +55,53 @@ export type Database = {
           },
         ]
       }
+      manual_reservations: {
+        Row: {
+          check_in: string
+          check_out: string
+          created_at: string
+          guest_name: string
+          id: string
+          net_payout: number
+          property_id: string
+          source: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          check_in: string
+          check_out: string
+          created_at?: string
+          guest_name: string
+          id?: string
+          net_payout?: number
+          property_id: string
+          source?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          check_in?: string
+          check_out?: string
+          created_at?: string
+          guest_name?: string
+          id?: string
+          net_payout?: number
+          property_id?: string
+          source?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "manual_reservations_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       properties: {
         Row: {
           created_at: string
