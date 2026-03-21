@@ -75,7 +75,10 @@ export function PendingPayouts({ adminPin, properties, propertyId }: Props) {
           external_id: `${evt.property_id}_${evt.start_date}_${evt.end_date}`,
         };
       });
-      setPendingEvents(enriched);
+      const filtered = propertyId
+        ? enriched.filter((e: ICalEvent) => e.property_id === propertyId)
+        : enriched;
+      setPendingEvents(filtered);
     } catch {
       toast.error("Failed to load pending events");
     } finally {
