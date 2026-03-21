@@ -389,11 +389,13 @@ const Portal = () => {
                 const pendingStyle = info.isPending
                   ? "bg-orange-100 border-orange-400 text-orange-700"
                   : statusColors[info.status];
+                const isClickable = info.isManual || info.isPending;
                 return (
                   <div
                     key={day.toISOString()}
                     title={info.label}
-                    className={`relative aspect-square flex items-center justify-center rounded-lg text-sm font-medium transition-colors duration-150 ${pendingStyle} ${isToday(day) ? "ring-2 ring-foreground ring-offset-1" : ""} border`}
+                    onClick={() => isClickable ? setSelectedDay({ date: day, info }) : null}
+                    className={`relative aspect-square flex items-center justify-center rounded-lg text-sm font-medium transition-colors duration-150 ${pendingStyle} ${isToday(day) ? "ring-2 ring-foreground ring-offset-1" : ""} border ${isClickable ? "cursor-pointer hover:opacity-80" : ""}`}
                   >
                     {format(day, "d")}
                   </div>
