@@ -151,10 +151,5 @@ export async function getDailyOperations(adminPin: string) {
     method: "GET",
     headers: { "x-admin-pin": adminPin },
   });
-}
-  return callFunction("cleaner-operations", {
-    method: "GET",
-    headers: { "x-admin-pin": adminPin },
-  });
-}
+
 
