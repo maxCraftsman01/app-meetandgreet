@@ -14,7 +14,80 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      bookings: {
+        Row: {
+          end_date: string
+          id: string
+          property_id: string
+          source_url: string | null
+          start_date: string
+          status: string
+          summary: string | null
+          synced_at: string
+        }
+        Insert: {
+          end_date: string
+          id?: string
+          property_id: string
+          source_url?: string | null
+          start_date: string
+          status?: string
+          summary?: string | null
+          synced_at?: string
+        }
+        Update: {
+          end_date?: string
+          id?: string
+          property_id?: string
+          source_url?: string | null
+          start_date?: string
+          status?: string
+          summary?: string | null
+          synced_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bookings_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      properties: {
+        Row: {
+          created_at: string
+          currency: string
+          ical_urls: string[] | null
+          id: string
+          name: string
+          nightly_rate: number
+          owner_name: string
+          owner_pin: string
+        }
+        Insert: {
+          created_at?: string
+          currency?: string
+          ical_urls?: string[] | null
+          id?: string
+          name: string
+          nightly_rate?: number
+          owner_name: string
+          owner_pin: string
+        }
+        Update: {
+          created_at?: string
+          currency?: string
+          ical_urls?: string[] | null
+          id?: string
+          name?: string
+          nightly_rate?: number
+          owner_name?: string
+          owner_pin?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
