@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { ManageReservations } from "@/components/ManageReservations";
 import { MasterReservationList } from "@/components/MasterReservationList";
 import { PendingPayouts } from "@/components/PendingPayouts";
+import { DailyOperations } from "@/components/DailyOperations";
 
 interface Property {
   id: string;
