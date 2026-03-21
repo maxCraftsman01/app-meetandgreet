@@ -44,8 +44,19 @@ Deno.serve(async (req) => {
       .in("property_id", propertyIds)
       .order("start_date");
 
+    // Get manual reservations for all properties
+    const { data: manualReservations } = await supabase
+      .from("manual_reservations")
+      .select("*")
+      .in("property_id", propertyIds)
+      .order("check_in");
+
     return new Response(
-      JSON.stringify({ properties, bookings: bookings || [] }),
+      JSON.stringify({
+        properties,
+        bookings: bookings || [],
+        manual_reservations: manualReservations || [],
+      }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {

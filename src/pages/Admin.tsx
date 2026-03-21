@@ -1,15 +1,18 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, LogOut, Copy, RefreshCw, Pencil, Trash2, Check, Building2 } from "lucide-react";
+import { Plus, LogOut, Copy, RefreshCw, Pencil, Trash2, Check, Building2, List } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getSession, clearSession } from "@/lib/session";
 import { getAdminProperties, createProperty, updateProperty, deleteProperty, fetchIcal } from "@/lib/api";
 import { toast } from "sonner";
+import { ManageReservations } from "@/components/ManageReservations";
+import { MasterReservationList } from "@/components/MasterReservationList";
 
 interface Property {
   id: string;
@@ -41,6 +44,7 @@ const Admin = () => {
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState("properties");
 
   const session = getSession();
 
@@ -223,78 +227,116 @@ const Admin = () => {
       </header>
 
       <main className="container px-4 py-8">
-        {loading ? (
-          <div className="flex justify-center py-20 text-muted-foreground">Loading...</div>
-        ) : properties.length === 0 ? (
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="text-center py-20"
-          >
-            <p className="text-muted-foreground mb-4">No properties yet. Add your first one.</p>
-            <Button onClick={() => setDialogOpen(true)}>
-              <Plus className="w-4 h-4 mr-1.5" />
-              Add Property
-            </Button>
-          </motion.div>
-        ) : (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            <AnimatePresence>
-              {properties.map((p, i) => (
-                <motion.div
-                  key={p.id}
-                  initial={{ opacity: 0, y: 16, filter: "blur(4px)" }}
-                  animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  transition={{ delay: i * 0.06, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-                >
-                  <Card className="p-5 hover:shadow-md transition-shadow duration-200">
-                    <div className="flex items-start justify-between mb-3">
-                      <div>
-                        <h3 className="font-semibold">{p.name}</h3>
-                        <p className="text-sm text-muted-foreground">{p.owner_name}</p>
-                      </div>
-                      <div className="flex gap-1">
-                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEdit(p)}>
-                          <Pencil className="w-3.5 h-3.5" />
-                        </Button>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleDelete(p.id)}>
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </Button>
-                      </div>
-                    </div>
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">
-                        {p.nightly_rate} {p.currency}/night
-                      </span>
-                      <span className="text-muted-foreground">
-                        {p.active_bookings} active booking{p.active_bookings !== 1 ? "s" : ""}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2 mt-3 pt-3 border-t border-border">
-                      <span className="text-xs font-mono text-muted-foreground bg-muted px-2 py-1 rounded">
-                        PIN: {p.owner_pin}
-                      </span>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="ml-auto h-7 text-xs"
-                        onClick={() => handleCopyLink(p.owner_pin, p.id)}
-                      >
-                        {copiedId === p.id ? (
-                          <Check className="w-3 h-3 mr-1" />
-                        ) : (
-                          <Copy className="w-3 h-3 mr-1" />
-                        )}
-                        {copiedId === p.id ? "Copied" : "Copy Link"}
-                      </Button>
-                    </div>
-                  </Card>
-                </motion.div>
-              ))}
-            </AnimatePresence>
-          </div>
-        )}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <TabsList>
+            <TabsTrigger value="properties">
+              <Building2 className="w-4 h-4 mr-1.5" />
+              Properties
+            </TabsTrigger>
+            <TabsTrigger value="master-list">
+              <List className="w-4 h-4 mr-1.5" />
+              All Reservations
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="properties">
+            {loading ? (
+              <div className="flex justify-center py-20 text-muted-foreground">Loading...</div>
+            ) : properties.length === 0 ? (
+              <motion.div
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="text-center py-20"
+              >
+                <p className="text-muted-foreground mb-4">No properties yet. Add your first one.</p>
+                <Button onClick={() => setDialogOpen(true)}>
+                  <Plus className="w-4 h-4 mr-1.5" />
+                  Add Property
+                </Button>
+              </motion.div>
+            ) : (
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                <AnimatePresence>
+                  {properties.map((p, i) => (
+                    <motion.div
+                      key={p.id}
+                      initial={{ opacity: 0, y: 16, filter: "blur(4px)" }}
+                      animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                      exit={{ opacity: 0, scale: 0.95 }}
+                      transition={{ delay: i * 0.06, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+                    >
+                      <Card className="p-5 hover:shadow-md transition-shadow duration-200">
+                        <div className="flex items-start justify-between mb-3">
+                          <div>
+                            <h3 className="font-semibold">{p.name}</h3>
+                            <p className="text-sm text-muted-foreground">{p.owner_name}</p>
+                          </div>
+                          <div className="flex gap-1">
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEdit(p)}>
+                              <Pencil className="w-3.5 h-3.5" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleDelete(p.id)}>
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </Button>
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-muted-foreground">
+                            {p.nightly_rate} {p.currency}/night
+                          </span>
+                          <span className="text-muted-foreground">
+                            {p.active_bookings} active booking{p.active_bookings !== 1 ? "s" : ""}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 mt-3 pt-3 border-t border-border">
+                          <span className="text-xs font-mono text-muted-foreground bg-muted px-2 py-1 rounded">
+                            PIN: {p.owner_pin}
+                          </span>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="ml-auto h-7 text-xs"
+                            onClick={() => handleCopyLink(p.owner_pin, p.id)}
+                          >
+                            {copiedId === p.id ? (
+                              <Check className="w-3 h-3 mr-1" />
+                            ) : (
+                              <Copy className="w-3 h-3 mr-1" />
+                            )}
+                            {copiedId === p.id ? "Copied" : "Copy Link"}
+                          </Button>
+                        </div>
+
+                        {/* Manual Reservations Section */}
+                        <div className="mt-4 pt-4 border-t border-border">
+                          <ManageReservations
+                            adminPin={session!.pin}
+                            propertyId={p.id}
+                            propertyName={p.name}
+                            currency={p.currency}
+                          />
+                        </div>
+                      </Card>
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="master-list">
+            <Card className="p-6">
+              <h3 className="font-semibold mb-4 flex items-center gap-2">
+                <List className="w-4 h-4" />
+                All Manual Reservations
+              </h3>
+              <MasterReservationList
+                adminPin={session!.pin}
+                properties={properties.map((p) => ({ id: p.id, name: p.name, currency: p.currency }))}
+              />
+            </Card>
+          </TabsContent>
+        </Tabs>
       </main>
     </div>
   );
