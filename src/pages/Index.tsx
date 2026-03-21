@@ -19,6 +19,7 @@ const Index = () => {
     const session = getSession();
     if (session?.role === "admin") navigate("/admin");
     else if (session?.role === "owner") navigate("/portal");
+    else if (session?.role === "cleaner") navigate("/cleaner");
   }, [navigate]);
 
   useEffect(() => {
