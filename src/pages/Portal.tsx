@@ -217,15 +217,17 @@ const Portal = () => {
   const days = eachDayOfInterval({ start: monthStart, end: monthEnd });
   const startPad = getDay(monthStart);
 
+  const [selectedDay, setSelectedDay] = useState<{ date: Date; info: any } | null>(null);
+
   // Smart overlay: manual reservation takes priority over iCal
-  const getDayInfo = (day: Date): { status: string; label: string; isManual: boolean; isPending: boolean } => {
+  const getDayInfo = (day: Date): { status: string; label: string; isManual: boolean; isPending: boolean; reservation?: ManualReservation; booking?: Booking } => {
     // Check manual reservations first
     for (const r of propertyManual) {
       if (r.status === "Cancelled") continue;
       const start = startOfDay(parseISO(r.check_in));
       const end = startOfDay(parseISO(r.check_out));
       if (isWithinInterval(day, { start, end: endOfDay(end) })) {
-        return { status: "booked", label: `${r.guest_name} (${r.source})`, isManual: true, isPending: false };
+        return { status: "booked", label: `${r.guest_name} (${r.source})`, isManual: true, isPending: false, reservation: r };
       }
     }
     // Then check iCal bookings
@@ -236,7 +238,7 @@ const Portal = () => {
         if (b.status === "blocked") {
           return { status: "blocked", label: "Blocked", isManual: false, isPending: false };
         }
-        return { status: "booked", label: "Booked (Pending Verification)", isManual: false, isPending: true };
+        return { status: "booked", label: `${b.summary || "Booked"} (Pending Verification)`, isManual: false, isPending: true, booking: b };
       }
     }
     return { status: "available", label: "Available", isManual: false, isPending: false };
