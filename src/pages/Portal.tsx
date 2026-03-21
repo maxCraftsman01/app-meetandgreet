@@ -421,6 +421,49 @@ const Portal = () => {
                 <span className="text-xs text-muted-foreground">Blocked</span>
               </div>
             </div>
+
+            {/* Booking detail on click */}
+            {selectedDay && (
+              <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mt-4 pt-4 border-t border-border"
+              >
+                <div className="flex items-start justify-between">
+                  <div className="space-y-1">
+                    <p className="text-sm font-semibold">
+                      {selectedDay.info.reservation
+                        ? selectedDay.info.reservation.guest_name
+                        : selectedDay.info.booking?.summary || "Guest"}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {format(selectedDay.date, "MMMM d, yyyy")}
+                    </p>
+                    {selectedDay.info.reservation && (
+                      <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1">
+                        <span>{selectedDay.info.reservation.source}</span>
+                        <span>·</span>
+                        <span className="font-medium text-foreground">
+                          {selectedDay.info.reservation.net_payout.toLocaleString()} {selectedProperty?.currency}
+                        </span>
+                        <span>·</span>
+                        <span className={`px-1.5 py-0.5 rounded-full font-medium ${
+                          selectedDay.info.reservation.status === "Paid" ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"
+                        }`}>
+                          {selectedDay.info.reservation.status}
+                        </span>
+                      </div>
+                    )}
+                    {selectedDay.info.isPending && (
+                      <p className="text-xs text-orange-600 font-medium mt-1">Pending admin verification</p>
+                    )}
+                  </div>
+                  <Button variant="ghost" size="sm" className="text-xs h-7" onClick={() => setSelectedDay(null)}>
+                    Close
+                  </Button>
+                </div>
+              </motion.div>
+            )}
           </Card>
         </motion.div>
 
