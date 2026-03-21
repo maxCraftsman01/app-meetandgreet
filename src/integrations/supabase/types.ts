@@ -60,6 +60,7 @@ export type Database = {
           check_in: string
           check_out: string
           created_at: string
+          external_id: string | null
           guest_name: string
           id: string
           net_payout: number
@@ -72,6 +73,7 @@ export type Database = {
           check_in: string
           check_out: string
           created_at?: string
+          external_id?: string | null
           guest_name: string
           id?: string
           net_payout?: number
@@ -84,6 +86,7 @@ export type Database = {
           check_in?: string
           check_out?: string
           created_at?: string
+          external_id?: string | null
           guest_name?: string
           id?: string
           net_payout?: number
