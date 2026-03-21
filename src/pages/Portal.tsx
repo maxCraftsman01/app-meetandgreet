@@ -157,12 +157,13 @@ const Portal = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedPropertyId, currentMonth, propertyBookings, selectedProperty]);
 
-  // Chart data - 6 months
+  // Chart data - full year (Jan–Dec)
   const chartData = useMemo(() => {
     if (!selectedProperty) return [];
     const months = [];
-    for (let i = -2; i <= 3; i++) {
-      const m = addMonths(new Date(), i);
+    const year = new Date().getFullYear();
+    for (let i = 0; i < 12; i++) {
+      const m = new Date(year, i, 1);
       const mStart = startOfMonth(m);
       const mEnd = endOfMonth(m);
       const mDays = eachDayOfInterval({ start: mStart, end: mEnd });
