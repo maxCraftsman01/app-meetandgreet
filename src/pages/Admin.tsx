@@ -229,6 +229,16 @@ const Admin = () => {
                       </div>
                     </div>
                   </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label>Cleaner PIN (8 digits)</Label>
+                      <Input value={form.cleaner_pin} onChange={(e) => setForm({ ...form, cleaner_pin: e.target.value.replace(/\D/g, "").slice(0, 8) })} placeholder="87654321" maxLength={8} className="font-mono" />
+                    </div>
+                    <div>
+                      <Label>Keybox Code</Label>
+                      <Input value={form.keybox_code} onChange={(e) => setForm({ ...form, keybox_code: e.target.value })} placeholder="1234" className="font-mono" />
+                    </div>
+                  </div>
                   <div>
                     <Label>iCal URLs (one per line)</Label>
                     <textarea
@@ -236,6 +246,16 @@ const Admin = () => {
                       onChange={(e) => setForm({ ...form, ical_urls: e.target.value })}
                       placeholder={"https://airbnb.com/calendar.ics\nhttps://booking.com/calendar.ics"}
                       rows={3}
+                      className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                    />
+                  </div>
+                  <div>
+                    <Label>Cleaning Notes</Label>
+                    <textarea
+                      value={form.cleaning_notes}
+                      onChange={(e) => setForm({ ...form, cleaning_notes: e.target.value })}
+                      placeholder="Special instructions for cleaning..."
+                      rows={2}
                       className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
                     />
                   </div>
