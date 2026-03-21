@@ -39,6 +39,7 @@ interface ICalEvent {
 interface Props {
   adminPin: string;
   properties: { id: string; name: string; currency: string }[];
+  propertyId?: string;
 }
 
 const STATUSES = ["Confirmed", "Paid"];
