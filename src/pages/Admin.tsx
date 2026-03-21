@@ -141,9 +141,12 @@ const Admin = () => {
       name: p.name,
       owner_name: p.owner_name,
       owner_pin: p.owner_pin,
+      cleaner_pin: (p as any).cleaner_pin || "",
       ical_urls: (p.ical_urls || []).join("\n"),
       nightly_rate: String(p.nightly_rate),
       currency: p.currency,
+      keybox_code: (p as any).keybox_code || "",
+      cleaning_notes: (p as any).cleaning_notes || "",
     });
     setDialogOpen(true);
   };
