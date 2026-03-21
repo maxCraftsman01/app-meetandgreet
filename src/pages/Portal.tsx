@@ -10,6 +10,7 @@ import {
   CalendarDays,
   DollarSign,
   TrendingUp,
+  Globe,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -57,6 +58,7 @@ interface Booking {
   start_date: string;
   end_date: string;
   status: string;
+  source_url: string | null;
 }
 
 interface Property {
@@ -66,6 +68,96 @@ interface Property {
   nightly_rate: number;
   currency: string;
   ical_urls: string[];
+}
+
+const PLATFORM_COLORS: Record<string, string> = {
+  Airbnb: "hsl(356 100% 58%)",
+  "Booking.com": "hsl(220 80% 50%)",
+  Vrbo: "hsl(200 70% 48%)",
+  Direct: "hsl(var(--status-available))",
+  Other: "hsl(var(--muted-foreground))",
+};
+
+function detectPlatform(sourceUrl: string | null): string {
+  if (!sourceUrl) return "Direct";
+  const url = sourceUrl.toLowerCase();
+  if (url.includes("airbnb")) return "Airbnb";
+  if (url.includes("booking.com")) return "Booking.com";
+  if (url.includes("vrbo") || url.includes("homeaway")) return "Vrbo";
+  return "Other";
+}
+
+function PlatformBreakdown({ bookings }: { bookings: Booking[] }) {
+  const activeBookings = bookings.filter((b) => b.status !== "blocked");
+
+  const platformStats = useMemo(() => {
+    const map: Record<string, { count: number; nights: number }> = {};
+    for (const b of activeBookings) {
+      const platform = detectPlatform(b.source_url);
+      if (!map[platform]) map[platform] = { count: 0, nights: 0 };
+      map[platform].count++;
+      const nights = Math.max(
+        0,
+        differenceInDays(parseISO(b.end_date), parseISO(b.start_date))
+      );
+      map[platform].nights += nights;
+    }
+    return Object.entries(map)
+      .map(([name, stats]) => ({ name, ...stats }))
+      .sort((a, b) => b.nights - a.nights);
+  }, [activeBookings]);
+
+  const totalNights = platformStats.reduce((s, p) => s + p.nights, 0);
+
+  if (platformStats.length === 0) {
+    return <p className="text-sm text-muted-foreground">No bookings to analyze.</p>;
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Bar visualization */}
+      <div className="flex h-3 rounded-full overflow-hidden bg-muted">
+        {platformStats.map((p) => (
+          <div
+            key={p.name}
+            style={{
+              width: `${totalNights > 0 ? (p.nights / totalNights) * 100 : 0}%`,
+              backgroundColor: PLATFORM_COLORS[p.name] || PLATFORM_COLORS.Other,
+            }}
+            className="transition-all duration-500"
+          />
+        ))}
+      </div>
+
+      {/* Platform rows */}
+      <div className="space-y-3">
+        {platformStats.map((p) => {
+          const pct = totalNights > 0 ? Math.round((p.nights / totalNights) * 100) : 0;
+          const color = PLATFORM_COLORS[p.name] || PLATFORM_COLORS.Other;
+          return (
+            <div key={p.name} className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div
+                  className="w-3 h-3 rounded-sm shrink-0"
+                  style={{ backgroundColor: color }}
+                />
+                <span className="text-sm font-medium">{p.name}</span>
+              </div>
+              <div className="flex items-center gap-4 text-sm">
+                <span className="text-muted-foreground tabular-nums">
+                  {p.count} booking{p.count !== 1 ? "s" : ""}
+                </span>
+                <span className="text-muted-foreground tabular-nums">
+                  {p.nights} night{p.nights !== 1 ? "s" : ""}
+                </span>
+                <span className="font-semibold tabular-nums w-12 text-right">{pct}%</span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
 }
 
 const Portal = () => {
@@ -400,6 +492,20 @@ const Portal = () => {
                   </BarChart>
                 </ResponsiveContainer>
               </div>
+            </Card>
+          </motion.div>
+        )}
+
+        {/* Platform Breakdown */}
+        {propertyBookings.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 16, filter: "blur(4px)" }}
+            animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+            transition={{ delay: 0.3, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+          >
+            <Card className="p-6">
+              <h3 className="font-semibold mb-4">Platform Breakdown</h3>
+              <PlatformBreakdown bookings={propertyBookings} />
             </Card>
           </motion.div>
         )}
