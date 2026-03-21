@@ -39,6 +39,7 @@ interface ICalEvent {
 interface Props {
   adminPin: string;
   properties: { id: string; name: string; currency: string }[];
+  propertyId?: string;
 }
 
 const STATUSES = ["Confirmed", "Paid"];
@@ -52,7 +53,7 @@ function detectPlatform(sourceUrl: string | null): string {
   return "Other";
 }
 
-export function PendingPayouts({ adminPin, properties }: Props) {
+export function PendingPayouts({ adminPin, properties, propertyId }: Props) {
   const [pendingEvents, setPendingEvents] = useState<ICalEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [convertDialog, setConvertDialog] = useState<ICalEvent | null>(null);
@@ -74,7 +75,10 @@ export function PendingPayouts({ adminPin, properties }: Props) {
           external_id: `${evt.property_id}_${evt.start_date}_${evt.end_date}`,
         };
       });
-      setPendingEvents(enriched);
+      const filtered = propertyId
+        ? enriched.filter((e: ICalEvent) => e.property_id === propertyId)
+        : enriched;
+      setPendingEvents(filtered);
     } catch {
       toast.error("Failed to load pending events");
     } finally {
@@ -152,9 +156,11 @@ export function PendingPayouts({ adminPin, properties }: Props) {
                     <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-orange-100 text-orange-800">
                       Pending
                     </span>
-                    <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
-                      {evt.property_name}
-                    </span>
+                    {!propertyId && (
+                      <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+                        {evt.property_name}
+                      </span>
+                    )}
                   </div>
                   <div className="text-xs text-muted-foreground flex items-center gap-2 flex-wrap">
                     <span>
