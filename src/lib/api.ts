@@ -78,3 +78,38 @@ export async function getOwnerData(ownerPin: string) {
     headers: { "x-owner-pin": ownerPin },
   });
 }
+
+// Manual reservations (admin)
+export async function getAdminReservations(adminPin: string, propertyId?: string) {
+  return callFunction("admin-reservations", {
+    method: "GET",
+    headers: { "x-admin-pin": adminPin },
+    params: propertyId ? { property_id: propertyId } : undefined,
+  });
+}
+
+export async function createReservation(adminPin: string, data: Record<string, unknown>) {
+  return callFunction("admin-reservations", {
+    method: "POST",
+    headers: { "x-admin-pin": adminPin },
+    body: data,
+  });
+}
+
+export async function updateReservation(adminPin: string, id: string, data: Record<string, unknown>) {
+  return callFunction("admin-reservations", {
+    method: "PUT",
+    headers: { "x-admin-pin": adminPin },
+    params: { id },
+    body: data,
+  });
+}
+
+export async function deleteReservation(adminPin: string, id: string) {
+  return callFunction("admin-reservations", {
+    method: "DELETE",
+    headers: { "x-admin-pin": adminPin },
+    params: { id },
+  });
+}
+
