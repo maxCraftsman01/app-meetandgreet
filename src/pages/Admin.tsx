@@ -99,9 +99,12 @@ const Admin = () => {
         name: form.name,
         owner_name: form.owner_name,
         owner_pin: form.owner_pin,
+        cleaner_pin: form.cleaner_pin,
         ical_urls: form.ical_urls.split("\n").map((u) => u.trim()).filter(Boolean),
         nightly_rate: parseFloat(form.nightly_rate) || 0,
         currency: form.currency,
+        keybox_code: form.keybox_code,
+        cleaning_notes: form.cleaning_notes,
       };
       if (editingId) {
         await updateProperty(session!.pin, editingId, payload);
