@@ -151,5 +151,5 @@ export async function getDailyOperations(adminPin: string) {
     method: "GET",
     headers: { "x-admin-pin": adminPin },
   });
-
+}
 
