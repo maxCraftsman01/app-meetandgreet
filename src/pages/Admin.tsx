@@ -411,6 +411,12 @@ const Admin = () => {
               />
             </Card>
           </TabsContent>
+
+          <TabsContent value="daily-ops">
+            <Card className="p-6">
+              <DailyOperations adminPin={session!.pin} />
+            </Card>
+          </TabsContent>
         </Tabs>
       </main>
     </div>
