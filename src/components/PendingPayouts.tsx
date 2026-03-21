@@ -53,7 +53,7 @@ function detectPlatform(sourceUrl: string | null): string {
   return "Other";
 }
 
-export function PendingPayouts({ adminPin, properties }: Props) {
+export function PendingPayouts({ adminPin, properties, propertyId }: Props) {
   const [pendingEvents, setPendingEvents] = useState<ICalEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [convertDialog, setConvertDialog] = useState<ICalEvent | null>(null);
