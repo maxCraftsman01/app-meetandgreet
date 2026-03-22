@@ -128,6 +128,14 @@ export async function getCleanerTasks(pin: string) {
   });
 }
 
+export async function getCleanerSchedule(pin: string, from: string, to: string) {
+  return callFunction("cleaner-operations", {
+    method: "GET",
+    headers: { "x-user-pin": pin },
+    params: { from, to },
+  });
+}
+
 export async function markAsCleaned(pin: string, reservationId: string) {
   return callFunction("cleaner-operations", {
     method: "PUT",

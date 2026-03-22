@@ -120,6 +120,10 @@ Deno.serve(async (req) => {
 
     // User access: look up by PIN in app_users + user_property_access
     if (method === "GET" && userPin) {
+      const url = new URL(req.url);
+      const fromParam = url.searchParams.get("from");
+      const toParam = url.searchParams.get("to");
+
       // Find user by PIN
       const { data: user } = await supabase
         .from("app_users")
@@ -154,6 +158,57 @@ Deno.serve(async (req) => {
         .select("id, name, keybox_code, cleaning_notes")
         .in("id", propertyIds);
 
+      // Range query for week/month views
+      if (fromParam && toParam) {
+        const { data: reservations } = await supabase
+          .from("manual_reservations")
+          .select("*")
+          .in("property_id", propertyIds)
+          .neq("status", "Cancelled")
+          .lte("check_in", toParam)
+          .gte("check_out", fromParam);
+
+        const events: any[] = [];
+        const current = new Date(fromParam);
+        const end = new Date(toParam);
+        while (current <= end) {
+          const dateStr = current.toISOString().split("T")[0];
+          for (const p of (properties || [])) {
+            const propRes = (reservations || []).filter((r: any) => r.property_id === p.id);
+            const checkingOut = propRes.some((r: any) => r.check_out === dateStr);
+            const checkingIn = propRes.find((r: any) => r.check_in === dateStr);
+            const hasArrival = !!checkingIn;
+            const cleaningDone = checkingIn?.cleaning_status === "completed";
+
+            if (checkingOut || hasArrival) {
+              let status = "idle";
+              if (checkingOut && hasArrival) status = "same-day";
+              else if (checkingOut && !hasArrival) status = "checkout-only";
+              else if (hasArrival && !cleaningDone) status = "arrival-pending";
+              else if (hasArrival && cleaningDone) status = "arrival-ready";
+
+              events.push({
+                date: dateStr,
+                property_id: p.id,
+                property_name: p.name,
+                status,
+                guest_name: checkingIn?.guest_name || null,
+                check_out_guest: propRes.find((r: any) => r.check_out === dateStr)?.guest_name || null,
+                reservation_id: checkingIn?.id || null,
+                keybox_code: p.keybox_code,
+                cleaning_notes: p.cleaning_notes,
+              });
+            }
+          }
+          current.setDate(current.getDate() + 1);
+        }
+
+        return new Response(JSON.stringify(events), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Default: today only
       const today = new Date().toISOString().split("T")[0];
 
       const { data: reservations } = await supabase
