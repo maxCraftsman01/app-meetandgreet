@@ -1,29 +1,59 @@
 
 
-## Finalized Cleaning Workflow & Status Logic
+## Your Idea is Excellent — Here's My Analysis
 
-Most of this is already implemented. Here's what needs to change:
+Your concept of a unified `access_keys` table with permission flags is the right architectural direction. It solves several real problems:
 
-### 1. Ensure `cleaning_status` defaults to `'pending'` on creation
-- **Already done** in the database schema (`cleaning_status text NOT NULL DEFAULT 'pending'`).
-- Verify the `admin-reservations` edge function does NOT set `cleaning_status` on POST — it doesn't, so the DB default applies. No change needed.
+- **Owner who cleans**: sees both finance and cleaning tabs
+- **Professional cleaner**: sees only cleaning
+- **Multiple properties, different roles**: one person can be owner of Property A but cleaner of Property B
 
-### 2. Add "Confirm Cleaning Complete" toggle to Admin Daily Ops
-- **Cleaner Portal**: Already has "Mark as Cleaned" button — no change needed.
-- **Admin DailyOperations.tsx**: Add a "Confirm Cleaning Complete" button on cards with `arrival-pending` or `same-day` status. Clicking calls the existing `markAsCleaned` API (reuse the same edge function endpoint). Once done, reload and card turns green.
+### One Important Refinement
 
-### 3. Split Daily Ops into "Cleaning Needed" and "Ready for Guest" sections
-- In `DailyOperations.tsx`, replace the single sorted list with two grouped sections:
-  - **Cleaning Needed**: Properties with status `same-day` or `arrival-pending` (Red/Orange cards with the cleaning toggle button).
-  - **Ready for Guest**: Properties with status `arrival-ready` (Green cards with "Notify Owner" button).
-  - **Other Activity**: `checkout-only` shown separately (Yellow, informational).
-- Keep the summary counters and property map as-is.
+Instead of a separate `access_keys` table disconnected from users, I'd recommend a **two-table approach**:
 
-### 4. Data Integrity — preserve `cleaning_status` on reservation edits
-- In `admin-reservations` edge function PUT handler, strip `cleaning_status` from the update body unless explicitly provided. This prevents accidental resets when editing dates.
+```text
+users                          user_property_access
+┌──────────────┐               ┌─────────────────────────┐
+│ id (uuid)    │──────────────▶│ user_id (uuid)          │
+│ name (text)  │               │ property_id (uuid)      │
+│ pin (text)   │               │ can_view_finance (bool)  │
+│ created_at   │               │ can_view_cleaning (bool) │
+└──────────────┘               │ can_mark_cleaned (bool)  │
+                               └─────────────────────────┘
+```
 
-### Files Modified
-- `src/components/DailyOperations.tsx` — add cleaning toggle button, split list into sections
-- `supabase/functions/admin-reservations/index.ts` — preserve `cleaning_status` on updates
-- `src/lib/api.ts` — add admin-facing `markAsCleaned` variant using admin pin
+**Why this is better than your original `access_keys` idea:**
+- A user logs in once with ONE PIN, then sees all their properties with the correct permissions per property
+- No duplicate PINs — one person, one PIN, multiple property assignments
+- Admin can see a clear list of "all users" and their assignments
+- Easy to add more permissions later (e.g., `can_edit_reservations`)
+
+### What Changes
+
+1. **Database**: Create `users` and `user_property_access` tables. Migrate existing `owner_pin`/`cleaner_pin` data.
+
+2. **PIN validation**: `validate-pin` looks up the `users` table, returns the user's permissions per property instead of a fixed role.
+
+3. **Frontend routing**: Instead of routing to `/portal` or `/cleaner` based on role, route to a single `/dashboard` that dynamically shows tabs based on the user's permissions for the selected property.
+
+4. **Admin UI**: Replace separate owner PIN / cleaner PIN fields with a "Manage Users" section where you create users (name + PIN) and assign them to properties with checkbox permissions: `☑ Finance` `☑ Cleaning`.
+
+5. **All edge functions**: Update auth headers to use the new user-based lookup instead of owner/cleaner PIN checks on the properties table.
+
+### What I'd Suggest Adding
+
+- **`can_mark_cleaned`** as a separate permission from `can_view_cleaning` — sometimes an owner wants to see the cleaning schedule but not accidentally toggle it
+- **Admin remains a separate env-var PIN** — no need to put admin in the database, keeps it simple and secure
+
+### Scope Warning
+
+This is a significant refactor — it touches the database, all edge functions, the session model, and the routing. I recommend doing it in phases:
+
+**Phase 1**: Create tables + migration, update `validate-pin`, update session model
+**Phase 2**: Build unified dashboard with permission-based tabs
+**Phase 3**: Update Admin UI with user management
+**Phase 4**: Remove old `owner_pin`/`cleaner_pin` columns
+
+Shall I proceed with this phased approach, or would you prefer to adjust the plan first?
 
