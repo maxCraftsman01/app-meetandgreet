@@ -1,16 +1,62 @@
-## Unified Permission-Based Access System — IMPLEMENTED
 
-### What Changed
 
-1. **New `app_users` table** — stores users with name + unique 8-digit PIN
-2. **New `user_property_access` table** — per-property permissions: `can_view_finance`, `can_view_cleaning`, `can_mark_cleaned`
-3. **Unified `/dashboard` route** — replaces `/portal` and `/cleaner`. Shows Finance and/or Cleaning tabs based on user's permissions for the selected property
-4. **Admin "Users" tab** — create/edit/delete users, assign property permissions with checkboxes
-5. **`validate-pin`** — now returns `role: "user"` with per-property permissions instead of `role: "owner"` or `role: "cleaner"`
-6. **`cleaner-operations`** — looks up user by PIN in `app_users` + `user_property_access` instead of `cleaner_pin` on properties
-7. **`owner-data`** — looks up user by PIN and returns only properties where `can_view_finance = true`
-8. **Legacy routes** `/portal` and `/cleaner` redirect to `/dashboard`
+## Weekly & Monthly Cleaning Calendar View
 
-### Existing data migrated
-- Owner PINs → app_users with full permissions (finance + cleaning + mark)
-- Cleaner PINs → app_users with cleaning + mark permissions only
+### The Problem
+Currently the Cleaning tab only shows today's tasks. Cleaners managing multiple properties need to plan ahead — seeing the full week or month of check-ins/check-outs across all their properties in one calendar.
+
+### Solution
+
+**A multi-property cleaning calendar** with toggle between Today / Week / Month views, using color-coded events.
+
+```text
+Cleaning Tab Layout:
+[Today] [Week] [Month]    ← view toggle
+
+Week View:
+┌─────┬─────┬─────┬─────┬─────┬─────┬─────┐
+│ Mon │ Tue │ Wed │ Thu │ Fri │ Sat │ Sun │
+├─────┼─────┼─────┼─────┼─────┼─────┼─────┤
+│     │ 🔴  │     │ 🟠  │     │ 🟡  │     │
+│     │Villa│     │Apart│     │Lodge│     │
+│     │ OUT │     │ IN  │     │ OUT │     │
+│     │+ IN │     │     │     │     │     │
+└─────┴─────┴─────┴─────┴─────┴─────┴─────┘
+
+Month View: standard calendar grid with colored dots per property
+```
+
+### Backend Change
+
+**`cleaner-operations/index.ts`**: Accept optional `from` and `to` query params. When provided, fetch reservations in that date range instead of just today. Returns an array of events with date, property, and type (check-in/check-out/both).
+
+### Frontend Changes
+
+**`src/pages/Dashboard.tsx`** — Cleaning tab:
+
+1. Add a view toggle: `Today | Week | Month` (using existing Tabs component)
+2. **Today view**: Keep current traffic-light cards (unchanged)
+3. **Week view**: 7-column grid showing the current week. Each day cell shows colored pills for each property with activity (check-in, check-out, or both). Color = traffic light logic. Tap a pill to expand details + "Mark as Cleaned" button.
+4. **Month view**: Standard calendar grid (reuse the same pattern as the Finance tab calendar). Each day shows small colored dots per property. Tap a day to see the task list for that day.
+5. New API call `getCleanerSchedule(pin, from, to)` in `src/lib/api.ts`
+
+### New API Function
+
+```typescript
+export async function getCleanerSchedule(pin: string, from: string, to: string) {
+  return callFunction("cleaner-operations", {
+    method: "GET",
+    headers: { "x-user-pin": pin },
+    params: { from, to },
+  });
+}
+```
+
+### Files Modified
+
+| File | Change |
+|---|---|
+| `supabase/functions/cleaner-operations/index.ts` | Accept `from`/`to` params, return multi-day schedule |
+| `src/lib/api.ts` | Add `getCleanerSchedule` function |
+| `src/pages/Dashboard.tsx` | Add Week/Month calendar views to Cleaning tab |
+
