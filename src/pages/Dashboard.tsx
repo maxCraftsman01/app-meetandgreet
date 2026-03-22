@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/select";
 import { getSession, clearSession, type PropertyAccess } from "@/lib/session";
 import { getOwnerData, fetchIcal, getCleanerTasks, markAsCleaned } from "@/lib/api";
+import CleaningCalendar from "@/components/CleaningCalendar";
 import { toast } from "sonner";
 import {
   format, startOfMonth, endOfMonth, eachDayOfInterval, addMonths, subMonths,
