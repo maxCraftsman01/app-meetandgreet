@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { List, Pencil, Trash2 } from "lucide-react";
+import { List, Pencil, Trash2, Ban } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { getAdminReservations, deleteReservation } from "@/lib/api";
