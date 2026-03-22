@@ -1,0 +1,1 @@
+ALTER TABLE public.manual_reservations ADD COLUMN is_blocked boolean NOT NULL DEFAULT false;

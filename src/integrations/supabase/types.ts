@@ -85,6 +85,7 @@ export type Database = {
           external_id: string | null
           guest_name: string
           id: string
+          is_blocked: boolean
           last_cleaned_at: string | null
           net_payout: number
           property_id: string
@@ -100,6 +101,7 @@ export type Database = {
           external_id?: string | null
           guest_name: string
           id?: string
+          is_blocked?: boolean
           last_cleaned_at?: string | null
           net_payout?: number
           property_id: string
@@ -115,6 +117,7 @@ export type Database = {
           external_id?: string | null
           guest_name?: string
           id?: string
+          is_blocked?: boolean
           last_cleaned_at?: string | null
           net_payout?: number
           property_id?: string
