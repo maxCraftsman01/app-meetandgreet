@@ -3,16 +3,20 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-admin-pin",
+  "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
 };
 
-async function isAdmin(req: Request): Promise<boolean> {
-  const pin = req.headers.get("x-admin-pin");
+function jsonResponse(body: unknown, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+
+async function isAdmin(pin: string): Promise<boolean> {
   if (!pin) return false;
-  
-  // Check env-var super-admin
   if (pin === Deno.env.get("ADMIN_PIN")) return true;
-  
-  // Check if PIN belongs to an is_admin user
+
   const supabase = createClient(
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
@@ -23,7 +27,7 @@ async function isAdmin(req: Request): Promise<boolean> {
     .eq("pin", pin)
     .eq("is_admin", true)
     .single();
-  
+
   return !!data;
 }
 
@@ -32,11 +36,15 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  if (!(await isAdmin(req))) {
-    return new Response(JSON.stringify({ error: "Unauthorized" }), {
-      status: 401,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+  const pin = req.headers.get("x-admin-pin") || "";
+
+  try {
+    if (!(await isAdmin(pin))) {
+      return jsonResponse({ error: "Unauthorized" }, 401);
+    }
+  } catch (err) {
+    console.error("Admin check failed:", err);
+    return jsonResponse({ error: "Admin validation failed" }, 500);
   }
 
   const supabase = createClient(
@@ -54,15 +62,12 @@ Deno.serve(async (req) => {
         .from("app_users")
         .select("*")
         .order("created_at", { ascending: false });
-
       if (error) throw error;
 
-      // Get access for all users
       const { data: access } = await supabase
         .from("user_property_access")
         .select("*, properties:property_id(id, name)");
 
-      // Get all properties for assignment UI
       const { data: allProperties } = await supabase
         .from("properties")
         .select("id, name")
@@ -81,40 +86,31 @@ Deno.serve(async (req) => {
           })),
       }));
 
-      return new Response(JSON.stringify({ users: enriched, properties: allProperties || [] }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonResponse({ users: enriched, properties: allProperties || [] });
     }
 
     // POST: create user
     if (method === "POST") {
       const body = await req.json();
-      const { name, pin, property_access, is_admin } = body;
+      const { name, pin: userPin, property_access, is_admin: isAdminFlag } = body;
 
-      if (!name || !pin || pin.length !== 8) {
-        return new Response(JSON.stringify({ error: "Name and 8-digit PIN required" }), {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+      if (!name || !userPin || userPin.length !== 8) {
+        return jsonResponse({ error: "Name and 8-digit PIN required" }, 400);
       }
 
       const { data: user, error } = await supabase
         .from("app_users")
-        .insert({ name, pin, is_admin: is_admin ?? false })
+        .insert({ name, pin: userPin, is_admin: isAdminFlag ?? false })
         .select()
         .single();
 
       if (error) {
         if (error.code === "23505") {
-          return new Response(JSON.stringify({ error: "PIN already in use" }), {
-            status: 400,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
+          return jsonResponse({ error: "PIN already in use" }, 400);
         }
         throw error;
       }
 
-      // Insert property access if provided
       if (property_access && property_access.length > 0) {
         const rows = property_access.map((pa: any) => ({
           user_id: user.id,
@@ -123,36 +119,32 @@ Deno.serve(async (req) => {
           can_view_cleaning: pa.can_view_cleaning ?? false,
           can_mark_cleaned: pa.can_mark_cleaned ?? false,
         }));
-        await supabase.from("user_property_access").insert(rows);
-      }
-
-      // Also sync cleaner_pin / owner_pin on the properties table for backward compatibility
-      if (property_access) {
-        for (const pa of property_access) {
-          if (pa.can_view_finance) {
-            await supabase.from("properties").update({ owner_pin: pin }).eq("id", pa.property_id);
-          }
-          if (pa.can_view_cleaning && !pa.can_view_finance) {
-            await supabase.from("properties").update({ cleaner_pin: pin }).eq("id", pa.property_id);
-          }
+        const { error: accessError } = await supabase.from("user_property_access").insert(rows);
+        if (accessError) {
+          console.error("Failed to insert property access:", accessError);
+          throw accessError;
         }
       }
 
-      return new Response(JSON.stringify(user), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonResponse(user);
     }
 
     // PUT: update user
     if (method === "PUT") {
       const id = url.searchParams.get("id");
+      if (!id) {
+        return jsonResponse({ error: "User id is required" }, 400);
+      }
+
       const body = await req.json();
-      const { name, pin, property_access, is_admin } = body;
+      console.log("PUT user", id, JSON.stringify(body));
+
+      const { name, pin: userPin, property_access, is_admin: isAdminFlag } = body;
 
       const updateData: Record<string, unknown> = {};
       if (name) updateData.name = name;
-      if (pin) updateData.pin = pin;
-      if (is_admin !== undefined) updateData.is_admin = is_admin;
+      if (userPin) updateData.pin = userPin;
+      if (isAdminFlag !== undefined) updateData.is_admin = isAdminFlag;
 
       if (Object.keys(updateData).length > 0) {
         const { error } = await supabase
@@ -160,11 +152,9 @@ Deno.serve(async (req) => {
           .update(updateData)
           .eq("id", id);
         if (error) {
+          console.error("Failed to update app_users:", error);
           if (error.code === "23505") {
-            return new Response(JSON.stringify({ error: "PIN already in use" }), {
-              status: 400,
-              headers: { ...corsHeaders, "Content-Type": "application/json" },
-            });
+            return jsonResponse({ error: "PIN already in use" }, 400);
           }
           throw error;
         }
@@ -172,8 +162,16 @@ Deno.serve(async (req) => {
 
       // Replace property access
       if (property_access !== undefined) {
-        await supabase.from("user_property_access").delete().eq("user_id", id);
-        if (property_access.length > 0) {
+        const { error: delError } = await supabase
+          .from("user_property_access")
+          .delete()
+          .eq("user_id", id);
+        if (delError) {
+          console.error("Failed to delete old access:", delError);
+          throw delError;
+        }
+
+        if (Array.isArray(property_access) && property_access.length > 0) {
           const rows = property_access.map((pa: any) => ({
             user_id: id,
             property_id: pa.property_id,
@@ -181,33 +179,33 @@ Deno.serve(async (req) => {
             can_view_cleaning: pa.can_view_cleaning ?? false,
             can_mark_cleaned: pa.can_mark_cleaned ?? false,
           }));
-          await supabase.from("user_property_access").insert(rows);
+          const { error: insError } = await supabase
+            .from("user_property_access")
+            .insert(rows);
+          if (insError) {
+            console.error("Failed to insert new access:", insError);
+            throw insError;
+          }
         }
       }
 
-      return new Response(JSON.stringify({ success: true }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonResponse({ success: true });
     }
 
     // DELETE: delete user
     if (method === "DELETE") {
       const id = url.searchParams.get("id");
+      if (!id) {
+        return jsonResponse({ error: "User id is required" }, 400);
+      }
       const { error } = await supabase.from("app_users").delete().eq("id", id);
       if (error) throw error;
-      return new Response(JSON.stringify({ success: true }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonResponse({ success: true });
     }
 
-    return new Response(JSON.stringify({ error: "Method not allowed" }), {
-      status: 405,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return jsonResponse({ error: "Method not allowed" }, 405);
   } catch (err) {
-    return new Response(JSON.stringify({ error: err.message }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    console.error("admin-users error:", err);
+    return jsonResponse({ error: err.message || "Internal server error" }, 500);
   }
 });
