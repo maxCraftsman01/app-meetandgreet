@@ -40,6 +40,7 @@ Deno.serve(async (req) => {
           .from("manual_reservations")
           .select("*")
           .neq("status", "Cancelled")
+          .eq("is_blocked", false)
           .lte("check_in", toParam)
           .gte("check_out", fromParam);
 
