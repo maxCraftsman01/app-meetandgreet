@@ -167,6 +167,7 @@ Deno.serve(async (req) => {
           .select("*")
           .in("property_id", propertyIds)
           .neq("status", "Cancelled")
+          .eq("is_blocked", false)
           .lte("check_in", toParam)
           .gte("check_out", fromParam);
 
