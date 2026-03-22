@@ -33,36 +33,45 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Check owner PIN
-    const { data: ownerProps } = await supabase
-      .from("properties")
-      .select("id, name, owner_name")
-      .eq("owner_pin", pin);
+    // Look up user in app_users table
+    const { data: user } = await supabase
+      .from("app_users")
+      .select("id, name, pin")
+      .eq("pin", pin)
+      .single();
 
-    if (ownerProps && ownerProps.length > 0) {
-      return new Response(
-        JSON.stringify({ role: "owner", token: pin, properties: ownerProps }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+    if (!user) {
+      return new Response(JSON.stringify({ error: "Invalid PIN" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
-    // Check cleaner PIN
-    const { data: cleanerProps } = await supabase
-      .from("properties")
-      .select("id, name, owner_name")
-      .eq("cleaner_pin", pin);
+    // Get property access permissions for this user
+    const { data: access } = await supabase
+      .from("user_property_access")
+      .select("property_id, can_view_finance, can_view_cleaning, can_mark_cleaned, properties:property_id(id, name, owner_name)")
+      .eq("user_id", user.id);
 
-    if (cleanerProps && cleanerProps.length > 0) {
-      return new Response(
-        JSON.stringify({ role: "cleaner", token: pin, properties: cleanerProps }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+    const properties = (access || []).map((a: any) => ({
+      id: a.properties.id,
+      name: a.properties.name,
+      owner_name: a.properties.owner_name,
+      can_view_finance: a.can_view_finance,
+      can_view_cleaning: a.can_view_cleaning,
+      can_mark_cleaned: a.can_mark_cleaned,
+    }));
 
-    return new Response(JSON.stringify({ error: "Invalid PIN" }), {
-      status: 401,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return new Response(
+      JSON.stringify({
+        role: "user",
+        token: pin,
+        user_id: user.id,
+        user_name: user.name,
+        properties,
+      }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
   } catch {
     return new Response(JSON.stringify({ error: "Server error" }), {
       status: 500,

@@ -66,16 +66,16 @@ export async function deleteProperty(adminPin: string, id: string) {
   });
 }
 
-export async function fetchIcal(propertyId: string, ownerPin: string) {
+export async function fetchIcal(propertyId: string, pin: string) {
   return callFunction("fetch-ical", {
-    body: { property_id: propertyId, owner_pin: ownerPin },
+    body: { property_id: propertyId, owner_pin: pin },
   });
 }
 
-export async function getOwnerData(ownerPin: string) {
+export async function getOwnerData(pin: string) {
   return callFunction("owner-data", {
     method: "GET",
-    headers: { "x-owner-pin": ownerPin },
+    headers: { "x-user-pin": pin },
   });
 }
 
@@ -120,18 +120,18 @@ export async function getAdminPendingIcal(adminPin: string) {
   });
 }
 
-// Cleaner operations
-export async function getCleanerTasks(cleanerPin: string) {
+// Cleaner/user operations
+export async function getCleanerTasks(pin: string) {
   return callFunction("cleaner-operations", {
     method: "GET",
-    headers: { "x-cleaner-pin": cleanerPin },
+    headers: { "x-user-pin": pin },
   });
 }
 
-export async function markAsCleaned(cleanerPin: string, reservationId: string) {
+export async function markAsCleaned(pin: string, reservationId: string) {
   return callFunction("cleaner-operations", {
     method: "PUT",
-    headers: { "x-cleaner-pin": cleanerPin },
+    headers: { "x-user-pin": pin },
     body: { reservation_id: reservationId },
   });
 }
@@ -153,3 +153,35 @@ export async function getDailyOperations(adminPin: string) {
   });
 }
 
+// User management (admin)
+export async function getAdminUsers(adminPin: string) {
+  return callFunction("admin-users", {
+    method: "GET",
+    headers: { "x-admin-pin": adminPin },
+  });
+}
+
+export async function createUser(adminPin: string, data: Record<string, unknown>) {
+  return callFunction("admin-users", {
+    method: "POST",
+    headers: { "x-admin-pin": adminPin },
+    body: data,
+  });
+}
+
+export async function updateUser(adminPin: string, id: string, data: Record<string, unknown>) {
+  return callFunction("admin-users", {
+    method: "PUT",
+    headers: { "x-admin-pin": adminPin },
+    params: { id },
+    body: data,
+  });
+}
+
+export async function deleteUser(adminPin: string, id: string) {
+  return callFunction("admin-users", {
+    method: "DELETE",
+    headers: { "x-admin-pin": adminPin },
+    params: { id },
+  });
+}

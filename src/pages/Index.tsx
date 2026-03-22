@@ -15,15 +15,12 @@ const Index = () => {
   const [searchParams] = useSearchParams();
 
   useEffect(() => {
-    // Check existing session
     const session = getSession();
     if (session?.role === "admin") navigate("/admin");
-    else if (session?.role === "owner") navigate("/portal");
-    else if (session?.role === "cleaner") navigate("/cleaner");
+    else if (session?.role === "user") navigate("/dashboard");
   }, [navigate]);
 
   useEffect(() => {
-    // Auto-fill from URL param
     const pin = searchParams.get("pin");
     if (pin && pin.length === 8) {
       const newDigits = pin.split("");
@@ -40,7 +37,6 @@ const Index = () => {
     const newDigits = [...digits];
     
     if (value.length > 1) {
-      // Handle paste
       const pasted = value.slice(0, 8 - index).split("");
       pasted.forEach((d, i) => {
         if (index + i < 8) newDigits[index + i] = d;
@@ -78,14 +74,19 @@ const Index = () => {
     setError("");
     try {
       const result = await validatePin(pin);
-      setSession({
-        role: result.role,
-        pin,
-        properties: result.properties,
-      });
-      if (result.role === "admin") navigate("/admin");
-      else if (result.role === "cleaner") navigate("/cleaner");
-      else navigate("/portal");
+      if (result.role === "admin") {
+        setSession({ role: "admin", pin });
+        navigate("/admin");
+      } else {
+        setSession({
+          role: "user",
+          pin,
+          user_id: result.user_id,
+          user_name: result.user_name,
+          properties: result.properties,
+        });
+        navigate("/dashboard");
+      }
     } catch {
       setError("Invalid PIN. Please try again.");
       setShake(true);
