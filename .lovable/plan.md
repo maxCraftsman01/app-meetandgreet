@@ -1,62 +1,57 @@
 
 
-## Weekly & Monthly Cleaning Calendar View
+## Blocked Days Solution for Airbnb iCal Imports
 
 ### The Problem
-Currently the Cleaning tab only shows today's tasks. Cleaners managing multiple properties need to plan ahead — seeing the full week or month of check-ins/check-outs across all their properties in one calendar.
+Airbnb exports blocked/unavailable dates as iCal events identical to real reservations. The system currently treats all iCal events as bookings, which incorrectly triggers cleaning assignments for dates that are simply blocked by the host.
 
-### Solution
+### Your Idea — Enhanced
 
-**A multi-property cleaning calendar** with toggle between Today / Week / Month views, using color-coded events.
+Your approach of letting the admin mark entries as "blocked" is solid. Here's a refined version:
 
-```text
-Cleaning Tab Layout:
-[Today] [Week] [Month]    ← view toggle
+**Two-layer solution:**
 
-Week View:
-┌─────┬─────┬─────┬─────┬─────┬─────┬─────┐
-│ Mon │ Tue │ Wed │ Thu │ Fri │ Sat │ Sun │
-├─────┼─────┼─────┼─────┼─────┼─────┼─────┤
-│     │ 🔴  │     │ 🟠  │     │ 🟡  │     │
-│     │Villa│     │Apart│     │Lodge│     │
-│     │ OUT │     │ IN  │     │ OUT │     │
-│     │+ IN │     │     │     │     │     │
-└─────┴─────┴─────┴─────┴─────┴─────┴─────┘
+1. **Auto-detection**: During iCal parsing, detect likely blocked days by checking the `SUMMARY` field. Airbnb typically uses summaries like "Not available", "Airbnb (Not available)", or "Blocked" for these entries. Auto-tag them as `blocked` status instead of `booked`.
 
-Month View: standard calendar grid with colored dots per property
-```
+2. **Manual override**: In the admin reservation list and pending iCal view, add a toggle so you can manually mark any entry as "Blocked" or flip it back to "Booked" if the auto-detection got it wrong.
 
-### Backend Change
+### Changes
 
-**`cleaner-operations/index.ts`**: Accept optional `from` and `to` query params. When provided, fetch reservations in that date range instead of just today. Returns an array of events with date, property, and type (check-in/check-out/both).
+**Database** — `manual_reservations` table:
+- Add `is_blocked` boolean column (default `false`) — simpler than a new status value, keeps existing status logic untouched
 
-### Frontend Changes
+**Database** — `bookings` table:
+- Already has a `status` column. Use `blocked` as a new status value alongside `booked`
 
-**`src/pages/Dashboard.tsx`** — Cleaning tab:
+**Backend — `fetch-ical/index.ts`**:
+- In `parseICS`, extract the `SUMMARY` field (already done)
+- When inserting into `bookings`, check if summary matches known blocked patterns (e.g., contains "Not available", "Blocked", "Unavailable") → set `status = 'blocked'`
 
-1. Add a view toggle: `Today | Week | Month` (using existing Tabs component)
-2. **Today view**: Keep current traffic-light cards (unchanged)
-3. **Week view**: 7-column grid showing the current week. Each day cell shows colored pills for each property with activity (check-in, check-out, or both). Color = traffic light logic. Tap a pill to expand details + "Mark as Cleaned" button.
-4. **Month view**: Standard calendar grid (reuse the same pattern as the Finance tab calendar). Each day shows small colored dots per property. Tap a day to see the task list for that day.
-5. New API call `getCleanerSchedule(pin, from, to)` in `src/lib/api.ts`
+**Backend — `cleaner-operations/index.ts`**:
+- Filter out reservations where `is_blocked = true` from cleaning task queries
+- Filter out bookings where `status = 'blocked'` from cleaning schedule
 
-### New API Function
+**Backend — `admin-reservations/index.ts`**:
+- Support toggling `is_blocked` via PUT
 
-```typescript
-export async function getCleanerSchedule(pin: string, from: string, to: string) {
-  return callFunction("cleaner-operations", {
-    method: "GET",
-    headers: { "x-user-pin": pin },
-    params: { from, to },
-  });
-}
-```
+**Frontend — `ManageReservations.tsx`**:
+- Add a "Blocked" toggle/badge on each reservation row
+- Blocked entries shown with distinct styling (grey, strikethrough)
+
+**Frontend — `MasterReservationList.tsx`**:
+- Show blocked badge, allow quick toggle
+
+**Frontend — Pending iCal view** (if applicable):
+- Auto-detected blocked entries shown with "Blocked" label, convertible to real reservation if needed
 
 ### Files Modified
 
 | File | Change |
 |---|---|
-| `supabase/functions/cleaner-operations/index.ts` | Accept `from`/`to` params, return multi-day schedule |
-| `src/lib/api.ts` | Add `getCleanerSchedule` function |
-| `src/pages/Dashboard.tsx` | Add Week/Month calendar views to Cleaning tab |
+| Migration SQL | Add `is_blocked` to `manual_reservations` |
+| `supabase/functions/fetch-ical/index.ts` | Auto-detect blocked summaries → `status = 'blocked'` |
+| `supabase/functions/cleaner-operations/index.ts` | Exclude blocked entries from cleaning |
+| `supabase/functions/admin-reservations/index.ts` | Support `is_blocked` toggle |
+| `src/components/ManageReservations.tsx` | Blocked toggle UI |
+| `src/components/MasterReservationList.tsx` | Blocked badge + toggle |
 
