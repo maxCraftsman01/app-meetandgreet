@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, LogOut, Copy, RefreshCw, Pencil, Trash2, Check, Building2, List, Clock, ChevronDown, Activity } from "lucide-react";
+import { Plus, LogOut, Copy, RefreshCw, Pencil, Trash2, Check, Building2, List, Clock, ChevronDown, Activity, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -16,6 +16,7 @@ import { ManageReservations } from "@/components/ManageReservations";
 import { MasterReservationList } from "@/components/MasterReservationList";
 import { PendingPayouts } from "@/components/PendingPayouts";
 import { DailyOperations } from "@/components/DailyOperations";
+import { UserManagement } from "@/components/UserManagement";
 
 interface Property {
   id: string;
@@ -64,7 +65,6 @@ const Admin = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Load pending counts for badges
   useEffect(() => {
     if (!session || properties.length === 0) return;
     getAdminPendingIcal(session.pin).then((data) => {
@@ -89,8 +89,8 @@ const Admin = () => {
   };
 
   const handleSave = async () => {
-    if (!form.name || !form.owner_name || form.owner_pin.length !== 8) {
-      toast.error("Fill all fields. PIN must be 8 digits.");
+    if (!form.name || !form.owner_name) {
+      toast.error("Fill all required fields.");
       return;
     }
     setSaving(true);
@@ -218,21 +218,11 @@ const Admin = () => {
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <Label>Owner PIN (8 digits)</Label>
-                      <Input value={form.owner_pin} onChange={(e) => setForm({ ...form, owner_pin: e.target.value.replace(/\D/g, "").slice(0, 8) })} placeholder="12345678" maxLength={8} className="font-mono" />
-                    </div>
-                    <div>
                       <Label>Nightly Rate</Label>
                       <div className="flex gap-2">
                         <Input value={form.nightly_rate} onChange={(e) => setForm({ ...form, nightly_rate: e.target.value })} placeholder="120" type="number" />
                         <Input value={form.currency} onChange={(e) => setForm({ ...form, currency: e.target.value })} className="w-20" placeholder="EUR" />
                       </div>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <Label>Cleaner PIN (8 digits)</Label>
-                      <Input value={form.cleaner_pin} onChange={(e) => setForm({ ...form, cleaner_pin: e.target.value.replace(/\D/g, "").slice(0, 8) })} placeholder="87654321" maxLength={8} className="font-mono" />
                     </div>
                     <div>
                       <Label>Keybox Code</Label>
@@ -278,6 +268,10 @@ const Admin = () => {
             <TabsTrigger value="properties">
               <Building2 className="w-4 h-4 mr-1.5" />
               Properties
+            </TabsTrigger>
+            <TabsTrigger value="users">
+              <Users className="w-4 h-4 mr-1.5" />
+              Users
             </TabsTrigger>
             <TabsTrigger value="master-list">
               <List className="w-4 h-4 mr-1.5" />
@@ -338,24 +332,6 @@ const Admin = () => {
                             {p.active_bookings} active booking{p.active_bookings !== 1 ? "s" : ""}
                           </span>
                         </div>
-                        <div className="flex items-center gap-2 mt-3 pt-3 border-t border-border">
-                          <span className="text-xs font-mono text-muted-foreground bg-muted px-2 py-1 rounded">
-                            PIN: {p.owner_pin}
-                          </span>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="ml-auto h-7 text-xs"
-                            onClick={() => handleCopyLink(p.owner_pin, p.id)}
-                          >
-                            {copiedId === p.id ? (
-                              <Check className="w-3 h-3 mr-1" />
-                            ) : (
-                              <Copy className="w-3 h-3 mr-1" />
-                            )}
-                            {copiedId === p.id ? "Copied" : "Copy Link"}
-                          </Button>
-                        </div>
 
                         {/* Manual Reservations Section */}
                         <div className="mt-4 pt-4 border-t border-border">
@@ -397,6 +373,12 @@ const Admin = () => {
                 </AnimatePresence>
               </div>
             )}
+          </TabsContent>
+
+          <TabsContent value="users">
+            <Card className="p-6">
+              <UserManagement adminPin={session!.pin} />
+            </Card>
           </TabsContent>
 
           <TabsContent value="master-list">
