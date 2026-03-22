@@ -1,57 +1,32 @@
 
 
-## Blocked Days Solution for Airbnb iCal Imports
+## Fix User Edit + Add Admin as Manageable User
 
-### The Problem
-Airbnb exports blocked/unavailable dates as iCal events identical to real reservations. The system currently treats all iCal events as bookings, which incorrectly triggers cleaning assignments for dates that are simply blocked by the host.
+### Problem 1: "Failed to fetch" on user edit — FIXED
+The `admin-users` edge function wasn't properly deployed. I've redeployed it and confirmed PUT requests now work (tested directly, returns `{"success": true}`). You should be able to edit users now — try it in the preview.
 
-### Your Idea — Enhanced
+### Problem 2: Admin visibility in User Management
 
-Your approach of letting the admin mark entries as "blocked" is solid. Here's a refined version:
+Currently the admin is a hardcoded PIN in an environment variable, invisible in the Users tab. Your idea to show and manage admins there is good. Here's the approach:
 
-**Two-layer solution:**
+**Add an `is_admin` flag to `app_users`**:
+- New boolean column `is_admin` (default `false`) on the `app_users` table
+- Admin users get all permissions on all properties automatically
+- The `validate-pin` function checks `is_admin` flag and returns `role: "admin"` if true
+- The env-var `ADMIN_PIN` remains as a fallback/super-admin that can never be locked out
 
-1. **Auto-detection**: During iCal parsing, detect likely blocked days by checking the `SUMMARY` field. Airbnb typically uses summaries like "Not available", "Airbnb (Not available)", or "Blocked" for these entries. Auto-tag them as `blocked` status instead of `booked`.
-
-2. **Manual override**: In the admin reservation list and pending iCal view, add a toggle so you can manually mark any entry as "Blocked" or flip it back to "Booked" if the auto-detection got it wrong.
-
-### Changes
-
-**Database** — `manual_reservations` table:
-- Add `is_blocked` boolean column (default `false`) — simpler than a new status value, keeps existing status logic untouched
-
-**Database** — `bookings` table:
-- Already has a `status` column. Use `blocked` as a new status value alongside `booked`
-
-**Backend — `fetch-ical/index.ts`**:
-- In `parseICS`, extract the `SUMMARY` field (already done)
-- When inserting into `bookings`, check if summary matches known blocked patterns (e.g., contains "Not available", "Blocked", "Unavailable") → set `status = 'blocked'`
-
-**Backend — `cleaner-operations/index.ts`**:
-- Filter out reservations where `is_blocked = true` from cleaning task queries
-- Filter out bookings where `status = 'blocked'` from cleaning schedule
-
-**Backend — `admin-reservations/index.ts`**:
-- Support toggling `is_blocked` via PUT
-
-**Frontend — `ManageReservations.tsx`**:
-- Add a "Blocked" toggle/badge on each reservation row
-- Blocked entries shown with distinct styling (grey, strikethrough)
-
-**Frontend — `MasterReservationList.tsx`**:
-- Show blocked badge, allow quick toggle
-
-**Frontend — Pending iCal view** (if applicable):
-- Auto-detected blocked entries shown with "Blocked" label, convertible to real reservation if needed
-
-### Files Modified
+**Changes:**
 
 | File | Change |
 |---|---|
-| Migration SQL | Add `is_blocked` to `manual_reservations` |
-| `supabase/functions/fetch-ical/index.ts` | Auto-detect blocked summaries → `status = 'blocked'` |
-| `supabase/functions/cleaner-operations/index.ts` | Exclude blocked entries from cleaning |
-| `supabase/functions/admin-reservations/index.ts` | Support `is_blocked` toggle |
-| `src/components/ManageReservations.tsx` | Blocked toggle UI |
-| `src/components/MasterReservationList.tsx` | Blocked badge + toggle |
+| Migration SQL | Add `is_admin` boolean to `app_users` |
+| `supabase/functions/validate-pin/index.ts` | Check `is_admin` flag in addition to env-var PIN |
+| `supabase/functions/admin-users/index.ts` | Allow admin users (not just env-var PIN) to access admin functions; show admin badge in GET response |
+| `src/components/UserManagement.tsx` | Add "Admin" toggle when creating/editing users; show admin badge on user cards |
+
+**How it works:**
+- Env-var PIN = super-admin (always works, can't be removed from UI)
+- `is_admin = true` users = regular admins (can be added/removed by any admin)
+- Admin users see all properties with full access, plus the admin panel
+- Non-admin users continue to see only their assigned properties
 
