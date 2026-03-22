@@ -76,17 +76,19 @@ export function MasterReservationList({ adminPin, properties }: Props) {
   return (
     <div className="space-y-2">
       {reservations.map((r, i) => (
-        <motion.div
+         <motion.div
           key={r.id}
           initial={{ opacity: 0, y: 12, filter: "blur(4px)" }}
           animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
           transition={{ delay: i * 0.04, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-          className="flex items-center justify-between rounded-lg border border-border bg-card p-3 sm:p-4"
+          className={`flex items-center justify-between rounded-lg border border-border p-3 sm:p-4 ${r.is_blocked ? "bg-muted/50 opacity-70" : "bg-card"}`}
         >
           <div className="space-y-0.5 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="font-medium text-sm truncate">{r.guest_name}</span>
-              {statusBadge(r.status)}
+              <span className={`font-medium text-sm truncate ${r.is_blocked ? "line-through text-muted-foreground" : ""}`}>{r.guest_name}</span>
+              {r.is_blocked ? (
+                <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-zinc-200 text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300">Blocked</span>
+              ) : statusBadge(r.status)}
               <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded">{r.property_name}</span>
             </div>
             <div className="text-xs text-muted-foreground flex items-center gap-2 flex-wrap">
@@ -95,13 +97,34 @@ export function MasterReservationList({ adminPin, properties }: Props) {
               </span>
               <span>·</span>
               <span>{r.source}</span>
-              <span>·</span>
-              <span className="font-medium">{r.net_payout} {r.currency}</span>
+              {!r.is_blocked && (
+                <>
+                  <span>·</span>
+                  <span className="font-medium">{r.net_payout} {r.currency}</span>
+                </>
+              )}
             </div>
           </div>
-          <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive shrink-0 ml-2" onClick={() => handleDelete(r.id)}>
-            <Trash2 className="w-3 h-3" />
-          </Button>
+          <div className="flex gap-1 shrink-0 ml-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              className={`h-7 w-7 ${r.is_blocked ? "text-zinc-500" : "text-muted-foreground"}`}
+              title={r.is_blocked ? "Unblock" : "Mark as Blocked"}
+              onClick={async () => {
+                try {
+                  await updateReservation(adminPin, r.id, { is_blocked: !r.is_blocked });
+                  toast.success(r.is_blocked ? "Unblocked" : "Marked as blocked");
+                  load();
+                } catch { toast.error("Failed to update"); }
+              }}
+            >
+              <Ban className="w-3 h-3" />
+            </Button>
+            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => handleDelete(r.id)}>
+              <Trash2 className="w-3 h-3" />
+            </Button>
+          </div>
         </motion.div>
       ))}
     </div>
