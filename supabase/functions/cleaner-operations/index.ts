@@ -40,6 +40,7 @@ Deno.serve(async (req) => {
           .from("manual_reservations")
           .select("*")
           .neq("status", "Cancelled")
+          .eq("is_blocked", false)
           .lte("check_in", toParam)
           .gte("check_out", fromParam);
 
@@ -88,7 +89,8 @@ Deno.serve(async (req) => {
         .from("manual_reservations")
         .select("*")
         .or(`check_in.eq.${today},check_out.eq.${today}`)
-        .neq("status", "Cancelled");
+        .neq("status", "Cancelled")
+        .eq("is_blocked", false);
 
       const propertyStatuses = (properties || []).map((p: any) => {
         const propRes = (reservations || []).filter((r: any) => r.property_id === p.id);
@@ -165,6 +167,7 @@ Deno.serve(async (req) => {
           .select("*")
           .in("property_id", propertyIds)
           .neq("status", "Cancelled")
+          .eq("is_blocked", false)
           .lte("check_in", toParam)
           .gte("check_out", fromParam);
 
@@ -216,7 +219,8 @@ Deno.serve(async (req) => {
         .select("*")
         .in("property_id", propertyIds)
         .or(`check_in.eq.${today},check_out.eq.${today}`)
-        .neq("status", "Cancelled");
+        .neq("status", "Cancelled")
+        .eq("is_blocked", false);
 
       const tasks = (properties || []).map((p: any) => {
         const propRes = (reservations || []).filter((r: any) => r.property_id === p.id);

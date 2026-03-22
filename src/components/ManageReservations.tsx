@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, Pencil, Trash2, CalendarDays, Users, DollarSign } from "lucide-react";
+import { Plus, Pencil, Trash2, CalendarDays, Users, DollarSign, Ban } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -37,6 +37,7 @@ export interface ManualReservation {
   source: string;
   net_payout: number;
   status: string;
+  is_blocked: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -263,22 +264,44 @@ export function ManageReservations({ adminPin, propertyId, propertyName, currenc
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95 }}
-                className="flex items-center justify-between rounded-lg border border-border bg-card p-3 text-sm"
+                className={`flex items-center justify-between rounded-lg border border-border p-3 text-sm ${r.is_blocked ? "bg-muted/50 opacity-70" : "bg-card"}`}
               >
                 <div className="space-y-0.5 min-w-0">
                   <div className="flex items-center gap-2">
-                    <span className="font-medium truncate">{r.guest_name}</span>
-                    {statusBadge(r.status)}
+                    <span className={`font-medium truncate ${r.is_blocked ? "line-through text-muted-foreground" : ""}`}>{r.guest_name}</span>
+                    {r.is_blocked ? (
+                      <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-zinc-200 text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300">Blocked</span>
+                    ) : statusBadge(r.status)}
                   </div>
                   <div className="text-xs text-muted-foreground flex items-center gap-2 flex-wrap">
                     <span>{format(parseISO(r.check_in), "MMM d")} – {format(parseISO(r.check_out), "MMM d")}</span>
                     <span>·</span>
                     <span>{r.source}</span>
-                    <span>·</span>
-                    <span className="font-medium">{r.net_payout} {currency}</span>
+                    {!r.is_blocked && (
+                      <>
+                        <span>·</span>
+                        <span className="font-medium">{r.net_payout} {currency}</span>
+                      </>
+                    )}
                   </div>
                 </div>
                 <div className="flex gap-1 shrink-0 ml-2">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className={`h-7 w-7 ${r.is_blocked ? "text-zinc-500" : "text-muted-foreground"}`}
+                    title={r.is_blocked ? "Unblock" : "Mark as Blocked"}
+                    onClick={async () => {
+                      try {
+                        await updateReservation(adminPin, r.id, { is_blocked: !r.is_blocked });
+                        toast.success(r.is_blocked ? "Unblocked" : "Marked as blocked");
+                        load();
+                        onUpdate?.();
+                      } catch { toast.error("Failed to update"); }
+                    }}
+                  >
+                    <Ban className="w-3 h-3" />
+                  </Button>
                   <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEdit(r)}>
                     <Pencil className="w-3 h-3" />
                   </Button>
