@@ -89,7 +89,8 @@ Deno.serve(async (req) => {
         .from("manual_reservations")
         .select("*")
         .or(`check_in.eq.${today},check_out.eq.${today}`)
-        .neq("status", "Cancelled");
+        .neq("status", "Cancelled")
+        .eq("is_blocked", false);
 
       const propertyStatuses = (properties || []).map((p: any) => {
         const propRes = (reservations || []).filter((r: any) => r.property_id === p.id);
