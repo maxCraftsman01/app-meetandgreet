@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { List, Pencil, Trash2, Ban } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { getAdminReservations, deleteReservation } from "@/lib/api";
+import { getAdminReservations, deleteReservation, updateReservation } from "@/lib/api";
 import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
 import type { ManualReservation } from "./ManageReservations";
