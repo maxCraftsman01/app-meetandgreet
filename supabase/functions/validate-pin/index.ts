@@ -20,7 +20,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Check admin PIN
+    // Check env-var super-admin PIN
     const adminPin = Deno.env.get("ADMIN_PIN");
     if (pin === adminPin) {
       return new Response(JSON.stringify({ role: "admin", token: pin }), {
@@ -36,7 +36,7 @@ Deno.serve(async (req) => {
     // Look up user in app_users table
     const { data: user } = await supabase
       .from("app_users")
-      .select("id, name, pin")
+      .select("id, name, pin, is_admin")
       .eq("pin", pin)
       .single();
 
@@ -45,6 +45,14 @@ Deno.serve(async (req) => {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
+
+    // If user is an admin, return admin role
+    if (user.is_admin) {
+      return new Response(
+        JSON.stringify({ role: "admin", token: pin, user_id: user.id, user_name: user.name }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     // Get property access permissions for this user

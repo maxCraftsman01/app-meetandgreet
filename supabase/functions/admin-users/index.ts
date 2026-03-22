@@ -5,8 +5,26 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-admin-pin",
 };
 
-function isAdmin(req: Request): boolean {
-  return req.headers.get("x-admin-pin") === Deno.env.get("ADMIN_PIN");
+async function isAdmin(req: Request): Promise<boolean> {
+  const pin = req.headers.get("x-admin-pin");
+  if (!pin) return false;
+  
+  // Check env-var super-admin
+  if (pin === Deno.env.get("ADMIN_PIN")) return true;
+  
+  // Check if PIN belongs to an is_admin user
+  const supabase = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+  );
+  const { data } = await supabase
+    .from("app_users")
+    .select("id")
+    .eq("pin", pin)
+    .eq("is_admin", true)
+    .single();
+  
+  return !!data;
 }
 
 Deno.serve(async (req) => {
@@ -14,7 +32,7 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  if (!isAdmin(req)) {
+  if (!(await isAdmin(req))) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), {
       status: 401,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -71,7 +89,7 @@ Deno.serve(async (req) => {
     // POST: create user
     if (method === "POST") {
       const body = await req.json();
-      const { name, pin, property_access } = body;
+      const { name, pin, property_access, is_admin } = body;
 
       if (!name || !pin || pin.length !== 8) {
         return new Response(JSON.stringify({ error: "Name and 8-digit PIN required" }), {
@@ -82,7 +100,7 @@ Deno.serve(async (req) => {
 
       const { data: user, error } = await supabase
         .from("app_users")
-        .insert({ name, pin })
+        .insert({ name, pin, is_admin: is_admin ?? false })
         .select()
         .single();
 
@@ -129,11 +147,12 @@ Deno.serve(async (req) => {
     if (method === "PUT") {
       const id = url.searchParams.get("id");
       const body = await req.json();
-      const { name, pin, property_access } = body;
+      const { name, pin, property_access, is_admin } = body;
 
       const updateData: Record<string, unknown> = {};
       if (name) updateData.name = name;
       if (pin) updateData.pin = pin;
+      if (is_admin !== undefined) updateData.is_admin = is_admin;
 
       if (Object.keys(updateData).length > 0) {
         const { error } = await supabase
