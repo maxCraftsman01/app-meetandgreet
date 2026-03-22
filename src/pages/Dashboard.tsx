@@ -438,75 +438,94 @@ const Dashboard = () => {
           {/* ── Cleaning Tab ─────────────────────────── */}
           {hasAnyCleaning && (
             <TabsContent value="cleaning" className="space-y-6">
-              <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h2 className="text-xl font-semibold mb-1">Today's Cleaning Schedule</h2>
-                    <p className="text-sm text-muted-foreground">{today}</p>
+              <Tabs defaultValue="today" className="space-y-4">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                  <TabsList className="h-9">
+                    <TabsTrigger value="today" className="text-xs px-3" onClick={() => { if (cleanerTasks.length === 0) loadCleaningTasks(); }}>Today</TabsTrigger>
+                    <TabsTrigger value="calendar" className="text-xs px-3">Week / Month</TabsTrigger>
+                  </TabsList>
+                  <div className="flex items-center gap-2">
+                    <Button variant="outline" size="sm" onClick={loadCleaningTasks}>
+                      <RefreshCw className="w-4 h-4 mr-1.5" />
+                      Refresh
+                    </Button>
                   </div>
-                  <Button variant="outline" size="sm" onClick={loadCleaningTasks}>
-                    <RefreshCw className="w-4 h-4 mr-1.5" />
-                    Refresh
-                  </Button>
                 </div>
-              </motion.div>
 
-              {cleaningLoading ? (
-                <div className="flex justify-center py-20 text-muted-foreground">Loading...</div>
-              ) : sortedTasks.length === 0 ? (
-                <Card className="p-8 text-center text-muted-foreground">
-                  <Sparkles className="w-8 h-8 mx-auto mb-3 opacity-40" />
-                  <p>No cleaning tasks for today.</p>
-                </Card>
-              ) : (
-                <div className="space-y-4">
-                  {sortedTasks.map((task, i) => {
-                    const cfg = STATUS_CONFIG[task.status] || STATUS_CONFIG.idle;
-                    const Icon = cfg.icon;
-                    const taskAccess = userProperties.find((p) => p.id === task.property_id);
-                    const taskCanMark = taskAccess?.can_mark_cleaned ?? false;
-                    return (
-                      <motion.div key={task.property_id}
-                        initial={{ opacity: 0, y: 16, filter: "blur(4px)" }}
-                        animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-                        transition={{ delay: i * 0.08, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-                      >
-                        <Card className={`p-5 border-2 ${cfg.border} ${cfg.bg} transition-colors duration-300`}>
-                          <div className="flex items-start justify-between mb-3">
-                            <div>
-                              <div className="flex items-center gap-2 mb-1">
-                                <Icon className={`w-4 h-4 ${cfg.color}`} />
-                                <span className={`text-xs font-semibold uppercase tracking-wider ${cfg.color}`}>{cfg.label}</span>
+                {/* Today View */}
+                <TabsContent value="today" className="space-y-4 mt-0">
+                  <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}>
+                    <p className="text-sm text-muted-foreground">{today}</p>
+                  </motion.div>
+
+                  {cleaningLoading ? (
+                    <div className="flex justify-center py-20 text-muted-foreground">Loading...</div>
+                  ) : sortedTasks.length === 0 ? (
+                    <Card className="p-8 text-center text-muted-foreground">
+                      <Sparkles className="w-8 h-8 mx-auto mb-3 opacity-40" />
+                      <p>No cleaning tasks for today.</p>
+                    </Card>
+                  ) : (
+                    <div className="space-y-4">
+                      {sortedTasks.map((task, i) => {
+                        const cfg = STATUS_CONFIG[task.status] || STATUS_CONFIG.idle;
+                        const Icon = cfg.icon;
+                        const taskAccess = userProperties.find((p) => p.id === task.property_id);
+                        const taskCanMark = taskAccess?.can_mark_cleaned ?? false;
+                        return (
+                          <motion.div key={task.property_id}
+                            initial={{ opacity: 0, y: 16, filter: "blur(4px)" }}
+                            animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                            transition={{ delay: i * 0.08, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+                          >
+                            <Card className={`p-5 border-2 ${cfg.border} ${cfg.bg} transition-colors duration-300`}>
+                              <div className="flex items-start justify-between mb-3">
+                                <div>
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <Icon className={`w-4 h-4 ${cfg.color}`} />
+                                    <span className={`text-xs font-semibold uppercase tracking-wider ${cfg.color}`}>{cfg.label}</span>
+                                  </div>
+                                  <h3 className="font-semibold text-lg">{task.property_name}</h3>
+                                </div>
                               </div>
-                              <h3 className="font-semibold text-lg">{task.property_name}</h3>
-                            </div>
-                          </div>
-                          <div className="space-y-2 text-sm">
-                            {task.check_out_guest && <p className="text-muted-foreground"><span className="font-medium text-foreground">Departing:</span> {task.check_out_guest}</p>}
-                            {task.guest_name && <p className="text-muted-foreground"><span className="font-medium text-foreground">Arriving:</span> {task.guest_name}</p>}
-                            {task.keybox_code && <div className="flex items-center gap-1.5"><Key className="w-3.5 h-3.5 text-muted-foreground" /><span className="font-mono font-medium">{task.keybox_code}</span></div>}
-                            {task.cleaning_notes && <div className="flex items-start gap-1.5"><FileText className="w-3.5 h-3.5 text-muted-foreground mt-0.5" /><span className="text-muted-foreground">{task.cleaning_notes}</span></div>}
-                          </div>
-                          {taskCanMark && task.reservation_id && task.status !== "arrival-ready" && (
-                            <div className="mt-4">
-                              <Button className="w-full" onClick={() => handleMarkCleaned(task.reservation_id!)} disabled={markingId === task.reservation_id}>
-                                <CheckCircle2 className="w-4 h-4 mr-1.5" />
-                                {markingId === task.reservation_id ? "Updating..." : "Mark as Cleaned"}
-                              </Button>
-                            </div>
-                          )}
-                          {task.status === "arrival-ready" && (
-                            <div className="mt-4 flex items-center gap-2 text-emerald-700">
-                              <CheckCircle2 className="w-4 h-4" />
-                              <span className="text-sm font-medium">Cleaning completed</span>
-                            </div>
-                          )}
-                        </Card>
-                      </motion.div>
-                    );
-                  })}
-                </div>
-              )}
+                              <div className="space-y-2 text-sm">
+                                {task.check_out_guest && <p className="text-muted-foreground"><span className="font-medium text-foreground">Departing:</span> {task.check_out_guest}</p>}
+                                {task.guest_name && <p className="text-muted-foreground"><span className="font-medium text-foreground">Arriving:</span> {task.guest_name}</p>}
+                                {task.keybox_code && <div className="flex items-center gap-1.5"><Key className="w-3.5 h-3.5 text-muted-foreground" /><span className="font-mono font-medium">{task.keybox_code}</span></div>}
+                                {task.cleaning_notes && <div className="flex items-start gap-1.5"><FileText className="w-3.5 h-3.5 text-muted-foreground mt-0.5" /><span className="text-muted-foreground">{task.cleaning_notes}</span></div>}
+                              </div>
+                              {taskCanMark && task.reservation_id && task.status !== "arrival-ready" && (
+                                <div className="mt-4">
+                                  <Button className="w-full" onClick={() => handleMarkCleaned(task.reservation_id!)} disabled={markingId === task.reservation_id}>
+                                    <CheckCircle2 className="w-4 h-4 mr-1.5" />
+                                    {markingId === task.reservation_id ? "Updating..." : "Mark as Cleaned"}
+                                  </Button>
+                                </div>
+                              )}
+                              {task.status === "arrival-ready" && (
+                                <div className="mt-4 flex items-center gap-2 text-emerald-700">
+                                  <CheckCircle2 className="w-4 h-4" />
+                                  <span className="text-sm font-medium">Cleaning completed</span>
+                                </div>
+                              )}
+                            </Card>
+                          </motion.div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </TabsContent>
+
+                {/* Week/Month Calendar View */}
+                <TabsContent value="calendar" className="mt-0">
+                  <CleaningCalendar
+                    pin={session!.pin}
+                    userProperties={userProperties}
+                    onMarkCleaned={handleMarkCleaned}
+                    markingId={markingId}
+                  />
+                </TabsContent>
+              </Tabs>
             </TabsContent>
           )}
         </Tabs>
