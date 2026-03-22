@@ -2,7 +2,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-cleaner-pin, x-admin-pin",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-cleaner-pin, x-admin-pin, x-user-pin",
 };
 
 Deno.serve(async (req) => {
@@ -17,10 +17,10 @@ Deno.serve(async (req) => {
 
   const cleanerPin = req.headers.get("x-cleaner-pin");
   const adminPin = req.headers.get("x-admin-pin");
+  const userPin = req.headers.get("x-user-pin") || cleanerPin; // unified PIN support
   const isAdmin = adminPin === Deno.env.get("ADMIN_PIN");
 
   try {
-    const url = new URL(req.url);
     const method = req.method;
 
     // Admin: get all properties' cleaning status for daily ops dashboard
@@ -37,7 +37,6 @@ Deno.serve(async (req) => {
         .or(`check_in.eq.${today},check_out.eq.${today}`)
         .neq("status", "Cancelled");
 
-      // Build status for each property
       const propertyStatuses = (properties || []).map((p: any) => {
         const propRes = (reservations || []).filter((r: any) => r.property_id === p.id);
         const checkingOut = propRes.some((r: any) => r.check_out === today);
@@ -45,11 +44,11 @@ Deno.serve(async (req) => {
         const hasArrival = !!checkingIn;
         const cleaningDone = checkingIn?.cleaning_status === "completed";
 
-        let status = "idle"; // no activity today
-        if (checkingOut && hasArrival) status = "same-day"; // RED
-        else if (checkingOut && !hasArrival) status = "checkout-only"; // YELLOW
-        else if (hasArrival && !cleaningDone) status = "arrival-pending"; // ORANGE
-        else if (hasArrival && cleaningDone) status = "arrival-ready"; // GREEN
+        let status = "idle";
+        if (checkingOut && hasArrival) status = "same-day";
+        else if (checkingOut && !hasArrival) status = "checkout-only";
+        else if (hasArrival && !cleaningDone) status = "arrival-pending";
+        else if (hasArrival && cleaningDone) status = "arrival-ready";
 
         return {
           ...p,
@@ -66,32 +65,44 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Cleaner access: validate cleaner PIN
-    if (!cleanerPin && !isAdmin) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    // User access: look up by PIN in app_users + user_property_access
+    if (method === "GET" && userPin) {
+      // Find user by PIN
+      const { data: user } = await supabase
+        .from("app_users")
+        .select("id")
+        .eq("pin", userPin)
+        .single();
 
-    // GET: cleaner's today tasks
-    if (method === "GET" && cleanerPin) {
-      const { data: properties } = await supabase
-        .from("properties")
-        .select("id, name, keybox_code, cleaning_notes, cleaner_pin")
-        .eq("cleaner_pin", cleanerPin);
-
-      if (!properties || properties.length === 0) {
-        return new Response(JSON.stringify({ error: "Invalid cleaner PIN" }), {
+      if (!user) {
+        return new Response(JSON.stringify({ error: "Invalid PIN" }), {
           status: 401,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
 
-      const propertyIds = properties.map((p: any) => p.id);
+      // Get properties where user has cleaning access
+      const { data: access } = await supabase
+        .from("user_property_access")
+        .select("property_id, can_mark_cleaned")
+        .eq("user_id", user.id)
+        .eq("can_view_cleaning", true);
+
+      if (!access || access.length === 0) {
+        return new Response(JSON.stringify([]), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const propertyIds = access.map((a: any) => a.property_id);
+
+      const { data: properties } = await supabase
+        .from("properties")
+        .select("id, name, keybox_code, cleaning_notes")
+        .in("id", propertyIds);
+
       const today = new Date().toISOString().split("T")[0];
 
-      // Get reservations with check-in or check-out today
       const { data: reservations } = await supabase
         .from("manual_reservations")
         .select("*")
@@ -99,7 +110,7 @@ Deno.serve(async (req) => {
         .or(`check_in.eq.${today},check_out.eq.${today}`)
         .neq("status", "Cancelled");
 
-      const tasks = (properties).map((p: any) => {
+      const tasks = (properties || []).map((p: any) => {
         const propRes = (reservations || []).filter((r: any) => r.property_id === p.id);
         const checkingOut = propRes.some((r: any) => r.check_out === today);
         const checkingIn = propRes.find((r: any) => r.check_in === today);
@@ -126,6 +137,13 @@ Deno.serve(async (req) => {
       });
 
       return new Response(JSON.stringify(tasks), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (!userPin && !isAdmin) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }

@@ -2,7 +2,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-owner-pin",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-owner-pin, x-user-pin",
 };
 
 Deno.serve(async (req) => {
@@ -11,7 +11,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const pin = req.headers.get("x-owner-pin");
+    const pin = req.headers.get("x-user-pin") || req.headers.get("x-owner-pin");
     if (!pin) {
       return new Response(JSON.stringify({ error: "Missing PIN" }), {
         status: 401,
@@ -24,36 +24,56 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    const { data: properties, error } = await supabase
-      .from("properties")
-      .select("*")
-      .eq("owner_pin", pin);
+    // Look up user and their property access
+    const { data: user } = await supabase
+      .from("app_users")
+      .select("id")
+      .eq("pin", pin)
+      .single();
 
-    if (error || !properties || properties.length === 0) {
+    if (!user) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Get bookings for all properties
-    const propertyIds = properties.map((p) => p.id);
+    // Get properties where user has finance access
+    const { data: access } = await supabase
+      .from("user_property_access")
+      .select("property_id, can_view_finance")
+      .eq("user_id", user.id);
+
+    const financePropertyIds = (access || [])
+      .filter((a: any) => a.can_view_finance)
+      .map((a: any) => a.property_id);
+
+    if (financePropertyIds.length === 0) {
+      return new Response(JSON.stringify({ properties: [], bookings: [], manual_reservations: [] }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const { data: properties } = await supabase
+      .from("properties")
+      .select("*")
+      .in("id", financePropertyIds);
+
     const { data: bookings } = await supabase
       .from("bookings")
       .select("*")
-      .in("property_id", propertyIds)
+      .in("property_id", financePropertyIds)
       .order("start_date");
 
-    // Get manual reservations for all properties
     const { data: manualReservations } = await supabase
       .from("manual_reservations")
       .select("*")
-      .in("property_id", propertyIds)
+      .in("property_id", financePropertyIds)
       .order("check_in");
 
     return new Response(
       JSON.stringify({
-        properties,
+        properties: properties || [],
         bookings: bookings || [],
         manual_reservations: manualReservations || [],
       }),

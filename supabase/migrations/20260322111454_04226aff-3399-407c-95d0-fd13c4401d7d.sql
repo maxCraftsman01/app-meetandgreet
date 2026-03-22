@@ -1,0 +1,3 @@
+
+ALTER TABLE public.app_users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.user_property_access ENABLE ROW LEVEL SECURITY;

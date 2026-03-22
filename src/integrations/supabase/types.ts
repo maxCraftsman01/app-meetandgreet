@@ -14,6 +14,27 @@ export type Database = {
   }
   public: {
     Tables: {
+      app_users: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          pin: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          pin: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          pin?: string
+        }
+        Relationships: []
+      }
       bookings: {
         Row: {
           end_date: string
@@ -152,6 +173,48 @@ export type Database = {
           owner_pin?: string
         }
         Relationships: []
+      }
+      user_property_access: {
+        Row: {
+          can_mark_cleaned: boolean
+          can_view_cleaning: boolean
+          can_view_finance: boolean
+          id: string
+          property_id: string
+          user_id: string
+        }
+        Insert: {
+          can_mark_cleaned?: boolean
+          can_view_cleaning?: boolean
+          can_view_finance?: boolean
+          id?: string
+          property_id: string
+          user_id: string
+        }
+        Update: {
+          can_mark_cleaned?: boolean
+          can_view_cleaning?: boolean
+          can_view_finance?: boolean
+          id?: string
+          property_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_property_access_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_property_access_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "app_users"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
