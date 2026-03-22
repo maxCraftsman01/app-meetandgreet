@@ -37,6 +37,7 @@ export interface ManualReservation {
   source: string;
   net_payout: number;
   status: string;
+  is_blocked: boolean;
   created_at: string;
   updated_at: string;
 }
