@@ -1,11 +1,13 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, Pencil, Trash2, Copy, Check, Users, Building2, Eye, Brush, CheckCircle2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Copy, Check, Users, Building2, Eye, Brush, CheckCircle2, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { getAdminUsers, createUser, updateUser, deleteUser } from "@/lib/api";
 import { toast } from "sonner";
@@ -22,6 +24,7 @@ interface AppUser {
   id: string;
   name: string;
   pin: string;
+  is_admin: boolean;
   created_at: string;
   property_access: PropertyAccess[];
 }
@@ -43,6 +46,7 @@ export function UserManagement({ adminPin }: { adminPin: string }) {
   // Form state
   const [formName, setFormName] = useState("");
   const [formPin, setFormPin] = useState("");
+  const [formIsAdmin, setFormIsAdmin] = useState(false);
   const [formAccess, setFormAccess] = useState<Record<string, { finance: boolean; cleaning: boolean; mark: boolean }>>({});
 
   useEffect(() => {
@@ -65,6 +69,7 @@ export function UserManagement({ adminPin }: { adminPin: string }) {
   const resetForm = () => {
     setFormName("");
     setFormPin("");
+    setFormIsAdmin(false);
     setFormAccess({});
     setEditingUser(null);
   };
@@ -78,6 +83,7 @@ export function UserManagement({ adminPin }: { adminPin: string }) {
     setEditingUser(user);
     setFormName(user.name);
     setFormPin(user.pin);
+    setFormIsAdmin(user.is_admin ?? false);
     const access: Record<string, { finance: boolean; cleaning: boolean; mark: boolean }> = {};
     user.property_access.forEach((pa) => {
       access[pa.property_id] = {
@@ -94,7 +100,6 @@ export function UserManagement({ adminPin }: { adminPin: string }) {
     setFormAccess((prev) => {
       const current = prev[propId] || { finance: false, cleaning: false, mark: false };
       const updated = { ...current, [field]: !current[field] };
-      // If mark is enabled, cleaning should be too
       if (field === "mark" && updated.mark) updated.cleaning = true;
       return { ...prev, [propId]: updated };
     });
@@ -117,10 +122,10 @@ export function UserManagement({ adminPin }: { adminPin: string }) {
         }));
 
       if (editingUser) {
-        await updateUser(adminPin, editingUser.id, { name: formName, pin: formPin, property_access });
+        await updateUser(adminPin, editingUser.id, { name: formName, pin: formPin, is_admin: formIsAdmin, property_access });
         toast.success("User updated");
       } else {
-        await createUser(adminPin, { name: formName, pin: formPin, property_access });
+        await createUser(adminPin, { name: formName, pin: formPin, is_admin: formIsAdmin, property_access });
         toast.success("User created");
       }
       setDialogOpen(false);
@@ -191,39 +196,54 @@ export function UserManagement({ adminPin }: { adminPin: string }) {
                 </div>
               </div>
 
-              <div>
-                <Label className="mb-3 block">Property Permissions</Label>
-                <div className="space-y-3">
-                  {allProperties.map((prop) => {
-                    const access = formAccess[prop.id] || { finance: false, cleaning: false, mark: false };
-                    return (
-                      <Card key={prop.id} className="p-3">
-                        <p className="font-medium text-sm mb-2 flex items-center gap-1.5">
-                          <Building2 className="w-3.5 h-3.5 text-muted-foreground" />
-                          {prop.name}
-                        </p>
-                        <div className="flex flex-wrap gap-4">
-                          <label className="flex items-center gap-2 text-sm cursor-pointer">
-                            <Checkbox checked={access.finance} onCheckedChange={() => toggleAccess(prop.id, "finance")} />
-                            <Eye className="w-3.5 h-3.5 text-muted-foreground" />
-                            Finance
-                          </label>
-                          <label className="flex items-center gap-2 text-sm cursor-pointer">
-                            <Checkbox checked={access.cleaning} onCheckedChange={() => toggleAccess(prop.id, "cleaning")} />
-                            <Brush className="w-3.5 h-3.5 text-muted-foreground" />
-                            Cleaning
-                          </label>
-                          <label className="flex items-center gap-2 text-sm cursor-pointer">
-                            <Checkbox checked={access.mark} onCheckedChange={() => toggleAccess(prop.id, "mark")} />
-                            <CheckCircle2 className="w-3.5 h-3.5 text-muted-foreground" />
-                            Mark Cleaned
-                          </label>
-                        </div>
-                      </Card>
-                    );
-                  })}
+              {/* Admin toggle */}
+              <Card className="p-3 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <ShieldCheck className="w-4 h-4 text-amber-600" />
+                  <div>
+                    <p className="text-sm font-medium">Administrator</p>
+                    <p className="text-xs text-muted-foreground">Full access to all properties and admin panel</p>
+                  </div>
                 </div>
-              </div>
+                <Switch checked={formIsAdmin} onCheckedChange={setFormIsAdmin} />
+              </Card>
+
+              {/* Property permissions — hidden for admins since they get full access */}
+              {!formIsAdmin && (
+                <div>
+                  <Label className="mb-3 block">Property Permissions</Label>
+                  <div className="space-y-3">
+                    {allProperties.map((prop) => {
+                      const access = formAccess[prop.id] || { finance: false, cleaning: false, mark: false };
+                      return (
+                        <Card key={prop.id} className="p-3">
+                          <p className="font-medium text-sm mb-2 flex items-center gap-1.5">
+                            <Building2 className="w-3.5 h-3.5 text-muted-foreground" />
+                            {prop.name}
+                          </p>
+                          <div className="flex flex-wrap gap-4">
+                            <label className="flex items-center gap-2 text-sm cursor-pointer">
+                              <Checkbox checked={access.finance} onCheckedChange={() => toggleAccess(prop.id, "finance")} />
+                              <Eye className="w-3.5 h-3.5 text-muted-foreground" />
+                              Finance
+                            </label>
+                            <label className="flex items-center gap-2 text-sm cursor-pointer">
+                              <Checkbox checked={access.cleaning} onCheckedChange={() => toggleAccess(prop.id, "cleaning")} />
+                              <Brush className="w-3.5 h-3.5 text-muted-foreground" />
+                              Cleaning
+                            </label>
+                            <label className="flex items-center gap-2 text-sm cursor-pointer">
+                              <Checkbox checked={access.mark} onCheckedChange={() => toggleAccess(prop.id, "mark")} />
+                              <CheckCircle2 className="w-3.5 h-3.5 text-muted-foreground" />
+                              Mark Cleaned
+                            </label>
+                          </div>
+                        </Card>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
               <Button onClick={handleSave} disabled={saving}>
                 {saving ? "Saving..." : editingUser ? "Update" : "Create"}
@@ -252,7 +272,15 @@ export function UserManagement({ adminPin }: { adminPin: string }) {
                 <Card className="p-5 hover:shadow-md transition-shadow duration-200">
                   <div className="flex items-start justify-between mb-3">
                     <div>
-                      <h4 className="font-semibold">{user.name}</h4>
+                      <div className="flex items-center gap-2">
+                        <h4 className="font-semibold">{user.name}</h4>
+                        {user.is_admin && (
+                          <Badge className="bg-amber-100 text-amber-800 border-amber-200 text-[10px] px-1.5 py-0">
+                            <ShieldCheck className="w-3 h-3 mr-0.5" />
+                            Admin
+                          </Badge>
+                        )}
+                      </div>
                       <span className="text-xs font-mono text-muted-foreground bg-muted px-2 py-0.5 rounded">
                         PIN: {user.pin}
                       </span>
@@ -267,8 +295,13 @@ export function UserManagement({ adminPin }: { adminPin: string }) {
                     </div>
                   </div>
 
-                  {/* Property access list */}
-                  {user.property_access.length > 0 ? (
+                  {/* Admin gets all properties */}
+                  {user.is_admin ? (
+                    <p className="text-xs text-amber-700 mb-3 flex items-center gap-1">
+                      <ShieldCheck className="w-3 h-3" />
+                      Full access to all properties
+                    </p>
+                  ) : user.property_access.length > 0 ? (
                     <div className="space-y-2 mb-3">
                       {user.property_access.map((pa) => (
                         <div key={pa.property_id} className="flex items-center gap-2 text-xs">
