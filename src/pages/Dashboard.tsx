@@ -391,6 +391,17 @@ const Dashboard = () => {
                           </Button>
                         </div>
                       </div>
+                      {rangeStart && (
+                        <div className="mb-3 flex items-center gap-2">
+                          <span className="text-xs text-primary font-medium">
+                            Selecting: {format(rangeStart, "MMM d")}
+                            {rangeEnd ? ` → ${format(rangeEnd, "MMM d")}` : " → tap end date"}
+                          </span>
+                          <Button variant="ghost" size="sm" className="h-6 px-2 text-xs" onClick={cancelSelection}>
+                            <X className="w-3 h-3 mr-1" />Cancel
+                          </Button>
+                        </div>
+                      )}
                       <div className="grid grid-cols-7 gap-1">
                         {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) =>
                     <div key={d} className="text-center text-xs font-medium text-muted-foreground py-2">{d}</div>
@@ -399,11 +410,14 @@ const Dashboard = () => {
                         {days.map((day) => {
                       const info = getDayInfo(day);
                       const pendingStyle = info.isPending ? "bg-orange-100 border-orange-400 text-orange-700" : statusColors[info.status];
-                      const isClickable = info.isManual || info.isPending;
+                      const inRange = isInSelectedRange(day);
+                      const isRangeStart = rangeStart && isSameDay(day, rangeStart);
+                      const rangeHighlight = inRange ? "ring-2 ring-primary bg-primary/10" : "";
+                      const isClickable = info.isManual || info.isPending || info.status === "available";
                       return (
                         <div key={day.toISOString()} title={info.label}
-                        onClick={() => isClickable ? setSelectedDay({ date: day, info }) : null}
-                        className={`relative aspect-square flex items-center justify-center rounded-lg text-sm font-medium transition-colors duration-150 ${pendingStyle} ${isToday(day) ? "ring-2 ring-foreground ring-offset-1" : ""} border ${isClickable ? "cursor-pointer hover:opacity-80" : ""}`}>
+                        onClick={() => handleCalendarDayClick(day, info)}
+                        className={`relative aspect-square flex items-center justify-center rounded-lg text-sm font-medium transition-colors duration-150 ${pendingStyle} ${rangeHighlight} ${isToday(day) && !inRange ? "ring-2 ring-foreground ring-offset-1" : ""} border ${isClickable ? "cursor-pointer hover:opacity-80" : ""}`}>
                           
                               {format(day, "d")}
                             </div>);
@@ -415,6 +429,7 @@ const Dashboard = () => {
                         <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-sm bg-orange-100 border border-orange-400" /><span className="text-xs text-muted-foreground">Pending</span></div>
                         <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-sm bg-status-available-light border border-status-available" /><span className="text-xs text-muted-foreground">Available</span></div>
                         <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-sm bg-status-blocked-light border border-status-blocked" /><span className="text-xs text-muted-foreground">Blocked</span></div>
+                        <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-sm bg-primary/10 ring-1 ring-primary" /><span className="text-xs text-muted-foreground">Selected</span></div>
                       </div>
                       {selectedDay &&
                   <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="mt-4 pt-4 border-t border-border">
