@@ -2,7 +2,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-owner-pin, x-user-pin, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-owner-pin, x-user-pin, x-admin-pin, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
   "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
 };
 
@@ -12,7 +12,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const pin = req.headers.get("x-user-pin") || req.headers.get("x-owner-pin");
+    const pin = req.headers.get("x-user-pin") || req.headers.get("x-owner-pin") || req.headers.get("x-admin-pin");
     if (!pin) {
       return new Response(JSON.stringify({ error: "Missing PIN" }), {
         status: 401,
@@ -25,52 +25,73 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Look up user and their property access
-    const { data: user } = await supabase
-      .from("app_users")
-      .select("id")
-      .eq("pin", pin)
-      .single();
+    // Check super-admin PIN
+    const adminPin = Deno.env.get("ADMIN_PIN");
+    let isAdmin = false;
+    let financePropertyIds: string[] = [];
 
-    if (!user) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    if (pin === adminPin) {
+      isAdmin = true;
+    } else {
+      // Look up user
+      const { data: user } = await supabase
+        .from("app_users")
+        .select("id, is_admin")
+        .eq("pin", pin)
+        .single();
+
+      if (!user) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      isAdmin = user.is_admin;
+
+      if (!isAdmin) {
+        // Get properties where user has finance access
+        const { data: access } = await supabase
+          .from("user_property_access")
+          .select("property_id, can_view_finance")
+          .eq("user_id", user.id);
+
+        financePropertyIds = (access || [])
+          .filter((a: any) => a.can_view_finance)
+          .map((a: any) => a.property_id);
+
+        if (financePropertyIds.length === 0) {
+          return new Response(JSON.stringify({ properties: [], bookings: [], manual_reservations: [] }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+      }
     }
 
-    // Get properties where user has finance access
-    const { data: access } = await supabase
-      .from("user_property_access")
-      .select("property_id, can_view_finance")
-      .eq("user_id", user.id);
+    // Optional property_id filter (for admin viewing a specific property)
+    const url = new URL(req.url);
+    const filterPropertyId = url.searchParams.get("property_id");
 
-    const financePropertyIds = (access || [])
-      .filter((a: any) => a.can_view_finance)
-      .map((a: any) => a.property_id);
+    // Admin gets all properties (or filtered), regular users get only their finance properties
+    let propertiesQuery = supabase.from("properties").select("*");
+    let bookingsQuery = supabase.from("bookings").select("*");
+    let manualQuery = supabase.from("manual_reservations").select("*");
 
-    if (financePropertyIds.length === 0) {
-      return new Response(JSON.stringify({ properties: [], bookings: [], manual_reservations: [] }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    if (isAdmin) {
+      if (filterPropertyId) {
+        propertiesQuery = propertiesQuery.eq("id", filterPropertyId);
+        bookingsQuery = bookingsQuery.eq("property_id", filterPropertyId);
+        manualQuery = manualQuery.eq("property_id", filterPropertyId);
+      }
+    } else {
+      propertiesQuery = propertiesQuery.in("id", financePropertyIds);
+      bookingsQuery = bookingsQuery.in("property_id", financePropertyIds);
+      manualQuery = manualQuery.in("property_id", financePropertyIds);
     }
 
-    const { data: properties } = await supabase
-      .from("properties")
-      .select("*")
-      .in("id", financePropertyIds);
-
-    const { data: bookings } = await supabase
-      .from("bookings")
-      .select("*")
-      .in("property_id", financePropertyIds)
-      .order("start_date");
-
-    const { data: manualReservations } = await supabase
-      .from("manual_reservations")
-      .select("*")
-      .in("property_id", financePropertyIds)
-      .order("check_in");
+    const { data: properties } = await propertiesQuery;
+    const { data: bookings } = await bookingsQuery.order("start_date");
+    const { data: manualReservations } = await manualQuery.order("check_in");
 
     return new Response(
       JSON.stringify({
