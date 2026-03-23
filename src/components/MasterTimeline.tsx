@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { TimelineBar } from "./TimelineBar";
 import { TimelineFilters } from "./TimelineFilters";
 import { TimelineDetailModal } from "./TimelineDetailModal";
+import { TimelineLegend } from "./TimelineLegend";
 
 interface Props {
   adminPin: string;
