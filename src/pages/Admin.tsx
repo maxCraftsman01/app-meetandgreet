@@ -18,6 +18,7 @@ import { PendingPayouts } from "@/components/PendingPayouts";
 import { DailyOperations } from "@/components/DailyOperations";
 import { UserManagement } from "@/components/UserManagement";
 import { MasterTimeline } from "@/components/MasterTimeline";
+import { PropertyFinanceView } from "@/components/PropertyFinanceView";
 
 interface Property {
   id: string;
