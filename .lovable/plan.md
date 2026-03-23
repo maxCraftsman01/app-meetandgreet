@@ -1,61 +1,57 @@
 
-## Fix manual reservation edit/delete CORS failure
 
-### What I found
-The current `admin-reservations` function already allows the custom headers, but its preflight response is still incomplete for browser `PUT` and `DELETE` requests.
+## Responsive & Color-Coded Polish for PIN Entry + Cleaner Portal
 
-From the runtime evidence:
-- `GET` requests succeed
-- `PUT` and `DELETE` show `Failed to fetch`
-- that pattern strongly indicates the browser is blocking the request during the CORS preflight, before the real mutation runs
+### What's changing
 
-### Root cause
-`supabase/functions/admin-reservations/index.ts` is missing:
-- `Access-Control-Allow-Methods`
-- a more explicit OPTIONS response for non-GET methods
+Two areas get optimized: the PIN entry screen and the Cleaning tab — both refined for one-handed mobile use on a 390px viewport with the property management color system (light grays, emerald for ready, coral for busy).
 
-Two other functions already show the correct pattern (`admin-users`, `admin-timeline`), so I would align `admin-reservations` with that working setup.
+### 1. PIN Entry — Mobile-First Optimization
 
-### Plan
-1. Update `supabase/functions/admin-reservations/index.ts`
-   - add:
-     - `Access-Control-Allow-Methods: "GET, POST, PUT, DELETE, OPTIONS"`
-   - keep the existing allowed headers
-   - return a proper OPTIONS response with the full CORS headers
+**File: `src/pages/Index.tsx`**
 
-2. Apply the same CORS-method fix to all mutation-capable edge functions so this does not happen elsewhere again:
-   - `admin-properties`
-   - `admin-users`
-   - `cleaner-operations`
-   - `fetch-ical` if it accepts writes
-   - any other function supporting `POST`, `PUT`, or `DELETE`
+- Increase PIN input tap targets: `w-11 h-14` on mobile (44px minimum touch target per Apple HIG)
+- Add `safe-area-inset` padding at bottom for phones with home indicators
+- Position the entire form in the lower-third of the screen so thumbs reach easily: `justify-end pb-safe` on mobile, `justify-center` on desktop
+- Larger gap between inputs on small screens for fat-finger tolerance
+- Add a subtle emerald accent on the icon instead of the warm primary to match the "property management" professional feel
 
-3. Keep auth logic unchanged for this fix
-   - the current manual reservation issue is not caused by the reservation payload itself
-   - the browser is failing before the update/delete request reaches normal execution
+### 2. Cleaning Tab — One-Handed Mobile UX
 
-4. Verify after implementation
-   - edit a manual reservation
-   - delete a manual reservation
-   - confirm no more `Failed to fetch` / `Failed to delete` errors
+**File: `src/pages/Dashboard.tsx`** (cleaning section, lines 438-529)
 
-### Technical detail
-Recommended CORS shape for mutation functions:
-```ts
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-admin-pin, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-  "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-};
+- Make the "Mark as Cleaned" button full-width and taller (`h-12`) with a prominent emerald color for easy thumb tap
+- Increase card padding on mobile for better touch spacing
+- Status cards use the refined color system consistently:
+  - **Same-day turnover**: `bg-red-50 border-red-300 text-red-700` (coral)
+  - **Checkout only**: `bg-amber-50 border-amber-300 text-amber-700`
+  - **Arrival pending**: `bg-orange-50 border-orange-300 text-orange-700`
+  - **Ready / Cleaned**: `bg-emerald-50 border-emerald-300 text-emerald-700`
+  - **Idle**: `bg-gray-50 border-gray-200 text-gray-500`
+- Tab switcher: make `TabsTrigger` larger on mobile (`h-10 px-4 text-sm`) for thumb tapping
+- Refresh button: move to a floating action position or make it more prominent
+- Add bottom padding (`pb-24`) so content doesn't hide behind mobile nav bars
 
-if (req.method === "OPTIONS") {
-  return new Response("ok", { headers: corsHeaders });
-}
-```
+### 3. Header — Mobile Responsive
 
-### Files to update
-- `supabase/functions/admin-reservations/index.ts`
-- `supabase/functions/admin-properties/index.ts`
-- `supabase/functions/cleaner-operations/index.ts`
-- `supabase/functions/fetch-ical/index.ts`
-- any other mutation-capable function still missing `Access-Control-Allow-Methods`
+**File: `src/pages/Dashboard.tsx`** (header, lines 235-272)
+
+- Stack property selector below the header on mobile instead of cramming it inline
+- Make logout button touch-friendly (`h-10 w-10`)
+- Reduce title font size on mobile to prevent overflow
+
+### 4. CSS Utility Additions
+
+**File: `src/index.css`**
+
+- Add `pb-safe` utility using `env(safe-area-inset-bottom)` for notched phones
+- Ensure the cleaning status utility classes use the refined gray/emerald/coral palette
+
+### Summary of files
+
+| File | Changes |
+|---|---|
+| `src/pages/Index.tsx` | Larger touch targets, bottom-aligned on mobile, safe area padding |
+| `src/pages/Dashboard.tsx` | Bigger buttons, better card spacing, responsive header, mobile tab sizing |
+| `src/index.css` | Safe area utility, refined status colors |
+
