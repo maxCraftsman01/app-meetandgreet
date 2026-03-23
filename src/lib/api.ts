@@ -153,6 +153,15 @@ export async function adminMarkCleaned(adminPin: string, reservationId: string) 
   });
 }
 
+// Admin timeline
+export async function getAdminTimeline(adminPin: string, from: string, to: string) {
+  return callFunction("admin-timeline", {
+    method: "GET",
+    headers: { "x-admin-pin": adminPin },
+    params: { from, to },
+  });
+}
+
 // Admin daily operations
 export async function getDailyOperations(adminPin: string) {
   return callFunction("cleaner-operations", {

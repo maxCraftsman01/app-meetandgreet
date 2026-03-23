@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, LogOut, Copy, RefreshCw, Pencil, Trash2, Check, Building2, List, Clock, ChevronDown, Activity, Users } from "lucide-react";
+import { Plus, LogOut, Copy, RefreshCw, Pencil, Trash2, Check, Building2, List, Clock, ChevronDown, Activity, Users, CalendarRange } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -17,6 +17,7 @@ import { MasterReservationList } from "@/components/MasterReservationList";
 import { PendingPayouts } from "@/components/PendingPayouts";
 import { DailyOperations } from "@/components/DailyOperations";
 import { UserManagement } from "@/components/UserManagement";
+import { MasterTimeline } from "@/components/MasterTimeline";
 
 interface Property {
   id: string;
@@ -277,6 +278,10 @@ const Admin = () => {
               <List className="w-4 h-4 mr-1.5" />
               All Reservations
             </TabsTrigger>
+            <TabsTrigger value="timeline">
+              <CalendarRange className="w-4 h-4 mr-1.5" />
+              Timeline
+            </TabsTrigger>
             <TabsTrigger value="daily-ops">
               <Activity className="w-4 h-4 mr-1.5" />
               Daily Ops
@@ -392,6 +397,10 @@ const Admin = () => {
                 properties={properties.map((p) => ({ id: p.id, name: p.name, currency: p.currency }))}
               />
             </Card>
+          </TabsContent>
+
+          <TabsContent value="timeline">
+            <MasterTimeline adminPin={session!.pin} />
           </TabsContent>
 
           <TabsContent value="daily-ops">
