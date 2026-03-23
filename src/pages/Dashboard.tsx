@@ -517,15 +517,24 @@ const Dashboard = () => {
                 }
                 </TabsContent>
 
-                {/* Week/Month Calendar View */}
-                <TabsContent value="calendar" className="mt-0">
+                {/* Week Calendar View */}
+                <TabsContent value="week" className="mt-0">
                   <CleaningCalendar
                   view="week"
                   pin={session!.pin}
                   userProperties={userProperties}
                   onMarkCleaned={handleMarkCleaned}
                   markingId={markingId} />
-                
+                </TabsContent>
+
+                {/* Month Calendar View */}
+                <TabsContent value="month" className="mt-0">
+                  <CleaningCalendar
+                  view="month"
+                  pin={session!.pin}
+                  userProperties={userProperties}
+                  onMarkCleaned={handleMarkCleaned}
+                  markingId={markingId} />
                 </TabsContent>
               </Tabs>
             </TabsContent>
