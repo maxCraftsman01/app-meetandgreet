@@ -1,38 +1,61 @@
 
 
-## Cleaning Dashboard: 3-Tab Navigation & Finance-Style Calendar
+## Owner Date Selection & Booking on Calendar (Airbnb-Style)
 
-### Problem
-The cleaning section still uses a 2-tab layout ("Today" / "Week / Month") requiring an extra click to switch views. The navigation buttons inside `CleaningCalendar` are small and inconsistent with the Finance calendar style.
+### Goal
+Let owners tap a start date and end date directly on the Finance calendar to either **block dates** or **add a private reservation** — no manual date input needed.
 
-### Changes
+### How it works
+1. Owner taps a date on the calendar → it becomes the **start date** (highlighted)
+2. Owner taps a second date → it becomes the **end date** (range highlighted)
+3. A bottom sheet / modal appears with two options:
+   - **Block Dates** — creates a blocked entry (no guest name needed)
+   - **Add Reservation** — shows a small form: guest name, optional payout amount
+4. On submit, calls a new edge function to insert into `manual_reservations`
+5. Calendar refreshes to show the new entry
 
-**`src/pages/Dashboard.tsx`** (lines 441-529)
-- Replace the 2-tab structure with 3 direct tabs: **Today**, **Week**, **Month**
-- Render `CleaningCalendar` twice with `view="week"` and `view="month"` in separate `TabsContent` blocks
-- Remove the "Week / Month" combined tab
+### Files to create
 
-**`src/components/CleaningCalendar.tsx`** (lines 134-150)
-- Update the navigation buttons to match the Finance calendar style:
-  - `variant="outline"` instead of `ghost`
-  - `h-10 w-10 sm:h-9 sm:w-9 rounded-full` for mobile-friendly touch targets
-  - Larger chevron icons (`w-5 h-5 sm:w-4 sm:h-4`)
-  - "Today" button with `variant="outline"` and proper sizing
-- Wrap navigation in a `Card` with `p-6` to match Finance calendar layout
-- Add the month title styling to match Finance (`text-lg font-semibold`)
+| File | Purpose |
+|---|---|
+| `supabase/functions/owner-reservations/index.ts` | New edge function: owner can POST to create a reservation or block, authenticated via PIN. Only allows creating entries for properties the owner has finance access to. |
 
-### Result
-```text
-Cleaning Tab:
-┌─────────┬──────────┬──────────┐
-│  Today  │   Week   │  Month   │
-└─────────┴──────────┴──────────┘
-Each with Finance-style nav buttons (rounded, outlined, large touch targets)
-```
+### Files to modify
 
-### Files
 | File | Change |
 |---|---|
-| `src/pages/Dashboard.tsx` | 3 separate tabs, two CleaningCalendar instances |
-| `src/components/CleaningCalendar.tsx` | Finance-style navigation buttons |
+| `src/pages/Dashboard.tsx` | Add date-range selection state to the Finance calendar. On first click set `rangeStart`, on second click set `rangeEnd` and open a dialog. Add a `Dialog` with "Block Dates" / "Add Reservation" options and a small form. After submit, reload data. Show visual range highlight between selected dates. |
+| `src/lib/api.ts` | Add `createOwnerReservation(pin, data)` and `createOwnerBlock(pin, data)` API helpers calling the new edge function. |
+
+### Calendar interaction detail
+- Single tap on available date → sets start (blue ring)
+- Tap another date after start → sets end, dates between get a light blue highlight
+- Tap same date as start → cancels selection
+- Tapping a booked/blocked date does nothing (keeps current click-to-view behavior)
+- A small floating "Cancel selection" button appears after first tap
+
+### Dialog form
+```text
+┌─────────────────────────────┐
+│  June 15 → June 18          │
+│                             │
+│  ○ Block dates              │
+│  ○ Private reservation      │
+│                             │
+│  [Guest name___________]    │  ← only if reservation
+│  [Payout amount________]    │  ← only if reservation
+│                             │
+│  [Cancel]      [Confirm]    │
+└─────────────────────────────┘
+```
+
+### Edge function: `owner-reservations`
+- Validates PIN, looks up user and property access (must have `can_view_finance`)
+- POST: inserts into `manual_reservations` with `source: "Owner"` for reservations or `is_blocked: true` for blocks
+- Only creates — no edit/delete from owner side (admin manages that)
+
+### Security
+- PIN-based auth matching existing pattern
+- Checks `user_property_access.can_view_finance` before allowing creation
+- Uses service role key server-side only
 
