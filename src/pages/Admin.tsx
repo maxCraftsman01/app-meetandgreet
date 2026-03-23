@@ -193,7 +193,7 @@ const Admin = () => {
     setFinanceLoading(true);
     setFinanceData(null);
     try {
-      const data = await getOwnerData(session!.pin);
+      const data = await getOwnerData(session!.pin, p.id);
       setFinanceData({ bookings: data.bookings || [], manual_reservations: data.manual_reservations || [] });
     } catch {
       toast.error("Failed to load finance data");
