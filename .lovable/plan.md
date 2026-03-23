@@ -1,44 +1,51 @@
 
 
-## Admin Property Dashboard View (Reuse Owner Finance Components)
+## Admin Mobile Navigation: Bottom Bar with "More" Sheet
 
-### Goal
-Add a button on each property card in the Admin Properties tab that opens the same Finance dashboard view owners see — calendar, financial summary, occupancy chart, recent payouts — for that specific property.
+### Problem
+5 tabs overflow horizontally on mobile. Need a scalable pattern that works for current tabs and future additions.
 
 ### Approach
-Rather than duplicating 300+ lines of Dashboard finance logic, extract the finance view into a **reusable component** that both the owner Dashboard and Admin can render.
+Fixed bottom navigation bar on mobile (hidden on desktop) with 4 pinned tabs + a "More" button that opens a bottom sheet listing remaining/future tabs.
+
+### Layout
+
+```text
+Desktop (unchanged):
+┌────────────┬───────┬─────────────────┬──────────┬───────────┐
+│ Properties │ Users │ All Reservations│ Timeline │ Daily Ops │
+└────────────┴───────┴─────────────────┴──────────┘───────────┘
+
+Mobile bottom bar:
+┌──────┬──────┬──────┬──────┬────────┐
+│ 🏢  │ 👥  │ 📋  │ 📅  │  •••  │
+│Props │Users │Reserv│Time  │ More  │
+└──────┴──────┴──────┴──────┴────────┘
+                              ↓ opens Sheet
+                    ┌─────────────────┐
+                    │ ⚡ Daily Ops    │
+                    │ (future tabs…)  │
+                    └─────────────────┘
+```
 
 ### Changes
 
-**New file: `src/components/PropertyFinanceView.tsx`**
-- Extract the entire Finance tab content from `src/pages/Dashboard.tsx` (lines 370-529) into a standalone component
-- Props: `propertyId`, `pin`, `properties`, `bookings`, `manualReservations`, `currency`
-- Includes: calendar with date-range selection, financial summary cards, recent payouts table, occupancy chart, booking/block dialog
-- Fully self-contained with its own state for `currentMonth`, `selectedDay`, `rangeStart/End`, `bookingDialog`
+**`src/pages/Admin.tsx`**
+- Define a `tabs` array with `{ id, label, shortLabel, icon }` for all 5 tabs
+- Hide `TabsList` on mobile (`hidden md:flex`)
+- Add a fixed bottom nav bar (`md:hidden fixed bottom-0 inset-x-0 z-50 border-t bg-background`) showing the first 4 tabs as icon+short-label buttons
+- 5th slot is a "More" button (`MoreHorizontal` icon) that opens a `Sheet` from bottom
+- Sheet lists remaining tabs (Daily Ops + any future tabs) as tappable rows
+- Clicking any nav item calls `setActiveTab(id)` and closes the sheet
+- Active tab gets `text-primary` color + top accent line
+- Add `pb-20 md:pb-0` to content area to clear the bottom bar
+- Touch targets: min `h-12` per item, `pb-safe` on the bar for notched devices
 
-**Modified: `src/pages/Dashboard.tsx`**
-- Replace the inline finance content with `<PropertyFinanceView>` passing the existing data
-- Remove the extracted state/logic that moves into the component
-
-**Modified: `src/pages/Admin.tsx`**
-- Add an "eye" or "chart" icon button on each property card
-- Clicking it opens a full-screen `Dialog` (or `Sheet`) containing `<PropertyFinanceView>` for that property
-- Admin needs to fetch the property's bookings and manual reservations — reuse the `owner-data` edge function with the admin PIN (already supported since admin PIN bypasses checks), or call the existing `admin-reservations` endpoint
-- Since `owner-data` already checks for finance access and admin has `is_admin` flag, the admin PIN will work if we also check for admin in `owner-data` (it currently only checks `can_view_finance`)
-
-**Modified: `supabase/functions/owner-data/index.ts`**
-- Add admin PIN / `is_admin` check so admin users get data for ALL properties (currently it only returns properties where user has `can_view_finance`)
+### Scalability
+Adding a new tab = push to the `tabs` array. First 4 stay pinned, all extras go in the "More" sheet automatically.
 
 ### Files
-
 | File | Change |
 |---|---|
-| `src/components/PropertyFinanceView.tsx` | New — extracted finance view component |
-| `src/pages/Dashboard.tsx` | Use `PropertyFinanceView` instead of inline code |
-| `src/pages/Admin.tsx` | Add "View Dashboard" button per property, open dialog with `PropertyFinanceView` |
-| `supabase/functions/owner-data/index.ts` | Allow admin users to fetch all property data |
-| `src/lib/api.ts` | Add helper to fetch owner data with admin PIN for a specific property |
-
-### Admin property card button
-Each property card gets a small button (e.g. `BarChart3` icon) next to edit/delete. Clicking opens a full-width dialog showing the complete owner dashboard for that property, including the Airbnb-style date selection for blocking/reservations.
+| `src/pages/Admin.tsx` | Add mobile bottom nav bar + More sheet, hide desktop TabsList on mobile |
 
