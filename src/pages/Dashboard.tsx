@@ -444,12 +444,12 @@ const Dashboard = () => {
             <TabsContent value="cleaning" className="space-y-6">
               <Tabs defaultValue="today" className="space-y-4">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                  <TabsList className="h-9">
-                    <TabsTrigger value="today" className="text-xs px-3" onClick={() => { if (cleanerTasks.length === 0) loadCleaningTasks(); }}>Today</TabsTrigger>
-                    <TabsTrigger value="calendar" className="text-xs px-3">Week / Month</TabsTrigger>
+                  <TabsList className="h-11 sm:h-9">
+                    <TabsTrigger value="today" className="h-9 px-4 text-sm sm:h-7 sm:px-3 sm:text-xs" onClick={() => { if (cleanerTasks.length === 0) loadCleaningTasks(); }}>Today</TabsTrigger>
+                    <TabsTrigger value="calendar" className="h-9 px-4 text-sm sm:h-7 sm:px-3 sm:text-xs">Week / Month</TabsTrigger>
                   </TabsList>
                   <div className="flex items-center gap-2">
-                    <Button variant="outline" size="sm" onClick={loadCleaningTasks}>
+                    <Button variant="outline" size="sm" className="h-10 sm:h-9" onClick={loadCleaningTasks}>
                       <RefreshCw className="w-4 h-4 mr-1.5" />
                       Refresh
                     </Button>
