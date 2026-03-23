@@ -344,6 +344,6 @@ export default function CleaningCalendar({ pin, userProperties, onMarkCleaned, m
           )}
         </>
       )}
-    </div>
+    </Card>
   );
 }
