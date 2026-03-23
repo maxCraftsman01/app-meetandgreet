@@ -65,14 +65,22 @@ export function MasterTimeline({ adminPin }: Props) {
     return m;
   }, [data?.properties]);
 
-  // Merge reservations + bookings per property
+  // Merge reservations + bookings per property, deduplicating iCal bookings
+  // that already have a corresponding manual reservation (same property + dates)
   const reservationsByProperty = useMemo(() => {
     const map = new Map<string, any[]>();
+    const manualKeys = new Set<string>();
+
     (data?.reservations || []).forEach((r: any) => {
       if (!map.has(r.property_id)) map.set(r.property_id, []);
       map.get(r.property_id)!.push(r);
+      // Track property+dates combo to deduplicate iCal bookings
+      manualKeys.add(`${r.property_id}_${r.check_in}_${r.check_out}`);
     });
+
     (data?.bookings || []).forEach((b: any) => {
+      const key = `${b.property_id}_${b.start_date}_${b.end_date}`;
+      if (manualKeys.has(key)) return; // Skip — already covered by manual reservation
       if (!map.has(b.property_id)) map.set(b.property_id, []);
       map.get(b.property_id)!.push({
         ...b,
