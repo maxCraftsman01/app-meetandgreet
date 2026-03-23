@@ -156,18 +156,42 @@ export function MasterTimeline({ adminPin }: Props) {
               {/* Property rows */}
               {visibleProperties.map((prop: any) => {
                 const propReservations = reservationsByProperty.get(prop.id) || [];
+                // Overlap detection: assign row indices
+                const sorted = [...propReservations].sort((a: any, b: any) => {
+                  const aStart = a.check_in || a.start_date || "";
+                  const bStart = b.check_in || b.start_date || "";
+                  return aStart.localeCompare(bStart);
+                });
+                const rows: number[] = [];
+                const ends: string[] = []; // track end dates per row
+                sorted.forEach((r: any) => {
+                  const rStart = r.check_in || r.start_date || "";
+                  let placed = false;
+                  for (let i = 0; i < ends.length; i++) {
+                    if (rStart >= ends[i]) {
+                      rows.push(i);
+                      ends[i] = r.check_out || r.end_date || "";
+                      placed = true;
+                      break;
+                    }
+                  }
+                  if (!placed) {
+                    rows.push(ends.length);
+                    ends.push(r.check_out || r.end_date || "");
+                  }
+                });
+                const totalRows = Math.max(1, ends.length);
+                const rowHeight = Math.max(40, totalRows * 24);
+
                 return (
                   <div key={prop.id} className="contents">
-                    {/* Sticky property name */}
                     <div className="sticky left-0 z-10 bg-card border-b border-r border-border px-3 py-2 text-sm font-medium text-foreground truncate flex items-center">
                       {prop.name}
                     </div>
-                    {/* Timeline cells container */}
                     <div
                       className="relative border-b border-border"
-                      style={{ gridColumn: `2 / span ${rangeDays}`, minHeight: "40px" }}
+                      style={{ gridColumn: `2 / span ${rangeDays}`, minHeight: `${rowHeight}px` }}
                     >
-                      {/* Grid lines */}
                       <div className="absolute inset-0 flex">
                         {days.map((d, i) => (
                           <div
@@ -176,21 +200,21 @@ export function MasterTimeline({ adminPin }: Props) {
                           />
                         ))}
                       </div>
-                      {/* Today indicator */}
                       {todayOffset >= 0 && todayOffset < rangeDays && (
                         <div
                           className="absolute top-0 bottom-0 w-0.5 bg-primary z-[5]"
                           style={{ left: `${((todayOffset + 0.5) / rangeDays) * 100}%` }}
                         />
                       )}
-                      {/* Reservation bars */}
-                      {propReservations.map((r: any) => (
+                      {sorted.map((r: any, idx: number) => (
                         <TimelineBar
                           key={r.id}
                           reservation={r}
                           rangeStart={rangeStart}
                           totalDays={rangeDays}
                           onClick={() => handleBarClick(r, prop.id)}
+                          rowIndex={rows[idx]}
+                          totalRows={totalRows}
                         />
                       ))}
                     </div>
