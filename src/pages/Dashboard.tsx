@@ -635,6 +635,68 @@ const Dashboard = () => {
           }
         </Tabs>
       </main>
+
+      {/* Owner Booking/Block Dialog */}
+      <Dialog open={bookingDialogOpen} onOpenChange={(open) => {
+        if (!open) { setBookingDialogOpen(false); setRangeStart(null); setRangeEnd(null); }
+      }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {rangeStart && rangeEnd ? `${format(rangeStart, "MMM d")} → ${format(rangeEnd, "MMM d")}` : "Select dates"}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="flex gap-2">
+              <Button
+                variant={bookingType === "block" ? "default" : "outline"}
+                className="flex-1"
+                onClick={() => setBookingType("block")}
+              >
+                Block Dates
+              </Button>
+              <Button
+                variant={bookingType === "reservation" ? "default" : "outline"}
+                className="flex-1"
+                onClick={() => setBookingType("reservation")}
+              >
+                Private Reservation
+              </Button>
+            </div>
+            {bookingType === "reservation" && (
+              <div className="space-y-3">
+                <div>
+                  <Label htmlFor="guest-name">Guest Name</Label>
+                  <Input
+                    id="guest-name"
+                    placeholder="Guest name"
+                    value={bookingGuestName}
+                    onChange={(e) => setBookingGuestName(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="payout">Net Payout ({selectedProperty?.currency || "EUR"})</Label>
+                  <Input
+                    id="payout"
+                    type="number"
+                    placeholder="0"
+                    value={bookingPayout}
+                    onChange={(e) => setBookingPayout(e.target.value)}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setBookingDialogOpen(false); setRangeStart(null); setRangeEnd(null); }}>
+              Cancel
+            </Button>
+            <Button onClick={handleBookingSubmit} disabled={bookingSubmitting}>
+              {bookingSubmitting ? "Saving..." : "Confirm"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>);
 
 };
