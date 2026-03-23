@@ -78,6 +78,10 @@ const Admin = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [properties]);
 
+  if (!session || session.role !== "admin") {
+    return null;
+  }
+
   const loadProperties = async () => {
     try {
       const data = await getAdminProperties(session!.pin);
