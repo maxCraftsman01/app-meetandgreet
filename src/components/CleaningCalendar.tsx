@@ -6,7 +6,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
 import { getCleanerSchedule, markAsCleaned } from "@/lib/api";
 import { toast } from "sonner";
 import {
@@ -33,13 +33,21 @@ interface Props {
   userProperties: PropertyAccess[];
   onMarkCleaned: (reservationId: string) => Promise<void>;
   markingId: string | null;
+  view: "week" | "month";
 }
 
-const STATUS_CONFIG: Record<string, { color: string; bg: string; dot: string; border: string; label: string; icon: typeof AlertTriangle }> = {
-  "same-day":        { color: "text-red-700",     bg: "bg-red-50",     dot: "bg-red-500",     border: "border-red-200",     label: "Same-Day Turnover",    icon: AlertTriangle },
-  "checkout-only":   { color: "text-yellow-700",  bg: "bg-yellow-50",  dot: "bg-yellow-500",  border: "border-yellow-200",  label: "Check-out Only",       icon: Clock },
-  "arrival-pending": { color: "text-orange-700",  bg: "bg-orange-50",  dot: "bg-orange-500",  border: "border-orange-200",  label: "Arrival Pending Clean", icon: Clock },
-  "arrival-ready":   { color: "text-emerald-700", bg: "bg-emerald-50", dot: "bg-emerald-500", border: "border-emerald-200", label: "Ready for Arrival",    icon: CheckCircle2 },
+const STATUS_CONFIG: Record<string, { color: string; bg: string; dot: string; border: string; label: string; icon: typeof AlertTriangle; cellBg: string; cellBorder: string; cellText: string }> = {
+  "same-day":        { color: "text-red-700",     bg: "bg-red-50",     dot: "bg-red-500",     border: "border-red-200",     label: "Same-Day Turnover",    icon: AlertTriangle, cellBg: "bg-red-100",     cellBorder: "border-red-300",     cellText: "text-red-800" },
+  "checkout-only":   { color: "text-yellow-700",  bg: "bg-yellow-50",  dot: "bg-yellow-500",  border: "border-yellow-200",  label: "Check-out Only",       icon: Clock,         cellBg: "bg-yellow-100",  cellBorder: "border-yellow-300",  cellText: "text-yellow-800" },
+  "arrival-pending": { color: "text-orange-700",  bg: "bg-orange-50",  dot: "bg-orange-500",  border: "border-orange-200",  label: "Arrival Pending Clean", icon: Clock,        cellBg: "bg-orange-100",  cellBorder: "border-orange-300",  cellText: "text-orange-800" },
+  "arrival-ready":   { color: "text-emerald-700", bg: "bg-emerald-50", dot: "bg-emerald-500", border: "border-emerald-200", label: "Ready for Arrival",    icon: CheckCircle2,  cellBg: "bg-emerald-100", cellBorder: "border-emerald-300", cellText: "text-emerald-800" },
+};
+
+const STATUS_PRIORITY: Record<string, number> = {
+  "same-day": 0,
+  "checkout-only": 1,
+  "arrival-pending": 2,
+  "arrival-ready": 3,
 };
 
 const PROPERTY_COLORS = [
@@ -48,8 +56,7 @@ const PROPERTY_COLORS = [
   "hsl(50, 70%, 45%)", "hsl(0, 60%, 50%)",
 ];
 
-export default function CleaningCalendar({ pin, userProperties, onMarkCleaned, markingId }: Props) {
-  const [view, setView] = useState<"week" | "month">("week");
+export default function CleaningCalendar({ pin, userProperties, onMarkCleaned, markingId, view }: Props) {
   const [refDate, setRefDate] = useState(new Date());
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(false);
@@ -109,16 +116,25 @@ export default function CleaningCalendar({ pin, userProperties, onMarkCleaned, m
 
   const monthStartPad = view === "month" ? getDay(range.start) : 0;
 
+  // Get highest-priority status for a day's events
+  const getHighestPriorityStatus = (dayEvents: CalendarEvent[]) => {
+    if (dayEvents.length === 0) return null;
+    let best = dayEvents[0].status;
+    let bestPriority = STATUS_PRIORITY[best] ?? 99;
+    for (const evt of dayEvents) {
+      const p = STATUS_PRIORITY[evt.status] ?? 99;
+      if (p < bestPriority) {
+        best = evt.status;
+        bestPriority = p;
+      }
+    }
+    return best;
+  };
+
   return (
     <div className="space-y-4">
-      {/* Controls */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-        <Tabs value={view} onValueChange={(v) => { setView(v as "week" | "month"); setExpandedDay(null); }}>
-          <TabsList className="h-9">
-            <TabsTrigger value="week" className="text-xs px-3">Week</TabsTrigger>
-            <TabsTrigger value="month" className="text-xs px-3">Month</TabsTrigger>
-          </TabsList>
-        </Tabs>
+      {/* Navigation */}
+      <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-1">
           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate(-1)}>
             <ChevronLeft className="w-4 h-4" />
@@ -182,7 +198,7 @@ export default function CleaningCalendar({ pin, userProperties, onMarkCleaned, m
             </motion.div>
           )}
 
-          {/* Month View */}
+          {/* Month View - colored cells like Finance calendar */}
           {view === "month" && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4 }}>
               <div className="grid grid-cols-7 gap-1">
@@ -194,29 +210,26 @@ export default function CleaningCalendar({ pin, userProperties, onMarkCleaned, m
                   const dateStr = format(day, "yyyy-MM-dd");
                   const dayEvents = eventsForDay(dateStr);
                   const isExpanded = expandedDay === dateStr;
-                  const todayRing = isToday(day) ? "ring-2 ring-primary ring-offset-1" : "";
+                  const todayRing = isToday(day) ? "ring-2 ring-foreground ring-offset-1" : "";
                   const hasEvents = dayEvents.length > 0;
+                  const topStatus = getHighestPriorityStatus(dayEvents);
+                  const cfg = topStatus ? STATUS_CONFIG[topStatus] : null;
+
+                  const cellStyle = hasEvents && cfg
+                    ? `${cfg.cellBg} ${cfg.cellBorder} ${cfg.cellText} cursor-pointer hover:opacity-80`
+                    : "border-transparent text-muted-foreground";
 
                   return (
                     <div
                       key={dateStr}
                       onClick={() => hasEvents ? setExpandedDay(isExpanded ? null : dateStr) : null}
-                      className={`aspect-square rounded-lg border flex flex-col items-center justify-center gap-1 text-sm font-medium transition-colors duration-150 ${todayRing} ${hasEvents ? "cursor-pointer hover:bg-accent/30 border-border bg-card" : "border-transparent text-muted-foreground"}`}
+                      className={`relative aspect-square flex items-center justify-center rounded-lg border text-sm font-medium transition-colors duration-150 ${todayRing} ${cellStyle}`}
                     >
                       {format(day, "d")}
-                      {hasEvents && (
-                        <div className="flex gap-0.5 flex-wrap justify-center">
-                          {dayEvents.map((evt, i) => {
-                            const cfg = STATUS_CONFIG[evt.status];
-                            return (
-                              <div
-                                key={`${evt.property_id}-${i}`}
-                                className={`w-2 h-2 rounded-full ${cfg?.dot || "bg-muted-foreground"}`}
-                                title={`${evt.property_name} – ${cfg?.label}`}
-                              />
-                            );
-                          })}
-                        </div>
+                      {dayEvents.length > 1 && (
+                        <Badge variant="secondary" className="absolute top-0.5 right-0.5 h-4 min-w-[16px] px-1 text-[10px] leading-none">
+                          {dayEvents.length}
+                        </Badge>
                       )}
                     </div>
                   );
@@ -309,7 +322,7 @@ export default function CleaningCalendar({ pin, userProperties, onMarkCleaned, m
           <div className="flex items-center gap-4 flex-wrap text-xs text-muted-foreground pt-2">
             {Object.entries(STATUS_CONFIG).map(([key, cfg]) => (
               <div key={key} className="flex items-center gap-1.5">
-                <div className={`w-2.5 h-2.5 rounded-full ${cfg.dot}`} />
+                <div className={`w-3 h-3 rounded-sm ${cfg.cellBg} border ${cfg.cellBorder}`} />
                 <span>{cfg.label}</span>
               </div>
             ))}
