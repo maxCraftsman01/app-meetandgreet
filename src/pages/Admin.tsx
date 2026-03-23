@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, LogOut, Copy, RefreshCw, Pencil, Trash2, Check, Building2, List, Clock, ChevronDown, Activity, Users, CalendarRange, BarChart3 } from "lucide-react";
+import { Plus, LogOut, Copy, RefreshCw, Pencil, Trash2, Check, Building2, List, Clock, ChevronDown, Activity, Users, CalendarRange, BarChart3, MoreHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { getSession, clearSession } from "@/lib/session";
 import { getAdminProperties, createProperty, updateProperty, deleteProperty, fetchIcal, getAdminPendingIcal, getOwnerData } from "@/lib/api";
 import { toast } from "sonner";
@@ -58,6 +59,18 @@ const Admin = () => {
   const [financeProperty, setFinanceProperty] = useState<Property | null>(null);
   const [financeData, setFinanceData] = useState<{ bookings: any[]; manual_reservations: any[] } | null>(null);
   const [financeLoading, setFinanceLoading] = useState(false);
+  const [moreSheetOpen, setMoreSheetOpen] = useState(false);
+
+  const adminTabs = [
+    { id: "properties", label: "Properties", shortLabel: "Props", icon: Building2 },
+    { id: "users", label: "Users", shortLabel: "Users", icon: Users },
+    { id: "master-list", label: "All Reservations", shortLabel: "Reserv", icon: List },
+    { id: "timeline", label: "Timeline", shortLabel: "Time", icon: CalendarRange },
+    { id: "daily-ops", label: "Daily Ops", shortLabel: "Ops", icon: Activity },
+  ];
+
+  const pinnedTabs = adminTabs.slice(0, 4);
+  const moreTabs = adminTabs.slice(4);
 
   const session = getSession();
 
@@ -289,9 +302,9 @@ const Admin = () => {
         </div>
       </header>
 
-      <main className="container px-4 py-8">
+      <main className="container px-4 py-8 pb-24 md:pb-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList>
+          <TabsList className="hidden md:flex">
             <TabsTrigger value="properties">
               <Building2 className="w-4 h-4 mr-1.5" />
               Properties
@@ -466,6 +479,67 @@ const Admin = () => {
           ) : null}
         </DialogContent>
       </Dialog>
+      {/* Mobile Bottom Navigation */}
+      <div className="md:hidden fixed bottom-0 inset-x-0 bg-background border-t border-border z-50 flex justify-around items-stretch pb-[env(safe-area-inset-bottom)]">
+        {pinnedTabs.map((tab) => {
+          const Icon = tab.icon;
+          const isActive = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex flex-col items-center justify-center flex-1 h-14 gap-0.5 transition-colors relative ${
+                isActive ? "text-primary" : "text-muted-foreground"
+              }`}
+            >
+              {isActive && (
+                <span className="absolute top-0 left-1/4 right-1/4 h-0.5 bg-primary rounded-full" />
+              )}
+              <Icon className="w-5 h-5" />
+              <span className="text-[10px] font-medium">{tab.shortLabel}</span>
+            </button>
+          );
+        })}
+        <button
+          onClick={() => setMoreSheetOpen(true)}
+          className={`flex flex-col items-center justify-center flex-1 h-14 gap-0.5 transition-colors ${
+            moreTabs.some((t) => t.id === activeTab) ? "text-primary" : "text-muted-foreground"
+          }`}
+        >
+          <MoreHorizontal className="w-5 h-5" />
+          <span className="text-[10px] font-medium">More</span>
+        </button>
+      </div>
+
+      {/* More Sheet */}
+      <Sheet open={moreSheetOpen} onOpenChange={setMoreSheetOpen}>
+        <SheetContent side="bottom" className="pb-[env(safe-area-inset-bottom)]">
+          <SheetHeader>
+            <SheetTitle>More</SheetTitle>
+          </SheetHeader>
+          <div className="py-2">
+            {moreTabs.map((tab) => {
+              const Icon = tab.icon;
+              const isActive = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => {
+                    setActiveTab(tab.id);
+                    setMoreSheetOpen(false);
+                  }}
+                  className={`flex items-center gap-3 w-full px-3 py-3 rounded-lg transition-colors ${
+                    isActive ? "bg-accent text-accent-foreground" : "text-foreground hover:bg-accent/50"
+                  }`}
+                >
+                  <Icon className="w-5 h-5" />
+                  <span className="text-sm font-medium">{tab.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 };
