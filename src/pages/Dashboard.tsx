@@ -233,22 +233,35 @@ const Dashboard = () => {
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b border-border bg-card">
-        <div className="container flex items-center justify-between h-16 px-4">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-              <Building2 className="w-4 h-4 text-primary-foreground" />
+        <div className="container px-4">
+          <div className="flex items-center justify-between h-14 sm:h-16">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-emerald-600 flex items-center justify-center">
+                <Building2 className="w-4 h-4 text-white" />
+              </div>
+              <div>
+                <h1 className="font-semibold text-base sm:text-lg leading-tight">Dashboard</h1>
+                {session?.user_name && (
+                  <p className="text-xs text-muted-foreground">{session.user_name}</p>
+                )}
+              </div>
             </div>
-            <div>
-              <h1 className="font-semibold text-lg leading-tight">Dashboard</h1>
-              {session?.user_name && (
-                <p className="text-xs text-muted-foreground">{session.user_name}</p>
+            <div className="flex items-center gap-2">
+              {hasFinance && (
+                <Button variant="outline" size="sm" className="h-10 w-10 sm:h-9 sm:w-auto sm:px-3" onClick={handleSync} disabled={syncing}>
+                  <RefreshCw className={`w-4 h-4 ${syncing ? "animate-spin" : ""}`} />
+                  <span className="hidden sm:inline ml-1.5">Sync</span>
+                </Button>
               )}
+              <Button variant="ghost" size="sm" className="h-10 w-10" onClick={handleLogout}>
+                <LogOut className="w-4 h-4" />
+              </Button>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            {properties.length > 1 && (
+          {properties.length > 1 && (
+            <div className="pb-3 sm:pb-0 sm:-mt-1 sm:mb-0">
               <Select value={selectedPropertyId} onValueChange={setSelectedPropertyId}>
-                <SelectTrigger className="w-48">
+                <SelectTrigger className="w-full sm:w-48 h-10">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -257,17 +270,8 @@ const Dashboard = () => {
                   ))}
                 </SelectContent>
               </Select>
-            )}
-            {hasFinance && (
-              <Button variant="outline" size="sm" onClick={handleSync} disabled={syncing}>
-                <RefreshCw className={`w-4 h-4 mr-1.5 ${syncing ? "animate-spin" : ""}`} />
-                Sync
-              </Button>
-            )}
-            <Button variant="ghost" size="sm" onClick={handleLogout}>
-              <LogOut className="w-4 h-4" />
-            </Button>
-          </div>
+            </div>
+          )}
         </div>
       </header>
 
