@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import {
   LogOut, RefreshCw, ChevronLeft, ChevronRight, Building2,
   CheckCircle2, Key, FileText, AlertTriangle, Clock, Sparkles,
-  DollarSign, Brush } from
+  DollarSign, Brush, X } from
 "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -12,13 +12,19 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from
 "@/components/ui/select";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from
+"@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { getSession, clearSession, type PropertyAccess } from "@/lib/session";
-import { getOwnerData, fetchIcal, getCleanerTasks, markAsCleaned } from "@/lib/api";
+import { getOwnerData, fetchIcal, getCleanerTasks, markAsCleaned, createOwnerReservation } from "@/lib/api";
 import CleaningCalendar from "@/components/CleaningCalendar";
 import { toast } from "sonner";
 import {
   format, startOfMonth, endOfMonth, eachDayOfInterval, addMonths, subMonths,
-  getDay, isToday, differenceInDays, parseISO, isWithinInterval, startOfDay, endOfDay } from
+  getDay, isToday, differenceInDays, parseISO, isWithinInterval, startOfDay, endOfDay,
+  isBefore, isAfter, isSameDay } from
 "date-fns";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from
@@ -68,6 +74,15 @@ const Dashboard = () => {
   const [cleaningLoading, setCleaningLoading] = useState(false);
   const [markingId, setMarkingId] = useState<string | null>(null);
   const [selectedDay, setSelectedDay] = useState<{date: Date;info: any;} | null>(null);
+
+  // Date range selection for owner booking/blocking
+  const [rangeStart, setRangeStart] = useState<Date | null>(null);
+  const [rangeEnd, setRangeEnd] = useState<Date | null>(null);
+  const [bookingDialogOpen, setBookingDialogOpen] = useState(false);
+  const [bookingType, setBookingType] = useState<"block" | "reservation">("block");
+  const [bookingGuestName, setBookingGuestName] = useState("");
+  const [bookingPayout, setBookingPayout] = useState("");
+  const [bookingSubmitting, setBookingSubmitting] = useState(false);
 
   useEffect(() => {
     if (!session || session.role !== "user") {
@@ -149,6 +164,70 @@ const Dashboard = () => {
   const handleLogout = () => {
     clearSession();
     navigate("/");
+  };
+
+  const handleCalendarDayClick = (day: Date, info: any) => {
+    // If day is booked/blocked, show details (existing behavior)
+    if (info.isManual || info.isPending) {
+      setSelectedDay({ date: day, info });
+      return;
+    }
+    // Available day — range selection
+    if (!rangeStart) {
+      setRangeStart(day);
+      setRangeEnd(null);
+      setSelectedDay(null);
+    } else if (isSameDay(day, rangeStart)) {
+      // Cancel selection
+      setRangeStart(null);
+      setRangeEnd(null);
+    } else if (isBefore(day, rangeStart)) {
+      setRangeStart(day);
+      setRangeEnd(null);
+    } else {
+      setRangeEnd(day);
+      setBookingDialogOpen(true);
+    }
+  };
+
+  const cancelSelection = () => {
+    setRangeStart(null);
+    setRangeEnd(null);
+  };
+
+  const handleBookingSubmit = async () => {
+    if (!rangeStart || !rangeEnd || !selectedPropertyId) return;
+    setBookingSubmitting(true);
+    try {
+      await createOwnerReservation(session!.pin, {
+        property_id: selectedPropertyId,
+        check_in: format(rangeStart, "yyyy-MM-dd"),
+        check_out: format(rangeEnd, "yyyy-MM-dd"),
+        is_blocked: bookingType === "block",
+        guest_name: bookingType === "reservation" ? bookingGuestName || "Private Guest" : "Blocked",
+        net_payout: bookingType === "reservation" ? parseFloat(bookingPayout) || 0 : 0,
+      });
+      toast.success(bookingType === "block" ? "Dates blocked!" : "Reservation added!");
+      setBookingDialogOpen(false);
+      setRangeStart(null);
+      setRangeEnd(null);
+      setBookingGuestName("");
+      setBookingPayout("");
+      loadData();
+    } catch {
+      toast.error("Failed to save");
+    } finally {
+      setBookingSubmitting(false);
+    }
+  };
+
+  const isInSelectedRange = (day: Date) => {
+    if (!rangeStart) return false;
+    if (rangeEnd) {
+      return (isAfter(day, rangeStart) || isSameDay(day, rangeStart)) &&
+             (isBefore(day, rangeEnd) || isSameDay(day, rangeEnd));
+    }
+    return isSameDay(day, rangeStart);
   };
 
   const selectedProperty = properties.find((p) => p.id === selectedPropertyId);
@@ -312,6 +391,17 @@ const Dashboard = () => {
                           </Button>
                         </div>
                       </div>
+                      {rangeStart && (
+                        <div className="mb-3 flex items-center gap-2">
+                          <span className="text-xs text-primary font-medium">
+                            Selecting: {format(rangeStart, "MMM d")}
+                            {rangeEnd ? ` → ${format(rangeEnd, "MMM d")}` : " → tap end date"}
+                          </span>
+                          <Button variant="ghost" size="sm" className="h-6 px-2 text-xs" onClick={cancelSelection}>
+                            <X className="w-3 h-3 mr-1" />Cancel
+                          </Button>
+                        </div>
+                      )}
                       <div className="grid grid-cols-7 gap-1">
                         {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) =>
                     <div key={d} className="text-center text-xs font-medium text-muted-foreground py-2">{d}</div>
@@ -320,11 +410,14 @@ const Dashboard = () => {
                         {days.map((day) => {
                       const info = getDayInfo(day);
                       const pendingStyle = info.isPending ? "bg-orange-100 border-orange-400 text-orange-700" : statusColors[info.status];
-                      const isClickable = info.isManual || info.isPending;
+                      const inRange = isInSelectedRange(day);
+                      const isRangeStart = rangeStart && isSameDay(day, rangeStart);
+                      const rangeHighlight = inRange ? "ring-2 ring-primary bg-primary/10" : "";
+                      const isClickable = info.isManual || info.isPending || info.status === "available";
                       return (
                         <div key={day.toISOString()} title={info.label}
-                        onClick={() => isClickable ? setSelectedDay({ date: day, info }) : null}
-                        className={`relative aspect-square flex items-center justify-center rounded-lg text-sm font-medium transition-colors duration-150 ${pendingStyle} ${isToday(day) ? "ring-2 ring-foreground ring-offset-1" : ""} border ${isClickable ? "cursor-pointer hover:opacity-80" : ""}`}>
+                        onClick={() => handleCalendarDayClick(day, info)}
+                        className={`relative aspect-square flex items-center justify-center rounded-lg text-sm font-medium transition-colors duration-150 ${pendingStyle} ${rangeHighlight} ${isToday(day) && !inRange ? "ring-2 ring-foreground ring-offset-1" : ""} border ${isClickable ? "cursor-pointer hover:opacity-80" : ""}`}>
                           
                               {format(day, "d")}
                             </div>);
@@ -336,6 +429,7 @@ const Dashboard = () => {
                         <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-sm bg-orange-100 border border-orange-400" /><span className="text-xs text-muted-foreground">Pending</span></div>
                         <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-sm bg-status-available-light border border-status-available" /><span className="text-xs text-muted-foreground">Available</span></div>
                         <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-sm bg-status-blocked-light border border-status-blocked" /><span className="text-xs text-muted-foreground">Blocked</span></div>
+                        <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-sm bg-primary/10 ring-1 ring-primary" /><span className="text-xs text-muted-foreground">Selected</span></div>
                       </div>
                       {selectedDay &&
                   <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="mt-4 pt-4 border-t border-border">
@@ -541,6 +635,68 @@ const Dashboard = () => {
           }
         </Tabs>
       </main>
+
+      {/* Owner Booking/Block Dialog */}
+      <Dialog open={bookingDialogOpen} onOpenChange={(open) => {
+        if (!open) { setBookingDialogOpen(false); setRangeStart(null); setRangeEnd(null); }
+      }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {rangeStart && rangeEnd ? `${format(rangeStart, "MMM d")} → ${format(rangeEnd, "MMM d")}` : "Select dates"}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="flex gap-2">
+              <Button
+                variant={bookingType === "block" ? "default" : "outline"}
+                className="flex-1"
+                onClick={() => setBookingType("block")}
+              >
+                Block Dates
+              </Button>
+              <Button
+                variant={bookingType === "reservation" ? "default" : "outline"}
+                className="flex-1"
+                onClick={() => setBookingType("reservation")}
+              >
+                Private Reservation
+              </Button>
+            </div>
+            {bookingType === "reservation" && (
+              <div className="space-y-3">
+                <div>
+                  <Label htmlFor="guest-name">Guest Name</Label>
+                  <Input
+                    id="guest-name"
+                    placeholder="Guest name"
+                    value={bookingGuestName}
+                    onChange={(e) => setBookingGuestName(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="payout">Net Payout ({selectedProperty?.currency || "EUR"})</Label>
+                  <Input
+                    id="payout"
+                    type="number"
+                    placeholder="0"
+                    value={bookingPayout}
+                    onChange={(e) => setBookingPayout(e.target.value)}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setBookingDialogOpen(false); setRangeStart(null); setRangeEnd(null); }}>
+              Cancel
+            </Button>
+            <Button onClick={handleBookingSubmit} disabled={bookingSubmitting}>
+              {bookingSubmitting ? "Saving..." : "Confirm"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>);
 
 };
