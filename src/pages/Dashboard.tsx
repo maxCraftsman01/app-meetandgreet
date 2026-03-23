@@ -233,22 +233,35 @@ const Dashboard = () => {
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b border-border bg-card">
-        <div className="container flex items-center justify-between h-16 px-4">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-              <Building2 className="w-4 h-4 text-primary-foreground" />
+        <div className="container px-4">
+          <div className="flex items-center justify-between h-14 sm:h-16">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-emerald-600 flex items-center justify-center">
+                <Building2 className="w-4 h-4 text-white" />
+              </div>
+              <div>
+                <h1 className="font-semibold text-base sm:text-lg leading-tight">Dashboard</h1>
+                {session?.user_name && (
+                  <p className="text-xs text-muted-foreground">{session.user_name}</p>
+                )}
+              </div>
             </div>
-            <div>
-              <h1 className="font-semibold text-lg leading-tight">Dashboard</h1>
-              {session?.user_name && (
-                <p className="text-xs text-muted-foreground">{session.user_name}</p>
+            <div className="flex items-center gap-2">
+              {hasFinance && (
+                <Button variant="outline" size="sm" className="h-10 w-10 sm:h-9 sm:w-auto sm:px-3" onClick={handleSync} disabled={syncing}>
+                  <RefreshCw className={`w-4 h-4 ${syncing ? "animate-spin" : ""}`} />
+                  <span className="hidden sm:inline ml-1.5">Sync</span>
+                </Button>
               )}
+              <Button variant="ghost" size="sm" className="h-10 w-10" onClick={handleLogout}>
+                <LogOut className="w-4 h-4" />
+              </Button>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            {properties.length > 1 && (
+          {properties.length > 1 && (
+            <div className="pb-3 sm:pb-0 sm:-mt-1 sm:mb-0">
               <Select value={selectedPropertyId} onValueChange={setSelectedPropertyId}>
-                <SelectTrigger className="w-48">
+                <SelectTrigger className="w-full sm:w-48 h-10">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -257,31 +270,22 @@ const Dashboard = () => {
                   ))}
                 </SelectContent>
               </Select>
-            )}
-            {hasFinance && (
-              <Button variant="outline" size="sm" onClick={handleSync} disabled={syncing}>
-                <RefreshCw className={`w-4 h-4 mr-1.5 ${syncing ? "animate-spin" : ""}`} />
-                Sync
-              </Button>
-            )}
-            <Button variant="ghost" size="sm" onClick={handleLogout}>
-              <LogOut className="w-4 h-4" />
-            </Button>
-          </div>
+            </div>
+          )}
         </div>
       </header>
 
-      <main className="container px-4 py-8">
+      <main className="container px-4 py-6 sm:py-8 pb-24">
         <Tabs defaultValue={defaultTab} className="space-y-6">
-          <TabsList>
+          <TabsList className="h-11 sm:h-10">
             {hasAnyFinance && (
-              <TabsTrigger value="finance">
+              <TabsTrigger value="finance" className="h-9 px-4 text-sm sm:h-8 sm:px-3 sm:text-xs">
                 <DollarSign className="w-4 h-4 mr-1.5" />
                 Finance
               </TabsTrigger>
             )}
             {hasAnyCleaning && (
-              <TabsTrigger value="cleaning" onClick={() => { if (cleanerTasks.length === 0) loadCleaningTasks(); }}>
+              <TabsTrigger value="cleaning" className="h-9 px-4 text-sm sm:h-8 sm:px-3 sm:text-xs" onClick={() => { if (cleanerTasks.length === 0) loadCleaningTasks(); }}>
                 <Brush className="w-4 h-4 mr-1.5" />
                 Cleaning
               </TabsTrigger>
@@ -440,12 +444,12 @@ const Dashboard = () => {
             <TabsContent value="cleaning" className="space-y-6">
               <Tabs defaultValue="today" className="space-y-4">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                  <TabsList className="h-9">
-                    <TabsTrigger value="today" className="text-xs px-3" onClick={() => { if (cleanerTasks.length === 0) loadCleaningTasks(); }}>Today</TabsTrigger>
-                    <TabsTrigger value="calendar" className="text-xs px-3">Week / Month</TabsTrigger>
+                  <TabsList className="h-11 sm:h-9">
+                    <TabsTrigger value="today" className="h-9 px-4 text-sm sm:h-7 sm:px-3 sm:text-xs" onClick={() => { if (cleanerTasks.length === 0) loadCleaningTasks(); }}>Today</TabsTrigger>
+                    <TabsTrigger value="calendar" className="h-9 px-4 text-sm sm:h-7 sm:px-3 sm:text-xs">Week / Month</TabsTrigger>
                   </TabsList>
                   <div className="flex items-center gap-2">
-                    <Button variant="outline" size="sm" onClick={loadCleaningTasks}>
+                    <Button variant="outline" size="sm" className="h-10 sm:h-9" onClick={loadCleaningTasks}>
                       <RefreshCw className="w-4 h-4 mr-1.5" />
                       Refresh
                     </Button>
@@ -478,7 +482,7 @@ const Dashboard = () => {
                             animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
                             transition={{ delay: i * 0.08, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
                           >
-                            <Card className={`p-5 border-2 ${cfg.border} ${cfg.bg} transition-colors duration-300`}>
+                            <Card className={`p-5 sm:p-5 border-2 ${cfg.border} ${cfg.bg} transition-colors duration-300`}>
                               <div className="flex items-start justify-between mb-3">
                                 <div>
                                   <div className="flex items-center gap-2 mb-1">
@@ -496,8 +500,8 @@ const Dashboard = () => {
                               </div>
                               {taskCanMark && task.reservation_id && task.status !== "arrival-ready" && (
                                 <div className="mt-4">
-                                  <Button className="w-full" onClick={() => handleMarkCleaned(task.reservation_id!)} disabled={markingId === task.reservation_id}>
-                                    <CheckCircle2 className="w-4 h-4 mr-1.5" />
+                                  <Button className="w-full h-12 text-base bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => handleMarkCleaned(task.reservation_id!)} disabled={markingId === task.reservation_id}>
+                                    <CheckCircle2 className="w-5 h-5 mr-2" />
                                     {markingId === task.reservation_id ? "Updating..." : "Mark as Cleaned"}
                                   </Button>
                                 </div>
