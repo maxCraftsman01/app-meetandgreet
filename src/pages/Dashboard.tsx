@@ -42,11 +42,6 @@ const STATUS_CONFIG: Record<string, {color: string;bg: string;border: string;lab
   idle: { color: "text-muted-foreground", bg: "bg-muted/50", border: "border-border", label: "No Activity Today", icon: Sparkles }
 };
 
-const PLATFORM_COLORS: Record<string, string> = {
-  Airbnb: "hsl(356 100% 58%)", "Booking.com": "hsl(220 80% 50%)", Vrbo: "hsl(200 70% 48%)",
-  Direct: "hsl(var(--status-available))", Other: "hsl(var(--muted-foreground))"
-};
-
 // ─── Component ──────────────────────────────────────
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -55,22 +50,11 @@ const Dashboard = () => {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [manualReservations, setManualReservations] = useState<ManualReservation[]>([]);
   const [selectedPropertyId, setSelectedPropertyId] = useState<string>("");
-  const [currentMonth, setCurrentMonth] = useState(new Date());
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [cleanerTasks, setCleanerTasks] = useState<CleanerTask[]>([]);
   const [cleaningLoading, setCleaningLoading] = useState(false);
   const [markingId, setMarkingId] = useState<string | null>(null);
-  const [selectedDay, setSelectedDay] = useState<{date: Date;info: any;} | null>(null);
-
-  // Date range selection for owner booking/blocking
-  const [rangeStart, setRangeStart] = useState<Date | null>(null);
-  const [rangeEnd, setRangeEnd] = useState<Date | null>(null);
-  const [bookingDialogOpen, setBookingDialogOpen] = useState(false);
-  const [bookingType, setBookingType] = useState<"block" | "reservation">("block");
-  const [bookingGuestName, setBookingGuestName] = useState("");
-  const [bookingPayout, setBookingPayout] = useState("");
-  const [bookingSubmitting, setBookingSubmitting] = useState(false);
 
   useEffect(() => {
     if (!session || session.role !== "user") {
@@ -84,10 +68,7 @@ const Dashboard = () => {
   const userProperties = session?.properties || [];
   const selectedAccess = userProperties.find((p) => p.id === selectedPropertyId);
   const hasFinance = selectedAccess?.can_view_finance ?? false;
-  const hasCleaning = selectedAccess?.can_view_cleaning ?? false;
-  const canMark = selectedAccess?.can_mark_cleaned ?? false;
 
-  // Determine which tabs are available globally (any property)
   const hasAnyFinance = userProperties.some((p) => p.can_view_finance);
   const hasAnyCleaning = userProperties.some((p) => p.can_view_cleaning);
 
@@ -125,9 +106,9 @@ const Dashboard = () => {
     try {
       const result = await fetchIcal(selectedPropertyId, session!.pin);
       setBookings((prev) => [
-      ...prev.filter((b) => b.property_id !== selectedPropertyId),
-      ...(result.bookings || [])]
-      );
+        ...prev.filter((b) => b.property_id !== selectedPropertyId),
+        ...(result.bookings || [])
+      ]);
       toast.success(`Synced ${result.synced} events`);
     } catch {
       toast.error("Sync failed");
@@ -154,147 +135,18 @@ const Dashboard = () => {
     navigate("/");
   };
 
-  const handleCalendarDayClick = (day: Date, info: any) => {
-    // If day is booked/blocked, show details (existing behavior)
-    if (info.isManual || info.isPending) {
-      setSelectedDay({ date: day, info });
-      return;
-    }
-    // Available day — range selection
-    if (!rangeStart) {
-      setRangeStart(day);
-      setRangeEnd(null);
-      setSelectedDay(null);
-    } else if (isSameDay(day, rangeStart)) {
-      // Cancel selection
-      setRangeStart(null);
-      setRangeEnd(null);
-    } else if (isBefore(day, rangeStart)) {
-      setRangeStart(day);
-      setRangeEnd(null);
-    } else {
-      setRangeEnd(day);
-      setBookingDialogOpen(true);
-    }
-  };
-
-  const cancelSelection = () => {
-    setRangeStart(null);
-    setRangeEnd(null);
-  };
-
-  const handleBookingSubmit = async () => {
-    if (!rangeStart || !rangeEnd || !selectedPropertyId) return;
-    setBookingSubmitting(true);
-    try {
-      await createOwnerReservation(session!.pin, {
-        property_id: selectedPropertyId,
-        check_in: format(rangeStart, "yyyy-MM-dd"),
-        check_out: format(rangeEnd, "yyyy-MM-dd"),
-        is_blocked: bookingType === "block",
-        guest_name: bookingType === "reservation" ? bookingGuestName || "Private Guest" : "Blocked",
-        net_payout: bookingType === "reservation" ? parseFloat(bookingPayout) || 0 : 0,
-      });
-      toast.success(bookingType === "block" ? "Dates blocked!" : "Reservation added!");
-      setBookingDialogOpen(false);
-      setRangeStart(null);
-      setRangeEnd(null);
-      setBookingGuestName("");
-      setBookingPayout("");
-      loadData();
-    } catch {
-      toast.error("Failed to save");
-    } finally {
-      setBookingSubmitting(false);
-    }
-  };
-
-  const isInSelectedRange = (day: Date) => {
-    if (!rangeStart) return false;
-    if (rangeEnd) {
-      return (isAfter(day, rangeStart) || isSameDay(day, rangeStart)) &&
-             (isBefore(day, rangeEnd) || isSameDay(day, rangeEnd));
-    }
-    return isSameDay(day, rangeStart);
-  };
-
   const selectedProperty = properties.find((p) => p.id === selectedPropertyId);
-  const propertyBookings = bookings.filter((b) => b.property_id === selectedPropertyId);
-  const propertyManual = manualReservations.filter((r) => r.property_id === selectedPropertyId);
-
-  // Calendar logic
-  const monthStart = startOfMonth(currentMonth);
-  const monthEnd = endOfMonth(currentMonth);
-  const days = eachDayOfInterval({ start: monthStart, end: monthEnd });
-  const startPad = getDay(monthStart);
-
-  const getDayInfo = (day: Date) => {
-    for (const r of propertyManual) {
-      if (r.status === "Cancelled") continue;
-      const start = startOfDay(parseISO(r.check_in));
-      const end = startOfDay(parseISO(r.check_out));
-      if (isWithinInterval(day, { start, end: endOfDay(end) })) {
-        return { status: "booked", label: `${r.guest_name} (${r.source})`, isManual: true, isPending: false, reservation: r };
-      }
-    }
-    for (const b of propertyBookings) {
-      const start = startOfDay(parseISO(b.start_date));
-      const end = startOfDay(parseISO(b.end_date));
-      if (isWithinInterval(day, { start, end: endOfDay(end) })) {
-        if (b.status === "blocked") return { status: "blocked", label: "Blocked", isManual: false, isPending: false };
-        return { status: "booked", label: `${b.summary || "Booked"} (Pending Verification)`, isManual: false, isPending: true, booking: b };
-      }
-    }
-    return { status: "available", label: "Available", isManual: false, isPending: false };
-  };
-
-  const financials = useMemo(() => {
-    if (!selectedProperty) return null;
-    const activeManual = propertyManual.filter((r) => r.status !== "Cancelled");
-    const totalRevenue = activeManual.reduce((sum, r) => sum + r.net_payout, 0);
-    const totalNights = activeManual.reduce((sum, r) => sum + Math.max(0, differenceInDays(parseISO(r.check_out), parseISO(r.check_in))), 0);
-    return { reservations: activeManual.length, totalNights, occupancy: Math.round(totalNights / 365 * 100), totalRevenue };
-  }, [selectedPropertyId, propertyManual, selectedProperty]);
-
-  const chartData = useMemo(() => {
-    if (!selectedProperty) return [];
-    const year = new Date().getFullYear();
-    return Array.from({ length: 12 }, (_, i) => {
-      const m = new Date(year, i, 1);
-      const mDays = eachDayOfInterval({ start: startOfMonth(m), end: endOfMonth(m) });
-      let booked = 0;
-      for (const day of mDays) {
-        for (const r of propertyManual) {
-          if (r.status === "Cancelled") continue;
-          if (isWithinInterval(day, { start: startOfDay(parseISO(r.check_in)), end: endOfDay(startOfDay(parseISO(r.check_out))) })) {booked++;break;}
-        }
-      }
-      return { month: format(m, "MMM"), occupancy: Math.round(booked / mDays.length * 100) };
-    });
-  }, [selectedPropertyId, propertyManual, selectedProperty]);
-
-  const recentPayouts = useMemo(() => {
-    return [...propertyManual].filter((r) => r.status !== "Cancelled").sort((a, b) => b.check_in.localeCompare(a.check_in)).slice(0, 10);
-  }, [propertyManual]);
-
-  const statusColors: Record<string, string> = {
-    booked: "bg-status-booked-light border-status-booked text-status-booked",
-    available: "bg-status-available-light border-status-available text-status-available",
-    blocked: "bg-status-blocked-light border-status-blocked text-status-blocked"
-  };
 
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center bg-background text-muted-foreground">Loading...</div>;
   }
 
-  // Filter cleaning tasks to only properties this user has cleaning access to
   const cleaningPropertyIds = userProperties.filter((p) => p.can_view_cleaning).map((p) => p.id);
   const filteredTasks = cleanerTasks.filter((t) => cleaningPropertyIds.includes(t.property_id));
   const priority: Record<string, number> = { "same-day": 0, "checkout-only": 1, "arrival-pending": 2, "arrival-ready": 3, idle: 4 };
   const sortedTasks = [...filteredTasks].sort((a, b) => (priority[a.status] ?? 5) - (priority[b.status] ?? 5));
   const today = new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
 
-  // Default tab
   const defaultTab = hasAnyFinance ? "finance" : "cleaning";
 
   return (
@@ -362,157 +214,15 @@ const Dashboard = () => {
             <Card className="p-8 text-center text-muted-foreground">
                   <p>You don't have finance access for this property.</p>
                 </Card> :
-
-            <>
-                  {/* Calendar */}
-                  <motion.div initial={{ opacity: 0, y: 16, filter: "blur(4px)" }} animate={{ opacity: 1, y: 0, filter: "blur(0px)" }} transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}>
-                    <Card className="p-6">
-                      <div className="flex items-center justify-between mb-6">
-                        <h2 className="text-lg font-semibold">{format(currentMonth, "MMMM yyyy")}</h2>
-                        <div className="flex items-center gap-2">
-                          <Button variant="outline" size="icon" className="h-10 w-10 sm:h-9 sm:w-9 rounded-full" onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}>
-                            <ChevronLeft className="w-5 h-5 sm:w-4 sm:h-4" />
-                          </Button>
-                          <Button variant="outline" size="sm" className="h-10 sm:h-9 px-4 text-sm font-medium" onClick={() => setCurrentMonth(new Date())}>Today</Button>
-                          <Button variant="outline" size="icon" className="h-10 w-10 sm:h-9 sm:w-9 rounded-full" onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}>
-                            <ChevronRight className="w-5 h-5 sm:w-4 sm:h-4" />
-                          </Button>
-                        </div>
-                      </div>
-                      {rangeStart && (
-                        <div className="mb-3 flex items-center gap-2">
-                          <span className="text-xs text-primary font-medium">
-                            Selecting: {format(rangeStart, "MMM d")}
-                            {rangeEnd ? ` → ${format(rangeEnd, "MMM d")}` : " → tap end date"}
-                          </span>
-                          <Button variant="ghost" size="sm" className="h-6 px-2 text-xs" onClick={cancelSelection}>
-                            <X className="w-3 h-3 mr-1" />Cancel
-                          </Button>
-                        </div>
-                      )}
-                      <div className="grid grid-cols-7 gap-1">
-                        {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) =>
-                    <div key={d} className="text-center text-xs font-medium text-muted-foreground py-2">{d}</div>
-                    )}
-                        {Array.from({ length: startPad }).map((_, i) => <div key={`pad-${i}`} />)}
-                        {days.map((day) => {
-                      const info = getDayInfo(day);
-                      const pendingStyle = info.isPending ? "bg-orange-100 border-orange-400 text-orange-700" : statusColors[info.status];
-                      const inRange = isInSelectedRange(day);
-                      const isRangeStart = rangeStart && isSameDay(day, rangeStart);
-                      const rangeHighlight = inRange ? "ring-2 ring-primary bg-primary/10" : "";
-                      const isClickable = info.isManual || info.isPending || info.status === "available";
-                      return (
-                        <div key={day.toISOString()} title={info.label}
-                        onClick={() => handleCalendarDayClick(day, info)}
-                        className={`relative aspect-square flex items-center justify-center rounded-lg text-sm font-medium transition-colors duration-150 ${pendingStyle} ${rangeHighlight} ${isToday(day) && !inRange ? "ring-2 ring-foreground ring-offset-1" : ""} border ${isClickable ? "cursor-pointer hover:opacity-80" : ""}`}>
-                          
-                              {format(day, "d")}
-                            </div>);
-
-                    })}
-                      </div>
-                      <div className="flex items-center gap-4 mt-4 pt-4 border-t border-border flex-wrap">
-                        <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-sm bg-status-booked-light border border-status-booked" /><span className="text-xs text-muted-foreground">Confirmed</span></div>
-                        <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-sm bg-orange-100 border border-orange-400" /><span className="text-xs text-muted-foreground">Pending</span></div>
-                        <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-sm bg-status-available-light border border-status-available" /><span className="text-xs text-muted-foreground">Available</span></div>
-                        <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-sm bg-status-blocked-light border border-status-blocked" /><span className="text-xs text-muted-foreground">Blocked</span></div>
-                        <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-sm bg-primary/10 ring-1 ring-primary" /><span className="text-xs text-muted-foreground">Selected</span></div>
-                      </div>
-                      {selectedDay &&
-                  <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="mt-4 pt-4 border-t border-border">
-                          <div className="flex items-start justify-between">
-                            <div className="space-y-1">
-                              <p className="text-sm font-semibold">{selectedDay.info.reservation?.guest_name || selectedDay.info.booking?.summary || "Guest"}</p>
-                              <p className="text-xs text-muted-foreground">{format(selectedDay.date, "MMMM d, yyyy")}</p>
-                              {selectedDay.info.reservation &&
-                        <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1">
-                                  <span>{selectedDay.info.reservation.source}</span>
-                                  <span>·</span>
-                                  <span className="font-medium text-foreground">{selectedDay.info.reservation.net_payout.toLocaleString()} {selectedProperty?.currency}</span>
-                                  <span>·</span>
-                                  <span className={`px-1.5 py-0.5 rounded-full font-medium ${selectedDay.info.reservation.status === "Paid" ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"}`}>{selectedDay.info.reservation.status}</span>
-                                </div>
-                        }
-                              {selectedDay.info.isPending && <p className="text-xs text-orange-600 font-medium mt-1">Pending admin verification</p>}
-                            </div>
-                            <Button variant="ghost" size="sm" className="text-xs h-7" onClick={() => setSelectedDay(null)}>Close</Button>
-                          </div>
-                        </motion.div>
-                  }
-                    </Card>
-                  </motion.div>
-
-                  {/* Financial Summary */}
-                  {financials && selectedProperty &&
-              <motion.div initial={{ opacity: 0, y: 16, filter: "blur(4px)" }} animate={{ opacity: 1, y: 0, filter: "blur(0px)" }} transition={{ delay: 0.1, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}>
-                      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                        {[
-                  { label: "Reservations", value: financials.reservations },
-                  { label: "Nights Booked", value: financials.totalNights },
-                  { label: "Occupancy", value: `${financials.occupancy}%` },
-                  { label: "Total Revenue", value: `${financials.totalRevenue.toLocaleString()} ${selectedProperty.currency}` }].
-                  map((s) =>
-                  <Card key={s.label} className="p-4 sm:p-5">
-                            <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-1">{s.label}</p>
-                            <p className="text-2xl sm:text-3xl font-semibold tabular-nums">{s.value}</p>
-                          </Card>
-                  )}
-                      </div>
-                    </motion.div>
-              }
-
-                  {/* Recent Payouts */}
-                  {recentPayouts.length > 0 && selectedProperty &&
-              <motion.div initial={{ opacity: 0, y: 16, filter: "blur(4px)" }} animate={{ opacity: 1, y: 0, filter: "blur(0px)" }} transition={{ delay: 0.15, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}>
-                      <Card className="p-6">
-                        <h3 className="font-semibold mb-4">Recent Payouts</h3>
-                        <div className="overflow-x-auto">
-                          <table className="w-full text-sm">
-                            <thead><tr className="border-b border-border text-left">
-                              <th className="pb-2 font-medium text-muted-foreground">Guest</th>
-                              <th className="pb-2 font-medium text-muted-foreground">Dates</th>
-                              <th className="pb-2 font-medium text-muted-foreground">Source</th>
-                              <th className="pb-2 font-medium text-muted-foreground">Status</th>
-                              <th className="pb-2 font-medium text-muted-foreground text-right">Payout</th>
-                            </tr></thead>
-                            <tbody>
-                              {recentPayouts.map((r) =>
-                        <tr key={r.id} className="border-b border-border/50 last:border-0">
-                                  <td className="py-2.5 font-medium">{r.guest_name}</td>
-                                  <td className="py-2.5 text-muted-foreground">{format(parseISO(r.check_in), "MMM d")} – {format(parseISO(r.check_out), "MMM d")}</td>
-                                  <td className="py-2.5 text-muted-foreground">{r.source}</td>
-                                  <td className="py-2.5"><span className={`text-xs px-2 py-0.5 rounded-full font-medium ${r.status === "Paid" ? "bg-emerald-100 text-emerald-800" : r.status === "Confirmed" ? "bg-amber-100 text-amber-800" : "bg-muted text-muted-foreground"}`}>{r.status}</span></td>
-                                  <td className="py-2.5 text-right font-medium tabular-nums">{r.net_payout.toLocaleString()} {selectedProperty.currency}</td>
-                                </tr>
-                        )}
-                            </tbody>
-                          </table>
-                        </div>
-                      </Card>
-                    </motion.div>
-              }
-
-                  {/* Chart */}
-                  {chartData.length > 0 &&
-              <motion.div initial={{ opacity: 0, y: 16, filter: "blur(4px)" }} animate={{ opacity: 1, y: 0, filter: "blur(0px)" }} transition={{ delay: 0.2, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}>
-                      <Card className="p-6">
-                        <h3 className="font-semibold mb-4">Monthly Occupancy</h3>
-                        <div className="h-48">
-                          <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={chartData}>
-                              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
-                              <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }} />
-                              <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }} domain={[0, 100]} unit="%" />
-                              <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px", fontSize: "13px" }} formatter={(value: number) => [`${value}%`, "Occupancy"]} />
-                              <Bar dataKey="occupancy" fill="hsl(var(--status-available))" radius={[6, 6, 0, 0]} />
-                            </BarChart>
-                          </ResponsiveContainer>
-                        </div>
-                      </Card>
-                    </motion.div>
-              }
-                </>
+            selectedProperty ?
+              <PropertyFinanceView
+                property={selectedProperty}
+                bookings={bookings}
+                manualReservations={manualReservations}
+                pin={session!.pin}
+                onDataChanged={loadData}
+              /> :
+              null
             }
             </TabsContent>
           }
@@ -623,68 +333,6 @@ const Dashboard = () => {
           }
         </Tabs>
       </main>
-
-      {/* Owner Booking/Block Dialog */}
-      <Dialog open={bookingDialogOpen} onOpenChange={(open) => {
-        if (!open) { setBookingDialogOpen(false); setRangeStart(null); setRangeEnd(null); }
-      }}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>
-              {rangeStart && rangeEnd ? `${format(rangeStart, "MMM d")} → ${format(rangeEnd, "MMM d")}` : "Select dates"}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-2">
-            <div className="flex gap-2">
-              <Button
-                variant={bookingType === "block" ? "default" : "outline"}
-                className="flex-1"
-                onClick={() => setBookingType("block")}
-              >
-                Block Dates
-              </Button>
-              <Button
-                variant={bookingType === "reservation" ? "default" : "outline"}
-                className="flex-1"
-                onClick={() => setBookingType("reservation")}
-              >
-                Private Reservation
-              </Button>
-            </div>
-            {bookingType === "reservation" && (
-              <div className="space-y-3">
-                <div>
-                  <Label htmlFor="guest-name">Guest Name</Label>
-                  <Input
-                    id="guest-name"
-                    placeholder="Guest name"
-                    value={bookingGuestName}
-                    onChange={(e) => setBookingGuestName(e.target.value)}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="payout">Net Payout ({selectedProperty?.currency || "EUR"})</Label>
-                  <Input
-                    id="payout"
-                    type="number"
-                    placeholder="0"
-                    value={bookingPayout}
-                    onChange={(e) => setBookingPayout(e.target.value)}
-                  />
-                </div>
-              </div>
-            )}
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => { setBookingDialogOpen(false); setRangeStart(null); setRangeEnd(null); }}>
-              Cancel
-            </Button>
-            <Button onClick={handleBookingSubmit} disabled={bookingSubmitting}>
-              {bookingSubmitting ? "Saving..." : "Confirm"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>);
 
 };
