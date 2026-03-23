@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, LogOut, Copy, RefreshCw, Pencil, Trash2, Check, Building2, List, Clock, ChevronDown, Activity, Users, CalendarRange } from "lucide-react";
+import { Plus, LogOut, Copy, RefreshCw, Pencil, Trash2, Check, Building2, List, Clock, ChevronDown, Activity, Users, CalendarRange, BarChart3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { getSession, clearSession } from "@/lib/session";
-import { getAdminProperties, createProperty, updateProperty, deleteProperty, fetchIcal, getAdminPendingIcal } from "@/lib/api";
+import { getAdminProperties, createProperty, updateProperty, deleteProperty, fetchIcal, getAdminPendingIcal, getOwnerData } from "@/lib/api";
 import { toast } from "sonner";
 import { ManageReservations } from "@/components/ManageReservations";
 import { MasterReservationList } from "@/components/MasterReservationList";
@@ -18,6 +18,7 @@ import { PendingPayouts } from "@/components/PendingPayouts";
 import { DailyOperations } from "@/components/DailyOperations";
 import { UserManagement } from "@/components/UserManagement";
 import { MasterTimeline } from "@/components/MasterTimeline";
+import { PropertyFinanceView } from "@/components/PropertyFinanceView";
 
 interface Property {
   id: string;
@@ -54,6 +55,9 @@ const Admin = () => {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("properties");
   const [pendingCounts, setPendingCounts] = useState<Record<string, number>>({});
+  const [financeProperty, setFinanceProperty] = useState<Property | null>(null);
+  const [financeData, setFinanceData] = useState<{ bookings: any[]; manual_reservations: any[] } | null>(null);
+  const [financeLoading, setFinanceLoading] = useState(false);
 
   const session = getSession();
 
@@ -182,6 +186,20 @@ const Admin = () => {
   const handleLogout = () => {
     clearSession();
     navigate("/");
+  };
+
+  const handleOpenFinance = async (p: Property) => {
+    setFinanceProperty(p);
+    setFinanceLoading(true);
+    setFinanceData(null);
+    try {
+      const data = await getOwnerData(session!.pin, p.id);
+      setFinanceData({ bookings: data.bookings || [], manual_reservations: data.manual_reservations || [] });
+    } catch {
+      toast.error("Failed to load finance data");
+    } finally {
+      setFinanceLoading(false);
+    }
   };
 
   return (
@@ -329,6 +347,9 @@ const Admin = () => {
                             <p className="text-sm text-muted-foreground">{p.owner_name}</p>
                           </div>
                           <div className="flex gap-1">
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleOpenFinance(p)} title="View Dashboard">
+                              <BarChart3 className="w-3.5 h-3.5" />
+                            </Button>
                             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEdit(p)}>
                               <Pencil className="w-3.5 h-3.5" />
                             </Button>
@@ -418,6 +439,33 @@ const Admin = () => {
           </TabsContent>
         </Tabs>
       </main>
+
+      {/* Property Finance Dialog */}
+      <Dialog open={!!financeProperty} onOpenChange={(open) => { if (!open) setFinanceProperty(null); }}>
+        <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{financeProperty?.name} — Dashboard</DialogTitle>
+          </DialogHeader>
+          {financeLoading ? (
+            <div className="flex justify-center py-20 text-muted-foreground">Loading...</div>
+          ) : financeData && financeProperty ? (
+            <PropertyFinanceView
+              property={{
+                id: financeProperty.id,
+                name: financeProperty.name,
+                owner_name: financeProperty.owner_name,
+                nightly_rate: financeProperty.nightly_rate,
+                currency: financeProperty.currency,
+                ical_urls: financeProperty.ical_urls,
+              }}
+              bookings={financeData.bookings}
+              manualReservations={financeData.manual_reservations}
+              pin={session!.pin}
+              onDataChanged={() => handleOpenFinance(financeProperty)}
+            />
+          ) : null}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
