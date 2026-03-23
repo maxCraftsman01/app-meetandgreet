@@ -519,6 +519,7 @@ const Dashboard = () => {
                 {/* Week/Month Calendar View */}
                 <TabsContent value="calendar" className="mt-0">
                   <CleaningCalendar
+                  view="week"
                   pin={session!.pin}
                   userProperties={userProperties}
                   onMarkCleaned={handleMarkCleaned}
