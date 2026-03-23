@@ -439,6 +439,33 @@ const Admin = () => {
           </TabsContent>
         </Tabs>
       </main>
+
+      {/* Property Finance Dialog */}
+      <Dialog open={!!financeProperty} onOpenChange={(open) => { if (!open) setFinanceProperty(null); }}>
+        <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{financeProperty?.name} — Dashboard</DialogTitle>
+          </DialogHeader>
+          {financeLoading ? (
+            <div className="flex justify-center py-20 text-muted-foreground">Loading...</div>
+          ) : financeData && financeProperty ? (
+            <PropertyFinanceView
+              property={{
+                id: financeProperty.id,
+                name: financeProperty.name,
+                owner_name: financeProperty.owner_name,
+                nightly_rate: financeProperty.nightly_rate,
+                currency: financeProperty.currency,
+                ical_urls: financeProperty.ical_urls,
+              }}
+              bookings={financeData.bookings}
+              manualReservations={financeData.manual_reservations}
+              pin={session!.pin}
+              onDataChanged={() => handleOpenFinance(financeProperty)}
+            />
+          ) : null}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
