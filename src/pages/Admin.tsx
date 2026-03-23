@@ -422,6 +422,7 @@ const Admin = () => {
                 </AnimatePresence>
               </div>
             )}
+            </Dialog>
           </TabsContent>
 
           <TabsContent value="users">
