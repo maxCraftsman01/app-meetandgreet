@@ -1,61 +1,50 @@
 
-## Fix manual reservation edit/delete CORS failure
 
-### What I found
-The current `admin-reservations` function already allows the custom headers, but its preflight response is still incomplete for browser `PUT` and `DELETE` requests.
+## Redesign Cleaning Tab Navigation & Month Calendar
 
-From the runtime evidence:
-- `GET` requests succeed
-- `PUT` and `DELETE` show `Failed to fetch`
-- that pattern strongly indicates the browser is blocking the request during the CORS preflight, before the real mutation runs
+### Problem
+1. Current cleaning section has **Today** and **Week/Month** as two tabs, then inside Week/Month you have to pick again between Week and Month — confusing two-level navigation
+2. Month calendar shows only small colored dots instead of the rich colored-cell style used in the owner's Finance calendar
 
-### Root cause
-`supabase/functions/admin-reservations/index.ts` is missing:
-- `Access-Control-Allow-Methods`
-- a more explicit OPTIONS response for non-GET methods
+### Changes
 
-Two other functions already show the correct pattern (`admin-users`, `admin-timeline`), so I would align `admin-reservations` with that working setup.
+**`src/pages/Dashboard.tsx`** (Cleaning Tab section, lines 441-528)
+- Replace the nested `Tabs` structure with 3 direct tabs: **Today**, **Week**, **Month**
+- Remove the inner `CleaningCalendar` component reference for the calendar tab — instead render Week and Month as separate `TabsContent` sections
+- Pass a `view` prop to `CleaningCalendar` so it renders only one view at a time
 
-### Plan
-1. Update `supabase/functions/admin-reservations/index.ts`
-   - add:
-     - `Access-Control-Allow-Methods: "GET, POST, PUT, DELETE, OPTIONS"`
-   - keep the existing allowed headers
-   - return a proper OPTIONS response with the full CORS headers
+**`src/components/CleaningCalendar.tsx`**
+- Accept a `view` prop (`"week" | "month"`) from the parent instead of managing its own view toggle
+- Remove the internal Week/Month tab switcher (lines 116-121)
+- **Redesign month view** to match the owner Finance calendar style:
+  - Each day cell becomes a colored square (like lines 320-332 in Dashboard.tsx) instead of just a number with dots
+  - Use status-based background colors: red for same-day, yellow for checkout, orange for pending, green for cleaned, neutral for empty
+  - When a day has multiple properties, show the highest-priority status color on the cell with a small count badge
+  - Clicking a day still opens the expanded detail card below
+- Keep the week view unchanged (it already looks good with the colored event bars)
 
-2. Apply the same CORS-method fix to all mutation-capable edge functions so this does not happen elsewhere again:
-   - `admin-properties`
-   - `admin-users`
-   - `cleaner-operations`
-   - `fetch-ical` if it accepts writes
-   - any other function supporting `POST`, `PUT`, or `DELETE`
-
-3. Keep auth logic unchanged for this fix
-   - the current manual reservation issue is not caused by the reservation payload itself
-   - the browser is failing before the update/delete request reaches normal execution
-
-4. Verify after implementation
-   - edit a manual reservation
-   - delete a manual reservation
-   - confirm no more `Failed to fetch` / `Failed to delete` errors
-
-### Technical detail
-Recommended CORS shape for mutation functions:
-```ts
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-admin-pin, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-  "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-};
-
-if (req.method === "OPTIONS") {
-  return new Response("ok", { headers: corsHeaders });
-}
+### New tab structure
+```text
+┌─────────┬──────────┬──────────┐
+│  Today  │   Week   │  Month   │
+└─────────┴──────────┴──────────┘
+   ↓           ↓          ↓
+ Task cards  Week grid  Month grid (colored cells like Finance calendar)
 ```
 
-### Files to update
-- `supabase/functions/admin-reservations/index.ts`
-- `supabase/functions/admin-properties/index.ts`
-- `supabase/functions/cleaner-operations/index.ts`
-- `supabase/functions/fetch-ical/index.ts`
-- any other mutation-capable function still missing `Access-Control-Allow-Methods`
+### Month cell design (matching Finance calendar)
+Each day cell will be:
+- `aspect-square rounded-lg border` with status-colored background
+- Show the day number centered
+- If events exist: background = highest priority status color (same-day > checkout > pending > ready)
+- Multiple events: small badge showing count in corner
+- Today ring highlight
+- Click to expand details below
+
+### Files to modify
+
+| File | Change |
+|---|---|
+| `src/pages/Dashboard.tsx` | 3 separate tabs (Today/Week/Month), pass `view` prop to CleaningCalendar |
+| `src/components/CleaningCalendar.tsx` | Accept `view` prop, remove internal tab switcher, redesign month view with colored cells |
+
