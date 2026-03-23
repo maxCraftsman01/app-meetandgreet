@@ -442,7 +442,8 @@ const Dashboard = () => {
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                   <TabsList className="h-9">
                     <TabsTrigger value="today" className="text-xs px-3" onClick={() => {if (cleanerTasks.length === 0) loadCleaningTasks();}}>Today</TabsTrigger>
-                    <TabsTrigger value="calendar" className="text-xs px-3">Week / Month</TabsTrigger>
+                    <TabsTrigger value="week" className="text-xs px-3">Week</TabsTrigger>
+                    <TabsTrigger value="month" className="text-xs px-3">Month</TabsTrigger>
                   </TabsList>
                   <div className="flex items-center gap-2">
                     <Button variant="outline" size="sm" onClick={loadCleaningTasks}>
