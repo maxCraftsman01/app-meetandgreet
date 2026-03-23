@@ -302,13 +302,13 @@ const Dashboard = () => {
                     <Card className="p-6">
                       <div className="flex items-center justify-between mb-6">
                         <h2 className="text-lg font-semibold">{format(currentMonth, "MMMM yyyy")}</h2>
-                        <div className="flex items-center gap-1">
-                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}>
-                            <ChevronLeft className="w-4 h-4" />
+                        <div className="flex items-center gap-2">
+                          <Button variant="outline" size="icon" className="h-10 w-10 sm:h-9 sm:w-9 rounded-full" onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}>
+                            <ChevronLeft className="w-5 h-5 sm:w-4 sm:h-4" />
                           </Button>
-                          <Button variant="ghost" size="sm" className="text-xs" onClick={() => setCurrentMonth(new Date())}>Today</Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}>
-                            <ChevronRight className="w-4 h-4" />
+                          <Button variant="outline" size="sm" className="h-10 sm:h-9 px-4 text-sm font-medium" onClick={() => setCurrentMonth(new Date())}>Today</Button>
+                          <Button variant="outline" size="icon" className="h-10 w-10 sm:h-9 sm:w-9 rounded-full" onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}>
+                            <ChevronRight className="w-5 h-5 sm:w-4 sm:h-4" />
                           </Button>
                         </div>
                       </div>
