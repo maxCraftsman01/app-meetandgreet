@@ -101,21 +101,21 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+    <div className="min-h-screen flex flex-col justify-end md:justify-center items-center bg-background p-4 pb-safe">
       <motion.div
         initial={{ opacity: 0, y: 24, filter: "blur(8px)" }}
         animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
         transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-        className="w-full max-w-md"
+        className="w-full max-w-md mb-12 md:mb-0"
       >
         <div className="flex flex-col items-center gap-8">
           <motion.div
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ delay: 0.15, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-            className="w-14 h-14 rounded-2xl bg-primary flex items-center justify-center"
+            className="w-14 h-14 rounded-2xl bg-emerald-600 flex items-center justify-center"
           >
-            <Building2 className="w-7 h-7 text-primary-foreground" />
+            <Building2 className="w-7 h-7 text-white" />
           </motion.div>
 
           <div className="text-center space-y-2">
@@ -128,7 +128,7 @@ const Index = () => {
           </div>
 
           <div
-            className={`flex gap-2 sm:gap-3 ${shake ? "animate-pin-shake" : ""}`}
+            className={`flex gap-3 ${shake ? "animate-pin-shake" : ""}`}
           >
             {digits.map((digit, i) => (
               <motion.input
@@ -143,7 +143,7 @@ const Index = () => {
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 + i * 0.04, duration: 0.4 }}
-                className="w-10 h-12 sm:w-12 sm:h-14 text-center text-lg font-mono font-medium rounded-lg border-2 border-border bg-card focus:border-foreground focus:outline-none transition-colors duration-150"
+                className="w-11 h-14 text-center text-lg font-mono font-medium rounded-lg border-2 border-border bg-card focus:border-foreground focus:outline-none transition-colors duration-150"
                 disabled={loading}
               />
             ))}

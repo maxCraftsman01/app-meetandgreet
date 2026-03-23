@@ -500,8 +500,8 @@ const Dashboard = () => {
                               </div>
                               {taskCanMark && task.reservation_id && task.status !== "arrival-ready" && (
                                 <div className="mt-4">
-                                  <Button className="w-full" onClick={() => handleMarkCleaned(task.reservation_id!)} disabled={markingId === task.reservation_id}>
-                                    <CheckCircle2 className="w-4 h-4 mr-1.5" />
+                                  <Button className="w-full h-12 text-base bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => handleMarkCleaned(task.reservation_id!)} disabled={markingId === task.reservation_id}>
+                                    <CheckCircle2 className="w-5 h-5 mr-2" />
                                     {markingId === task.reservation_id ? "Updating..." : "Mark as Cleaned"}
                                   </Button>
                                 </div>
