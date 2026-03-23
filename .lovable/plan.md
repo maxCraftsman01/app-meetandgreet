@@ -1,61 +1,44 @@
 
 
-## Owner Date Selection & Booking on Calendar (Airbnb-Style)
+## Admin Property Dashboard View (Reuse Owner Finance Components)
 
 ### Goal
-Let owners tap a start date and end date directly on the Finance calendar to either **block dates** or **add a private reservation** — no manual date input needed.
+Add a button on each property card in the Admin Properties tab that opens the same Finance dashboard view owners see — calendar, financial summary, occupancy chart, recent payouts — for that specific property.
 
-### How it works
-1. Owner taps a date on the calendar → it becomes the **start date** (highlighted)
-2. Owner taps a second date → it becomes the **end date** (range highlighted)
-3. A bottom sheet / modal appears with two options:
-   - **Block Dates** — creates a blocked entry (no guest name needed)
-   - **Add Reservation** — shows a small form: guest name, optional payout amount
-4. On submit, calls a new edge function to insert into `manual_reservations`
-5. Calendar refreshes to show the new entry
+### Approach
+Rather than duplicating 300+ lines of Dashboard finance logic, extract the finance view into a **reusable component** that both the owner Dashboard and Admin can render.
 
-### Files to create
+### Changes
 
-| File | Purpose |
-|---|---|
-| `supabase/functions/owner-reservations/index.ts` | New edge function: owner can POST to create a reservation or block, authenticated via PIN. Only allows creating entries for properties the owner has finance access to. |
+**New file: `src/components/PropertyFinanceView.tsx`**
+- Extract the entire Finance tab content from `src/pages/Dashboard.tsx` (lines 370-529) into a standalone component
+- Props: `propertyId`, `pin`, `properties`, `bookings`, `manualReservations`, `currency`
+- Includes: calendar with date-range selection, financial summary cards, recent payouts table, occupancy chart, booking/block dialog
+- Fully self-contained with its own state for `currentMonth`, `selectedDay`, `rangeStart/End`, `bookingDialog`
 
-### Files to modify
+**Modified: `src/pages/Dashboard.tsx`**
+- Replace the inline finance content with `<PropertyFinanceView>` passing the existing data
+- Remove the extracted state/logic that moves into the component
+
+**Modified: `src/pages/Admin.tsx`**
+- Add an "eye" or "chart" icon button on each property card
+- Clicking it opens a full-screen `Dialog` (or `Sheet`) containing `<PropertyFinanceView>` for that property
+- Admin needs to fetch the property's bookings and manual reservations — reuse the `owner-data` edge function with the admin PIN (already supported since admin PIN bypasses checks), or call the existing `admin-reservations` endpoint
+- Since `owner-data` already checks for finance access and admin has `is_admin` flag, the admin PIN will work if we also check for admin in `owner-data` (it currently only checks `can_view_finance`)
+
+**Modified: `supabase/functions/owner-data/index.ts`**
+- Add admin PIN / `is_admin` check so admin users get data for ALL properties (currently it only returns properties where user has `can_view_finance`)
+
+### Files
 
 | File | Change |
 |---|---|
-| `src/pages/Dashboard.tsx` | Add date-range selection state to the Finance calendar. On first click set `rangeStart`, on second click set `rangeEnd` and open a dialog. Add a `Dialog` with "Block Dates" / "Add Reservation" options and a small form. After submit, reload data. Show visual range highlight between selected dates. |
-| `src/lib/api.ts` | Add `createOwnerReservation(pin, data)` and `createOwnerBlock(pin, data)` API helpers calling the new edge function. |
+| `src/components/PropertyFinanceView.tsx` | New — extracted finance view component |
+| `src/pages/Dashboard.tsx` | Use `PropertyFinanceView` instead of inline code |
+| `src/pages/Admin.tsx` | Add "View Dashboard" button per property, open dialog with `PropertyFinanceView` |
+| `supabase/functions/owner-data/index.ts` | Allow admin users to fetch all property data |
+| `src/lib/api.ts` | Add helper to fetch owner data with admin PIN for a specific property |
 
-### Calendar interaction detail
-- Single tap on available date → sets start (blue ring)
-- Tap another date after start → sets end, dates between get a light blue highlight
-- Tap same date as start → cancels selection
-- Tapping a booked/blocked date does nothing (keeps current click-to-view behavior)
-- A small floating "Cancel selection" button appears after first tap
-
-### Dialog form
-```text
-┌─────────────────────────────┐
-│  June 15 → June 18          │
-│                             │
-│  ○ Block dates              │
-│  ○ Private reservation      │
-│                             │
-│  [Guest name___________]    │  ← only if reservation
-│  [Payout amount________]    │  ← only if reservation
-│                             │
-│  [Cancel]      [Confirm]    │
-└─────────────────────────────┘
-```
-
-### Edge function: `owner-reservations`
-- Validates PIN, looks up user and property access (must have `can_view_finance`)
-- POST: inserts into `manual_reservations` with `source: "Owner"` for reservations or `is_blocked: true` for blocks
-- Only creates — no edit/delete from owner side (admin manages that)
-
-### Security
-- PIN-based auth matching existing pattern
-- Checks `user_property_access.can_view_finance` before allowing creation
-- Uses service role key server-side only
+### Admin property card button
+Each property card gets a small button (e.g. `BarChart3` icon) next to edit/delete. Clicking opens a full-width dialog showing the complete owner dashboard for that property, including the Airbnb-style date selection for blocking/reservations.
 
