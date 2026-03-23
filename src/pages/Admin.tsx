@@ -94,8 +94,8 @@ const Admin = () => {
   };
 
   const handleSave = async () => {
-    if (!form.name || !form.owner_name) {
-      toast.error("Fill all required fields.");
+    if (!form.name || !form.owner_name || !form.owner_pin) {
+      toast.error("Name, owner name, and owner PIN are required.");
       return;
     }
     setSaving(true);
