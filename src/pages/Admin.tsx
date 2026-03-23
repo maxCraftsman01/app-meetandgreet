@@ -188,6 +188,20 @@ const Admin = () => {
     navigate("/");
   };
 
+  const handleOpenFinance = async (p: Property) => {
+    setFinanceProperty(p);
+    setFinanceLoading(true);
+    setFinanceData(null);
+    try {
+      const data = await getOwnerData(session!.pin);
+      setFinanceData({ bookings: data.bookings || [], manual_reservations: data.manual_reservations || [] });
+    } catch {
+      toast.error("Failed to load finance data");
+    } finally {
+      setFinanceLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b border-border bg-card">
