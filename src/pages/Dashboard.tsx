@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import {
   LogOut, RefreshCw, ChevronLeft, ChevronRight, Building2,
   CheckCircle2, Key, FileText, AlertTriangle, Clock, Sparkles,
-  DollarSign, Brush } from
+  DollarSign, Brush, X } from
 "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -12,13 +12,19 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from
 "@/components/ui/select";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from
+"@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { getSession, clearSession, type PropertyAccess } from "@/lib/session";
-import { getOwnerData, fetchIcal, getCleanerTasks, markAsCleaned } from "@/lib/api";
+import { getOwnerData, fetchIcal, getCleanerTasks, markAsCleaned, createOwnerReservation } from "@/lib/api";
 import CleaningCalendar from "@/components/CleaningCalendar";
 import { toast } from "sonner";
 import {
   format, startOfMonth, endOfMonth, eachDayOfInterval, addMonths, subMonths,
-  getDay, isToday, differenceInDays, parseISO, isWithinInterval, startOfDay, endOfDay } from
+  getDay, isToday, differenceInDays, parseISO, isWithinInterval, startOfDay, endOfDay,
+  isBefore, isAfter, isSameDay } from
 "date-fns";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from
