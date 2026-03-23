@@ -66,6 +66,10 @@ const Admin = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  if (!session || session.role !== "admin") {
+    return null;
+  }
+
   useEffect(() => {
     if (!session || properties.length === 0) return;
     getAdminPendingIcal(session.pin).then((data) => {
