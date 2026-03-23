@@ -230,13 +230,49 @@ const Admin = () => {
               <RefreshCw className={`w-4 h-4 mr-1.5 ${syncing ? "animate-spin" : ""}`} />
               Sync All
             </Button>
+            <Button variant="ghost" size="sm" onClick={handleLogout}>
+              <LogOut className="w-4 h-4" />
+            </Button>
+          </div>
+        </div>
+      </header>
+
+      <main className="container px-4 py-8 pb-24 md:pb-8">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <TabsList className="hidden md:flex">
+            <TabsTrigger value="properties">
+              <Building2 className="w-4 h-4 mr-1.5" />
+              Properties
+            </TabsTrigger>
+            <TabsTrigger value="users">
+              <Users className="w-4 h-4 mr-1.5" />
+              Users
+            </TabsTrigger>
+            <TabsTrigger value="master-list">
+              <List className="w-4 h-4 mr-1.5" />
+              All Reservations
+            </TabsTrigger>
+            <TabsTrigger value="timeline">
+              <CalendarRange className="w-4 h-4 mr-1.5" />
+              Timeline
+            </TabsTrigger>
+            <TabsTrigger value="daily-ops">
+              <Activity className="w-4 h-4 mr-1.5" />
+              Daily Ops
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="properties">
             <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) { setEditingId(null); setForm(emptyForm); } }}>
-              <DialogTrigger asChild>
-                <Button size="sm">
-                  <Plus className="w-4 h-4 mr-1.5" />
-                  Add Property
-                </Button>
-              </DialogTrigger>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold">Managed Properties</h2>
+                <DialogTrigger asChild>
+                  <Button size="sm">
+                    <Plus className="w-4 h-4 mr-1.5" />
+                    Add Property
+                  </Button>
+                </DialogTrigger>
+              </div>
               <DialogContent className="sm:max-w-lg">
                 <DialogHeader>
                   <DialogTitle>{editingId ? "Edit Property" : "Add Property"}</DialogTitle>
@@ -294,40 +330,6 @@ const Admin = () => {
                   </Button>
                 </div>
               </DialogContent>
-            </Dialog>
-            <Button variant="ghost" size="sm" onClick={handleLogout}>
-              <LogOut className="w-4 h-4" />
-            </Button>
-          </div>
-        </div>
-      </header>
-
-      <main className="container px-4 py-8 pb-24 md:pb-8">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="hidden md:flex">
-            <TabsTrigger value="properties">
-              <Building2 className="w-4 h-4 mr-1.5" />
-              Properties
-            </TabsTrigger>
-            <TabsTrigger value="users">
-              <Users className="w-4 h-4 mr-1.5" />
-              Users
-            </TabsTrigger>
-            <TabsTrigger value="master-list">
-              <List className="w-4 h-4 mr-1.5" />
-              All Reservations
-            </TabsTrigger>
-            <TabsTrigger value="timeline">
-              <CalendarRange className="w-4 h-4 mr-1.5" />
-              Timeline
-            </TabsTrigger>
-            <TabsTrigger value="daily-ops">
-              <Activity className="w-4 h-4 mr-1.5" />
-              Daily Ops
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="properties">
             {loading ? (
               <div className="flex justify-center py-20 text-muted-foreground">Loading...</div>
             ) : properties.length === 0 ? (
@@ -420,6 +422,7 @@ const Admin = () => {
                 </AnimatePresence>
               </div>
             )}
+            </Dialog>
           </TabsContent>
 
           <TabsContent value="users">
