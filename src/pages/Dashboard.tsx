@@ -166,6 +166,70 @@ const Dashboard = () => {
     navigate("/");
   };
 
+  const handleCalendarDayClick = (day: Date, info: any) => {
+    // If day is booked/blocked, show details (existing behavior)
+    if (info.isManual || info.isPending) {
+      setSelectedDay({ date: day, info });
+      return;
+    }
+    // Available day — range selection
+    if (!rangeStart) {
+      setRangeStart(day);
+      setRangeEnd(null);
+      setSelectedDay(null);
+    } else if (isSameDay(day, rangeStart)) {
+      // Cancel selection
+      setRangeStart(null);
+      setRangeEnd(null);
+    } else if (isBefore(day, rangeStart)) {
+      setRangeStart(day);
+      setRangeEnd(null);
+    } else {
+      setRangeEnd(day);
+      setBookingDialogOpen(true);
+    }
+  };
+
+  const cancelSelection = () => {
+    setRangeStart(null);
+    setRangeEnd(null);
+  };
+
+  const handleBookingSubmit = async () => {
+    if (!rangeStart || !rangeEnd || !selectedPropertyId) return;
+    setBookingSubmitting(true);
+    try {
+      await createOwnerReservation(session!.pin, {
+        property_id: selectedPropertyId,
+        check_in: format(rangeStart, "yyyy-MM-dd"),
+        check_out: format(rangeEnd, "yyyy-MM-dd"),
+        is_blocked: bookingType === "block",
+        guest_name: bookingType === "reservation" ? bookingGuestName || "Private Guest" : "Blocked",
+        net_payout: bookingType === "reservation" ? parseFloat(bookingPayout) || 0 : 0,
+      });
+      toast.success(bookingType === "block" ? "Dates blocked!" : "Reservation added!");
+      setBookingDialogOpen(false);
+      setRangeStart(null);
+      setRangeEnd(null);
+      setBookingGuestName("");
+      setBookingPayout("");
+      loadData();
+    } catch {
+      toast.error("Failed to save");
+    } finally {
+      setBookingSubmitting(false);
+    }
+  };
+
+  const isInSelectedRange = (day: Date) => {
+    if (!rangeStart) return false;
+    if (rangeEnd) {
+      return (isAfter(day, rangeStart) || isSameDay(day, rangeStart)) &&
+             (isBefore(day, rangeEnd) || isSameDay(day, rangeEnd));
+    }
+    return isSameDay(day, rangeStart);
+  };
+
   const selectedProperty = properties.find((p) => p.id === selectedPropertyId);
   const propertyBookings = bookings.filter((b) => b.property_id === selectedPropertyId);
   const propertyManual = manualReservations.filter((r) => r.property_id === selectedPropertyId);
