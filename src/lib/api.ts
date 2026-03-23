@@ -153,6 +153,15 @@ export async function adminMarkCleaned(adminPin: string, reservationId: string) 
   });
 }
 
+// Owner reservations / blocks
+export async function createOwnerReservation(pin: string, data: Record<string, unknown>) {
+  return callFunction("owner-reservations", {
+    method: "POST",
+    headers: { "x-user-pin": pin },
+    body: data,
+  });
+}
+
 // Admin timeline
 export async function getAdminTimeline(adminPin: string, from: string, to: string) {
   return callFunction("admin-timeline", {
