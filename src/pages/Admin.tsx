@@ -347,6 +347,9 @@ const Admin = () => {
                             <p className="text-sm text-muted-foreground">{p.owner_name}</p>
                           </div>
                           <div className="flex gap-1">
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleOpenFinance(p)} title="View Dashboard">
+                              <BarChart3 className="w-3.5 h-3.5" />
+                            </Button>
                             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEdit(p)}>
                               <Pencil className="w-3.5 h-3.5" />
                             </Button>
