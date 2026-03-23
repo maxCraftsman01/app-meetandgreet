@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { getSession, clearSession } from "@/lib/session";
 import { getAdminProperties, createProperty, updateProperty, deleteProperty, fetchIcal, getAdminPendingIcal, getOwnerData } from "@/lib/api";
 import { toast } from "sonner";
