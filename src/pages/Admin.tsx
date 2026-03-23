@@ -399,6 +399,10 @@ const Admin = () => {
             </Card>
           </TabsContent>
 
+          <TabsContent value="timeline">
+            <MasterTimeline adminPin={session!.pin} />
+          </TabsContent>
+
           <TabsContent value="daily-ops">
             <Card className="p-6">
               <DailyOperations adminPin={session!.pin} />
