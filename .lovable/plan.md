@@ -1,68 +1,85 @@
 
-## Fix the user-permission save failure
 
-### What I found
-- This is **not** because the project is unpublished. The preview is already reaching the backend successfully: `GET admin-users` returns `200`.
-- The failure happens specifically on **`PUT admin-users`** when saving updated property access.
-- Right now the backend path that updates users is too fragile:
-  - it does several writes without checking every error
-  - it has almost no logging, so the browser only shows a generic **“Failed to fetch”**
-  - its CORS handling is minimal, which can turn backend problems into browser-level fetch failures
+## Master Timeline Calendar for Admin Panel
 
-### Most likely cause
-The problem is in the **`admin-users` update flow**, not in the UI form itself.  
-When you add another property to a cleaner, the backend likely fails during the permission rewrite step and the browser surfaces that as **“Failed to fetch”** instead of a useful message.
+### Approach: Custom CSS Grid (no external library)
 
-## Implementation plan
+A custom CSS Grid solution is the best fit here. FullCalendar's timeline view requires a paid license, and the layout is straightforward enough that a custom component will be lighter, fully styled to match, and easier to maintain.
 
-### 1) Harden the `admin-users` function
-Update `supabase/functions/admin-users/index.ts` to make the save path reliable and diagnosable:
-- add explicit CORS support for `GET, POST, PUT, DELETE, OPTIONS`
-- add request logging for method, user id, and permission count
-- wrap admin validation in `try/catch`
-- validate required inputs before writing:
-  - user id exists
-  - PIN is valid
-  - `property_access` is an array
-  - every `property_id` exists in `properties`
+```text
+┌──────────────┬──────┬──────┬──────┬──────┬──────┬──────┬──────┐
+│  Property    │ Jun 1│ Jun 2│ Jun 3│ Jun 4│ Jun 5│ Jun 6│ Jun 7│
+├──────────────┼──────┴──────┴──────┴──────┴──────┴──────┴──────┤
+│ Beach Villa  │ ██████ Smith (Confirmed) ██████│               │
+├──────────────┼──────────────┬─────────────────────────────────┤
+│ City Apt     │              │ ████ Jones (Paid) ████          │
+├──────────────┼──────────────┴─────────────────────────────────┤
+│ Lake House   │ ░░░░░░░░ Blocked ░░░░░░░░│                    │
+└──────────────┴────────────────────────────────────────────────┘
+```
 
-### 2) Fix the PUT save logic
-Refactor the update branch so it fails cleanly instead of silently:
-- check errors from:
-  - updating `app_users`
-  - deleting old `user_property_access`
-  - inserting new `user_property_access`
-- return a clear JSON error message if any step fails
-- keep the current “replace all permissions” behavior, but make each step explicit and checked
+### Data Fetching
 
-### 3) Improve frontend error reporting
-Update the user-management save handler so the admin sees the real cause:
-- if backend returns JSON error, show that exact message
-- if it’s a true network/CORS failure, show a more specific message like:
-  - “Couldn’t reach the user-permissions service”
-- optionally log the request payload in dev mode for easier debugging
+**New edge function: `admin-timeline`**
+- Single query joining `manual_reservations` + `bookings` + `properties` for a date range
+- Returns all reservations across all properties in one call
+- Filters out `is_blocked` entries by default (toggle to show them greyed out)
+- No N+1 queries — one round-trip regardless of property count
 
-### 4) Re-test the exact failing scenario
-After the fix:
-1. log in as admin with `44332211`
-2. open **Users**
-3. edit Elena
-4. add the second property under Cleaning
-5. save
-6. verify:
-   - success toast appears
-   - refreshed user card shows both properties
-   - cleaner login sees both properties in the Cleaning area
+### Component Structure
 
-## Files to update
-- `supabase/functions/admin-users/index.ts`
-- `src/lib/api.ts`
-- `src/components/UserManagement.tsx`
+| Component | Purpose |
+|---|---|
+| `MasterTimeline.tsx` | Main timeline grid with sticky property column, date headers, horizontal scroll |
+| `TimelineBar.tsx` | Individual reservation bar spanning columns, color-coded by status |
+| `TimelineFilters.tsx` | Top-bar filters: property toggle, cleaner filter, date range picker |
 
-## Expected result
-Saving a cleaner with multiple assigned properties should work normally, and if anything still fails, the app will show a real backend error instead of the vague **“Failed to fetch”**.
+### Key Features
 
-## Technical notes
-- I would not change the data model for this fix.
-- I would not treat publish state as the issue.
-- The React dialog warnings in the console are separate UI issues; they are worth cleaning up later, but they are not the main cause of this save failure.
+**1. Sticky property column + horizontal scroll**
+- CSS Grid with `position: sticky; left: 0` on the first column
+- Horizontal scroll container for dates (14-day or 30-day view)
+- Touch-friendly: natural horizontal swipe on mobile
+
+**2. Color coding (reused from existing system)**
+- Red: same-day turnover
+- Yellow: checkout only
+- Orange: arrival pending clean
+- Green: ready / cleaned
+- Grey striped: blocked days
+- Status badge colors from `ManageReservations` (Confirmed=amber, Paid=emerald, Cancelled=red)
+
+**3. Filters**
+- Top bar with: date range selector (week/2-week/month), property checkboxes, cleaner dropdown
+- Cleaner filter queries `user_property_access` to show only properties assigned to a specific cleaner
+
+**4. Click interaction**
+- Clicking a reservation bar opens a detail modal showing guest name, dates, payout, status, source, cleaning status
+- Modal includes quick actions: mark as blocked, change status, mark cleaned
+
+### Navigation
+
+- Week/2-week/month toggle (default: 2 weeks)
+- Previous/Next buttons shift the window
+- "Today" button with a visual indicator line on the current date
+
+### Files to Create/Modify
+
+| File | Change |
+|---|---|
+| `supabase/functions/admin-timeline/index.ts` | New edge function: fetch all reservations + bookings for date range |
+| `src/components/MasterTimeline.tsx` | Main timeline grid component |
+| `src/components/TimelineBar.tsx` | Reservation bar with color coding |
+| `src/components/TimelineFilters.tsx` | Filter bar (properties, cleaners, date range) |
+| `src/components/TimelineDetailModal.tsx` | Click-to-open reservation detail modal |
+| `src/pages/Admin.tsx` | Add "Timeline" tab to admin tabs |
+| `src/lib/api.ts` | Add `getAdminTimeline()` function |
+
+### Mobile Handling
+
+- Property names column: fixed 120px width, sticky left
+- Date columns: min 80px each, scroll horizontally
+- On mobile (<768px): property column shrinks to 90px, shows abbreviated names
+- Native horizontal scroll with `-webkit-overflow-scrolling: touch`
+- Optional: swipe gesture hint on first visit
+
