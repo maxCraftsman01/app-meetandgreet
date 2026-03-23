@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, LogOut, Copy, RefreshCw, Pencil, Trash2, Check, Building2, List, Clock, ChevronDown, Activity, Users } from "lucide-react";
+import { Plus, LogOut, Copy, RefreshCw, Pencil, Trash2, Check, Building2, List, Clock, ChevronDown, Activity, Users, CalendarRange } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
