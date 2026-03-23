@@ -55,6 +55,9 @@ const Admin = () => {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("properties");
   const [pendingCounts, setPendingCounts] = useState<Record<string, number>>({});
+  const [financeProperty, setFinanceProperty] = useState<Property | null>(null);
+  const [financeData, setFinanceData] = useState<{ bookings: any[]; manual_reservations: any[] } | null>(null);
+  const [financeLoading, setFinanceLoading] = useState(false);
 
   const session = getSession();
 
