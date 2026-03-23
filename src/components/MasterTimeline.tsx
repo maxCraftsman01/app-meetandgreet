@@ -123,6 +123,8 @@ export function MasterTimeline({ adminPin }: Props) {
         cleanerPropertyMap={cleanerPropertyMap}
       />
 
+      <TimelineLegend />
+
       {loading ? (
         <div className="flex justify-center py-12 text-muted-foreground">Loading timeline…</div>
       ) : (
