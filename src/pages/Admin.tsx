@@ -302,7 +302,7 @@ const Admin = () => {
         </div>
       </header>
 
-      <main className="container px-4 py-8">
+      <main className="container px-4 py-8 pb-24 md:pb-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList>
             <TabsTrigger value="properties">
