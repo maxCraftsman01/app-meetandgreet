@@ -221,6 +221,10 @@ const Admin = () => {
                       <Input value={form.owner_name} onChange={(e) => setForm({ ...form, owner_name: e.target.value })} placeholder="John Smith" />
                     </div>
                   </div>
+                  <div>
+                    <Label>Owner PIN</Label>
+                    <Input value={form.owner_pin} onChange={(e) => setForm({ ...form, owner_pin: e.target.value })} placeholder="12345678" className="font-mono" />
+                  </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <Label>Nightly Rate</Label>
