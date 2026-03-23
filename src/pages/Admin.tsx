@@ -17,6 +17,7 @@ import { MasterReservationList } from "@/components/MasterReservationList";
 import { PendingPayouts } from "@/components/PendingPayouts";
 import { DailyOperations } from "@/components/DailyOperations";
 import { UserManagement } from "@/components/UserManagement";
+import { MasterTimeline } from "@/components/MasterTimeline";
 
 interface Property {
   id: string;
