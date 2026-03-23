@@ -482,7 +482,7 @@ const Dashboard = () => {
                             animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
                             transition={{ delay: i * 0.08, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
                           >
-                            <Card className={`p-5 border-2 ${cfg.border} ${cfg.bg} transition-colors duration-300`}>
+                            <Card className={`p-5 sm:p-5 border-2 ${cfg.border} ${cfg.bg} transition-colors duration-300`}>
                               <div className="flex items-start justify-between mb-3">
                                 <div>
                                   <div className="flex items-center gap-2 mb-1">
