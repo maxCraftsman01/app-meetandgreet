@@ -1,51 +1,15 @@
 
 
-## Admin Mobile Navigation: Bottom Bar with "More" Sheet
+## Move "Add Property" Button into Properties Tab
 
-### Problem
-5 tabs overflow horizontally on mobile. Need a scalable pattern that works for current tabs and future additions.
+### Change
+Move the "Add Property" button from the top header bar into the Properties tab content area, and keep the Dialog definition there as well.
 
-### Approach
-Fixed bottom navigation bar on mobile (hidden on desktop) with 4 pinned tabs + a "More" button that opens a bottom sheet listing remaining/future tabs.
+### File: `src/pages/Admin.tsx`
 
-### Layout
+1. **Header (lines ~228-239)**: Remove the Dialog wrapper and "Add Property" button from the header. Keep only "Sync All" and "Logout" buttons.
 
-```text
-Desktop (unchanged):
-┌────────────┬───────┬─────────────────┬──────────┬───────────┐
-│ Properties │ Users │ All Reservations│ Timeline │ Daily Ops │
-└────────────┴───────┴─────────────────┴──────────┘───────────┘
+2. **Properties tab content (line ~330)**: Add an "Add Property" button at the top of the properties tab, before the grid. Show it as a header row with the button right-aligned. The existing Dialog (with the form inside, lines 233-301) moves here, wrapping this new button.
 
-Mobile bottom bar:
-┌──────┬──────┬──────┬──────┬────────┐
-│ 🏢  │ 👥  │ 📋  │ 📅  │  •••  │
-│Props │Users │Reserv│Time  │ More  │
-└──────┴──────┴──────┴──────┴────────┘
-                              ↓ opens Sheet
-                    ┌─────────────────┐
-                    │ ⚡ Daily Ops    │
-                    │ (future tabs…)  │
-                    └─────────────────┘
-```
-
-### Changes
-
-**`src/pages/Admin.tsx`**
-- Define a `tabs` array with `{ id, label, shortLabel, icon }` for all 5 tabs
-- Hide `TabsList` on mobile (`hidden md:flex`)
-- Add a fixed bottom nav bar (`md:hidden fixed bottom-0 inset-x-0 z-50 border-t bg-background`) showing the first 4 tabs as icon+short-label buttons
-- 5th slot is a "More" button (`MoreHorizontal` icon) that opens a `Sheet` from bottom
-- Sheet lists remaining tabs (Daily Ops + any future tabs) as tappable rows
-- Clicking any nav item calls `setActiveTab(id)` and closes the sheet
-- Active tab gets `text-primary` color + top accent line
-- Add `pb-20 md:pb-0` to content area to clear the bottom bar
-- Touch targets: min `h-12` per item, `pb-safe` on the bar for notched devices
-
-### Scalability
-Adding a new tab = push to the `tabs` array. First 4 stay pinned, all extras go in the "More" sheet automatically.
-
-### Files
-| File | Change |
-|---|---|
-| `src/pages/Admin.tsx` | Add mobile bottom nav bar + More sheet, hide desktop TabsList on mobile |
+3. The empty-state "Add Property" button (line ~340) stays as-is.
 
