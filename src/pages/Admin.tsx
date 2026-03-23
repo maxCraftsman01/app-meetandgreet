@@ -59,6 +59,18 @@ const Admin = () => {
   const [financeProperty, setFinanceProperty] = useState<Property | null>(null);
   const [financeData, setFinanceData] = useState<{ bookings: any[]; manual_reservations: any[] } | null>(null);
   const [financeLoading, setFinanceLoading] = useState(false);
+  const [moreSheetOpen, setMoreSheetOpen] = useState(false);
+
+  const adminTabs = [
+    { id: "properties", label: "Properties", shortLabel: "Props", icon: Building2 },
+    { id: "users", label: "Users", shortLabel: "Users", icon: Users },
+    { id: "master-list", label: "All Reservations", shortLabel: "Reserv", icon: List },
+    { id: "timeline", label: "Timeline", shortLabel: "Time", icon: CalendarRange },
+    { id: "daily-ops", label: "Daily Ops", shortLabel: "Ops", icon: Activity },
+  ];
+
+  const pinnedTabs = adminTabs.slice(0, 4);
+  const moreTabs = adminTabs.slice(4);
 
   const session = getSession();
 
