@@ -72,10 +72,11 @@ export async function fetchIcal(propertyId: string, pin: string) {
   });
 }
 
-export async function getOwnerData(pin: string) {
+export async function getOwnerData(pin: string, propertyId?: string) {
   return callFunction("owner-data", {
     method: "GET",
     headers: { "x-user-pin": pin },
+    params: propertyId ? { property_id: propertyId } : undefined,
   });
 }
 
