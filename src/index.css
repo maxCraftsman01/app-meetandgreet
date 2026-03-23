@@ -82,4 +82,14 @@
     background-color: hsl(var(--status-blocked-light));
     color: hsl(var(--status-blocked));
   }
+  .stripe-blocked {
+    background: repeating-linear-gradient(
+      135deg,
+      hsl(var(--border)),
+      hsl(var(--border)) 4px,
+      hsl(var(--muted)) 4px,
+      hsl(var(--muted)) 8px
+    );
+    color: hsl(var(--muted-foreground));
+  }
 }
