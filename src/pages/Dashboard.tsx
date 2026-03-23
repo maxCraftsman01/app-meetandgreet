@@ -75,6 +75,15 @@ const Dashboard = () => {
   const [markingId, setMarkingId] = useState<string | null>(null);
   const [selectedDay, setSelectedDay] = useState<{date: Date;info: any;} | null>(null);
 
+  // Date range selection for owner booking/blocking
+  const [rangeStart, setRangeStart] = useState<Date | null>(null);
+  const [rangeEnd, setRangeEnd] = useState<Date | null>(null);
+  const [bookingDialogOpen, setBookingDialogOpen] = useState(false);
+  const [bookingType, setBookingType] = useState<"block" | "reservation">("block");
+  const [bookingGuestName, setBookingGuestName] = useState("");
+  const [bookingPayout, setBookingPayout] = useState("");
+  const [bookingSubmitting, setBookingSubmitting] = useState(false);
+
   useEffect(() => {
     if (!session || session.role !== "user") {
       navigate("/");
