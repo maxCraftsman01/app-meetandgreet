@@ -278,6 +278,10 @@ const Admin = () => {
               <List className="w-4 h-4 mr-1.5" />
               All Reservations
             </TabsTrigger>
+            <TabsTrigger value="timeline">
+              <CalendarRange className="w-4 h-4 mr-1.5" />
+              Timeline
+            </TabsTrigger>
             <TabsTrigger value="daily-ops">
               <Activity className="w-4 h-4 mr-1.5" />
               Daily Ops
