@@ -275,17 +275,17 @@ const Dashboard = () => {
         </div>
       </header>
 
-      <main className="container px-4 py-8">
+      <main className="container px-4 py-6 sm:py-8 pb-24">
         <Tabs defaultValue={defaultTab} className="space-y-6">
-          <TabsList>
+          <TabsList className="h-11 sm:h-10">
             {hasAnyFinance && (
-              <TabsTrigger value="finance">
+              <TabsTrigger value="finance" className="h-9 px-4 text-sm sm:h-8 sm:px-3 sm:text-xs">
                 <DollarSign className="w-4 h-4 mr-1.5" />
                 Finance
               </TabsTrigger>
             )}
             {hasAnyCleaning && (
-              <TabsTrigger value="cleaning" onClick={() => { if (cleanerTasks.length === 0) loadCleaningTasks(); }}>
+              <TabsTrigger value="cleaning" className="h-9 px-4 text-sm sm:h-8 sm:px-3 sm:text-xs" onClick={() => { if (cleanerTasks.length === 0) loadCleaningTasks(); }}>
                 <Brush className="w-4 h-4 mr-1.5" />
                 Cleaning
               </TabsTrigger>
