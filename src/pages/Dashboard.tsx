@@ -442,7 +442,8 @@ const Dashboard = () => {
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                   <TabsList className="h-9">
                     <TabsTrigger value="today" className="text-xs px-3" onClick={() => {if (cleanerTasks.length === 0) loadCleaningTasks();}}>Today</TabsTrigger>
-                    <TabsTrigger value="calendar" className="text-xs px-3">Week / Month</TabsTrigger>
+                    <TabsTrigger value="week" className="text-xs px-3">Week</TabsTrigger>
+                    <TabsTrigger value="month" className="text-xs px-3">Month</TabsTrigger>
                   </TabsList>
                   <div className="flex items-center gap-2">
                     <Button variant="outline" size="sm" onClick={loadCleaningTasks}>
@@ -516,15 +517,24 @@ const Dashboard = () => {
                 }
                 </TabsContent>
 
-                {/* Week/Month Calendar View */}
-                <TabsContent value="calendar" className="mt-0">
+                {/* Week Calendar View */}
+                <TabsContent value="week" className="mt-0">
                   <CleaningCalendar
                   view="week"
                   pin={session!.pin}
                   userProperties={userProperties}
                   onMarkCleaned={handleMarkCleaned}
                   markingId={markingId} />
-                
+                </TabsContent>
+
+                {/* Month Calendar View */}
+                <TabsContent value="month" className="mt-0">
+                  <CleaningCalendar
+                  view="month"
+                  pin={session!.pin}
+                  userProperties={userProperties}
+                  onMarkCleaned={handleMarkCleaned}
+                  markingId={markingId} />
                 </TabsContent>
               </Tabs>
             </TabsContent>

@@ -132,19 +132,19 @@ export default function CleaningCalendar({ pin, userProperties, onMarkCleaned, m
   };
 
   return (
-    <div className="space-y-4">
+    <Card className="p-6 space-y-4">
       {/* Navigation */}
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-1">
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate(-1)}>
-            <ChevronLeft className="w-4 h-4" />
+      <div className="flex items-center justify-between mb-2">
+        <h2 className="text-lg font-semibold">{headerLabel}</h2>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="icon" className="h-10 w-10 sm:h-9 sm:w-9 rounded-full" onClick={() => navigate(-1)}>
+            <ChevronLeft className="w-5 h-5 sm:w-4 sm:h-4" />
           </Button>
-          <span className="text-sm font-medium min-w-[160px] text-center">{headerLabel}</span>
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate(1)}>
-            <ChevronRight className="w-4 h-4" />
-          </Button>
-          <Button variant="ghost" size="sm" className="text-xs ml-1" onClick={() => { setRefDate(new Date()); setExpandedDay(null); }}>
+          <Button variant="outline" size="sm" className="h-10 sm:h-9 px-4 text-sm font-medium" onClick={() => { setRefDate(new Date()); setExpandedDay(null); }}>
             Today
+          </Button>
+          <Button variant="outline" size="icon" className="h-10 w-10 sm:h-9 sm:w-9 rounded-full" onClick={() => navigate(1)}>
+            <ChevronRight className="w-5 h-5 sm:w-4 sm:h-4" />
           </Button>
         </div>
       </div>
@@ -344,6 +344,6 @@ export default function CleaningCalendar({ pin, userProperties, onMarkCleaned, m
           )}
         </>
       )}
-    </div>
+    </Card>
   );
 }
