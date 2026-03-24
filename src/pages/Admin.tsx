@@ -72,6 +72,7 @@ const Admin = () => {
     { id: "master-list", label: "All Reservations", shortLabel: "Reserv", icon: List },
     { id: "timeline", label: "Timeline", shortLabel: "Time", icon: CalendarRange },
     { id: "daily-ops", label: "Daily Ops", shortLabel: "Ops", icon: Activity },
+    { id: "tickets", label: "Tickets", shortLabel: "Tickets", icon: Wrench },
   ];
 
   const pinnedTabs = adminTabs.slice(0, 4);
