@@ -57,7 +57,7 @@ const PROPERTY_COLORS = [
   "hsl(50, 70%, 45%)", "hsl(0, 60%, 50%)",
 ];
 
-export default function CleaningCalendar({ pin, userProperties, onMarkCleaned, markingId, view }: Props) {
+export default function CleaningCalendar({ pin, userProperties, onMarkCleaned, onRevertCleaning, markingId, view }: Props) {
   const [refDate, setRefDate] = useState(new Date());
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(false);
