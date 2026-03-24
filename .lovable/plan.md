@@ -1,54 +1,32 @@
 
 
-## Fix Booking.com iCal Sync - Blocked Detection
+## Allow Reverting Cleaning Status to Pending
 
 ### Problem
-Booking.com uses "CLOSED - Not available" as the summary for **actual confirmed bookings**, but the current `fetch-ical` function treats any summary containing "not available" as a blocked/owner-block entry. This causes all Booking.com reservations to be marked as `status: "blocked"` instead of `status: "booked"`.
-
-As a result:
-- The "pending iCal" list never shows them (it filters for `status: "booked"` only)
-- No manual reservations exist for A Casa Elena, so the All Reservations tab is empty
-- You cannot add payouts
+Currently, once a cleaner marks a task as "cleaned", there's no way to revert it. After supervision, an admin (or the cleaner themselves) may need to set it back to "pending".
 
 ### Solution
+Allow both admins and cleaners to toggle the cleaning status back to "pending" via the existing `cleaner-operations` PUT endpoint.
 
-**1. Fix blocked-detection logic in `supabase/functions/fetch-ical/index.ts`**
+### Changes
 
-Update the blocked pattern matching to distinguish between Booking.com's "CLOSED" entries (which are real bookings) and Airbnb-style blocks. Booking.com uses "CLOSED - Not available" for confirmed reservations, so we should treat entries from Booking.com URLs differently, or refine the patterns:
+**1. `supabase/functions/cleaner-operations/index.ts`**
+- Modify the PUT handler to accept an optional `cleaning_status` field in the body (values: `"completed"` or `"pending"`)
+- If `cleaning_status` is `"pending"`, set `cleaning_status: "pending"` and clear `last_cleaned_at` to `null`
+- Default behavior (no `cleaning_status` field) remains: mark as completed
 
-- If the source URL contains `booking.com`, treat "CLOSED - Not available" as a **booked** entry, not blocked
-- Keep the existing blocked patterns for Airbnb sources (e.g. "Airbnb (Not available)")
+**2. `src/lib/api.ts`**
+- Add a new function `resetCleaningStatus(pin: string, reservationId: string)` that calls the same endpoint but passes `{ reservation_id, cleaning_status: "pending" }`
+- Add an admin variant `adminResetCleaningStatus(adminPin, reservationId)`
 
-**2. Clear existing sync data and re-sync**
+**3. `src/pages/Dashboard.tsx` (Cleaner view)**
+- For tasks already marked as "cleaned", show a secondary button "Mark as Pending" next to the green status badge
+- On click, call `resetCleaningStatus` and refresh the task list
 
-After deploying the fix, clicking "Sync All" will automatically clear old bookings for each property and re-import with the corrected logic (the function already does `DELETE` then `INSERT`).
+**4. `src/components/DailyOperations.tsx` (Admin view)**
+- For completed cleaning tasks, add a "Revert to Pending" button
+- On click, call `adminResetCleaningStatus` and refresh
 
-### Technical details
-
-In `fetch-ical/index.ts` around line 128-140, change the booking insert logic:
-
-```typescript
-const airbnbBlockedPatterns = ["airbnb (not available)", "blocked", "unavailable", "no disponible", "nicht verfügbar"];
-
-allEvents.map((e) => {
-  const summaryLower = (e.summary || "").toLowerCase();
-  const isFromBookingCom = (e.sourceUrl || "").includes("booking.com");
-  
-  // Booking.com "CLOSED - Not available" = real booking
-  // Airbnb "Not available" = blocked
-  const isBlocked = !isFromBookingCom && 
-    airbnbBlockedPatterns.some((p) => summaryLower.includes(p));
-  
-  return {
-    property_id,
-    summary: e.summary,
-    start_date: e.startDate,
-    end_date: e.endDate,
-    source_url: e.sourceUrl,
-    status: isBlocked ? "blocked" : "booked",
-  };
-});
-```
-
-After this fix is deployed, simply clicking "Sync All" in the admin panel will re-sync all properties with the corrected logic. The Booking.com entries will then appear as "booked" and show up in the pending iCal list for payout entry.
+**5. `src/components/TimelineDetailModal.tsx` (Admin timeline)**
+- When viewing a reservation with `cleaning_status: "completed"`, show a clickable badge or small button to toggle it back to pending (requires passing `adminPin` and an `onUpdate` callback as props)
 
