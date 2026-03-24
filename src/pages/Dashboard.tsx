@@ -224,26 +224,37 @@ const Dashboard = () => {
 
       <main className="container px-4 py-8">
         <Tabs defaultValue={defaultTab} className="space-y-6">
-          <TabsList>
-            {hasAnyFinance &&
-            <TabsTrigger value="finance">
-                <DollarSign className="w-4 h-4 mr-1.5" />
-                Finance
-              </TabsTrigger>
-            }
-            {hasAnyCleaning &&
-            <TabsTrigger value="cleaning" onClick={() => {if (cleanerTasks.length === 0) loadCleaningTasks();}}>
-                <Brush className="w-4 h-4 mr-1.5" />
-                Cleaning
-              </TabsTrigger>
-            }
-            {hasAnyFinance &&
-            <TabsTrigger value="tickets" onClick={() => {if (ownerTickets.length === 0) loadOwnerTickets();}}>
+          <div className="flex flex-row items-center justify-between gap-3">
+            <TabsList>
+              {hasAnyFinance &&
+              <TabsTrigger value="finance">
+                  <DollarSign className="w-4 h-4 mr-1.5" />
+                  Finance
+                </TabsTrigger>
+              }
+              {hasAnyCleaning &&
+              <TabsTrigger value="cleaning" onClick={() => {if (cleanerTasks.length === 0) loadCleaningTasks();}}>
+                  <Brush className="w-4 h-4 mr-1.5" />
+                  Cleaning
+                </TabsTrigger>
+              }
+              {hasAnyFinance &&
+              <TabsTrigger value="tickets" onClick={() => {if (ownerTickets.length === 0) loadOwnerTickets();}}>
+                  <Wrench className="w-4 h-4 mr-1.5" />
+                  Tickets
+                </TabsTrigger>
+              }
+            </TabsList>
+            {hasAnyCleaning && (
+              <Button size="sm" variant="outline" onClick={() => {
+                setReportPropertyId(userProperties.find(p => p.can_view_cleaning)?.id || "");
+                setReportDialogOpen(true);
+              }}>
                 <Wrench className="w-4 h-4 mr-1.5" />
-                Tickets
-              </TabsTrigger>
-            }
-          </TabsList>
+                Report Issue
+              </Button>
+            )}
+          </div>
 
           {/* ── Finance Tab ─────────────────────────── */}
           {hasAnyFinance &&
@@ -387,17 +398,6 @@ const Dashboard = () => {
                 </TabsContent>
               </Tabs>
 
-              {/* Floating Report Issue Button */}
-              <Button
-                className="fixed bottom-6 right-6 z-50 rounded-full shadow-lg h-12 px-5 gap-2"
-                onClick={() => {
-                  setReportPropertyId(userProperties.find(p => p.can_view_cleaning)?.id || "");
-                  setReportDialogOpen(true);
-                }}
-              >
-                <Wrench className="w-5 h-5" />
-                Report Issue
-              </Button>
             </TabsContent>
           }
 
