@@ -250,7 +250,15 @@ export const TicketList = ({ tickets, role, adminPin, currency = "EUR", onRefres
                       <span className="text-sm font-medium">Visible to Owner</span>
                       <Switch
                         checked={selectedTicket.visible_to_owner}
-                        onCheckedChange={() => handleToggleVisibility(selectedTicket)}
+                        onCheckedChange={() => handleToggleOwnerVisibility(selectedTicket)}
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium">Visible to Cleaner</span>
+                      <Switch
+                        checked={selectedTicket.visible_to_cleaner}
+                        onCheckedChange={() => handleToggleCleanerVisibility(selectedTicket)}
                       />
                     </div>
 
