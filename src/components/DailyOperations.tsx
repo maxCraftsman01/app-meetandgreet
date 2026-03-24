@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { RefreshCw, Bell, CheckCircle2, AlertTriangle, Clock, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { getDailyOperations, adminMarkCleaned } from "@/lib/api";
+import { getDailyOperations, adminMarkCleaned, adminResetCleaningStatus } from "@/lib/api";
 import { toast } from "sonner";
 
 interface PropertyStatus {
