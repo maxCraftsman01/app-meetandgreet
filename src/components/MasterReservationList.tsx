@@ -16,6 +16,7 @@ interface Props {
 export function MasterReservationList({ adminPin, properties }: Props) {
   const [reservations, setReservations] = useState<(ManualReservation & { property_name?: string; currency?: string })[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedProperty, setSelectedProperty] = useState<string>("");
 
   const load = async () => {
     try {
