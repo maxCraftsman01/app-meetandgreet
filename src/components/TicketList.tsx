@@ -27,6 +27,7 @@ interface Ticket {
   priority: string;
   repair_cost: number;
   visible_to_owner: boolean;
+  visible_to_cleaner: boolean;
   created_at: string;
   resolved_at: string | null;
   ticket_media: TicketMedia[];

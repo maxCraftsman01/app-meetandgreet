@@ -26,6 +26,7 @@ Deno.serve(async (req) => {
   let userId: string | null = null;
   let userPropertyIds: string[] = [];
   let canMarkProperties: string[] = [];
+  let financePropertyIds: string[] = [];
 
   // Authenticate
   if (adminPinHeader) {
@@ -53,7 +54,6 @@ Deno.serve(async (req) => {
       if (user.is_admin) {
         role = "admin";
       } else {
-        // Get property access
         const { data: access } = await supabase
           .from("user_property_access")
           .select("property_id, can_view_finance, can_mark_cleaned")
@@ -61,12 +61,13 @@ Deno.serve(async (req) => {
         
         userPropertyIds = (access || []).map((a: any) => a.property_id);
         canMarkProperties = (access || []).filter((a: any) => a.can_mark_cleaned).map((a: any) => a.property_id);
+        financePropertyIds = (access || []).filter((a: any) => a.can_view_finance).map((a: any) => a.property_id);
         
-        const hasFinance = (access || []).some((a: any) => a.can_view_finance);
-        if (hasFinance) {
-          role = "owner";
-        } else if (canMarkProperties.length > 0) {
+        // Assign role: if user has cleaning access, they're a cleaner; if only finance, they're owner
+        if (canMarkProperties.length > 0) {
           role = "cleaner";
+        } else if (financePropertyIds.length > 0) {
+          role = "owner";
         }
       }
     }
@@ -81,30 +82,49 @@ Deno.serve(async (req) => {
     // GET — list tickets
     if (method === "GET") {
       const propertyId = url.searchParams.get("property_id");
-      let query = supabase
-        .from("maintenance_tickets")
-        .select("*, ticket_media(*), properties:property_id(name)")
-        .order("created_at", { ascending: false });
 
-      if (propertyId) query = query.eq("property_id", propertyId);
+      if (role === "admin") {
+        let query = supabase
+          .from("maintenance_tickets")
+          .select("*, ticket_media(*), properties:property_id(name)")
+          .order("created_at", { ascending: false });
+        if (propertyId) query = query.eq("property_id", propertyId);
+        const { data, error } = await query;
+        if (error) throw error;
+        return json(data || []);
+      }
 
       if (role === "owner") {
-        query = query.eq("visible_to_owner", true);
-        if (userPropertyIds.length > 0) {
-          query = query.in("property_id", userPropertyIds);
-        } else {
-          return json([]);
-        }
-      } else if (role === "cleaner") {
-        // Cleaners see their own tickets
-        if (userId) query = query.eq("created_by_user_id", userId);
-        else return json([]);
+        if (userPropertyIds.length === 0) return json([]);
+        // Owner sees: tickets they created OR visible_to_owner = true on their properties
+        let query = supabase
+          .from("maintenance_tickets")
+          .select("*, ticket_media(*), properties:property_id(name)")
+          .in("property_id", userPropertyIds)
+          .or(`visible_to_owner.eq.true,created_by_user_id.eq.${userId}`)
+          .order("created_at", { ascending: false });
+        if (propertyId) query = query.eq("property_id", propertyId);
+        const { data, error } = await query;
+        if (error) throw error;
+        return json(data || []);
       }
-      // Admin sees all
 
-      const { data, error } = await query;
-      if (error) throw error;
-      return json(data || []);
+      if (role === "cleaner") {
+        if (!userId) return json([]);
+        // Cleaner sees: tickets they created OR visible_to_cleaner = true on their properties
+        const propFilter = userPropertyIds.length > 0 ? userPropertyIds : ["00000000-0000-0000-0000-000000000000"];
+        let query = supabase
+          .from("maintenance_tickets")
+          .select("*, ticket_media(*), properties:property_id(name)")
+          .or(`created_by_user_id.eq.${userId},and(visible_to_cleaner.eq.true,property_id.in.(${propFilter.join(",")}))`)
+          .order("created_at", { ascending: false });
+        if (propertyId) query = query.eq("property_id", propertyId);
+        const { data, error } = await query;
+        if (error) throw error;
+        return json(data || []);
+      }
+
+      return json([]);
     }
 
     // POST — create ticket
@@ -114,27 +134,39 @@ Deno.serve(async (req) => {
 
       if (!property_id || !title) return json({ error: "property_id and title required" }, 400);
 
-      // Verify access
       if (role === "cleaner" && !canMarkProperties.includes(property_id)) {
         return json({ error: "No access to this property" }, 403);
       }
+
+      // Set default visibility based on creator role
+      let visible_to_owner = false;
+      let visible_to_cleaner = true;
+      if (role === "admin") {
+        visible_to_owner = false;
+        visible_to_cleaner = false;
+      } else if (role === "owner") {
+        visible_to_owner = true;
+        visible_to_cleaner = false;
+      }
+      // cleaner: visible_to_cleaner=true, visible_to_owner=false (defaults)
 
       const { data: ticket, error } = await supabase
         .from("maintenance_tickets")
         .insert({
           property_id,
           created_by_user_id: userId,
-          created_by_role: role === "admin" ? "admin" : "cleaner",
+          created_by_role: role === "admin" ? "admin" : role === "owner" ? "owner" : "cleaner",
           title,
           description: description || "",
           priority: priority || "normal",
+          visible_to_owner,
+          visible_to_cleaner,
         })
         .select()
         .single();
 
       if (error) throw error;
 
-      // Handle media uploads if present
       if (media && Array.isArray(media)) {
         for (const m of media) {
           if (m.storage_path) {
@@ -165,6 +197,7 @@ Deno.serve(async (req) => {
       }
       if (body.repair_cost !== undefined) updates.repair_cost = body.repair_cost;
       if (body.visible_to_owner !== undefined) updates.visible_to_owner = body.visible_to_owner;
+      if (body.visible_to_cleaner !== undefined) updates.visible_to_cleaner = body.visible_to_cleaner;
       if (body.priority !== undefined) updates.priority = body.priority;
 
       const { data, error } = await supabase
