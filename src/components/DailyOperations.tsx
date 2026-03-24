@@ -159,10 +159,15 @@ export function DailyOperations({ adminPin }: { adminPin: string }) {
               </Button>
             )}
             {p.status === "arrival-ready" && (
-              <Button variant="outline" size="sm" className="text-xs" onClick={() => handleNotifyOwner(p)}>
-                <Bell className="w-3.5 h-3.5 mr-1" />
-                Notify Owner
-              </Button>
+              <>
+                <Button variant="outline" size="sm" className="text-xs" onClick={() => handleRevertCleaning(p)} disabled={markingId === p.arrival_reservation?.id}>
+                  {markingId === p.arrival_reservation?.id ? "Updating..." : "Revert to Pending"}
+                </Button>
+                <Button variant="outline" size="sm" className="text-xs" onClick={() => handleNotifyOwner(p)}>
+                  <Bell className="w-3.5 h-3.5 mr-1" />
+                  Notify Owner
+                </Button>
+              </>
             )}
           </div>
         </Card>

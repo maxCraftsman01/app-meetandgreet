@@ -333,7 +333,18 @@ const Dashboard = () => {
                                   </Button>
                                 </div>
                           }
-                              {task.status === "arrival-ready" &&
+                              {task.status === "arrival-ready" && taskCanMark && task.reservation_id &&
+                          <div className="mt-4 flex items-center justify-between">
+                                  <div className="flex items-center gap-2 text-emerald-700">
+                                    <CheckCircle2 className="w-4 h-4" />
+                                    <span className="text-sm font-medium">Cleaning completed</span>
+                                  </div>
+                                  <Button variant="outline" size="sm" onClick={() => handleRevertCleaning(task.reservation_id!)} disabled={markingId === task.reservation_id}>
+                                    {markingId === task.reservation_id ? "Updating..." : "Mark as Pending"}
+                                  </Button>
+                                </div>
+                          }
+                              {task.status === "arrival-ready" && !taskCanMark &&
                           <div className="mt-4 flex items-center gap-2 text-emerald-700">
                                   <CheckCircle2 className="w-4 h-4" />
                                   <span className="text-sm font-medium">Cleaning completed</span>
