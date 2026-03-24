@@ -142,6 +142,18 @@ const Dashboard = () => {
     navigate("/");
   };
 
+  const loadOwnerTickets = async () => {
+    setTicketsLoading(true);
+    try {
+      const data = await getTickets(session!.pin, "user");
+      setOwnerTickets(data);
+    } catch {
+      toast.error("Failed to load tickets");
+    } finally {
+      setTicketsLoading(false);
+    }
+  };
+
   const selectedProperty = properties.find((p) => p.id === selectedPropertyId);
 
   if (loading) {
