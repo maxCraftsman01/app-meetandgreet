@@ -259,20 +259,40 @@ const Dashboard = () => {
           {/* ── Finance Tab ─────────────────────────── */}
           {hasAnyFinance &&
           <TabsContent value="finance" className="space-y-8">
-              {!hasFinance && selectedAccess ?
-            <Card className="p-8 text-center text-muted-foreground">
-                  <p>You don't have finance access for this property.</p>
-                </Card> :
-            selectedProperty ?
-              <PropertyFinanceView
-                property={selectedProperty}
-                bookings={bookings}
-                manualReservations={manualReservations}
-                pin={session!.pin}
-                onDataChanged={loadData}
-              /> :
-              null
-            }
+              {(() => {
+                const financeProperties = userProperties.filter(p => p.can_view_finance);
+                const financePropertyData = properties.filter(p => financeProperties.some(fp => fp.id === p.id));
+                return (
+                  <>
+                    {financePropertyData.length > 1 && (
+                      <Select value={selectedPropertyId} onValueChange={setSelectedPropertyId}>
+                        <SelectTrigger className="w-64">
+                          <SelectValue placeholder="Select property" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {financePropertyData.map((p) => (
+                            <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                    {!hasFinance && selectedAccess ?
+                      <Card className="p-8 text-center text-muted-foreground">
+                        <p>You don't have finance access for this property.</p>
+                      </Card> :
+                      selectedProperty ?
+                        <PropertyFinanceView
+                          property={selectedProperty}
+                          bookings={bookings}
+                          manualReservations={manualReservations}
+                          pin={session!.pin}
+                          onDataChanged={loadData}
+                        /> :
+                        null
+                    }
+                  </>
+                );
+              })()}
             </TabsContent>
           }
 
