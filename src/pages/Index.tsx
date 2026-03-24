@@ -126,7 +126,7 @@ const Index = () => {
               MeetAndGreet
             </p>
             <p className="text-muted-foreground text-sm">
-              Enter your 8-digit PIN to continue
+              App for MeetAndGreet
             </p>
           </div>
 
