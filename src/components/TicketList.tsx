@@ -64,11 +64,22 @@ export const TicketList = ({ tickets, role, adminPin, currency = "EUR", onRefres
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [editCost, setEditCost] = useState("");
 
-  const handleToggleVisibility = async (ticket: Ticket) => {
+  const handleToggleOwnerVisibility = async (ticket: Ticket) => {
     if (!adminPin) return;
     try {
       await updateTicket(adminPin, ticket.id, { visible_to_owner: !ticket.visible_to_owner });
       toast.success(ticket.visible_to_owner ? "Hidden from owner" : "Visible to owner");
+      onRefresh?.();
+    } catch {
+      toast.error("Failed to update");
+    }
+  };
+
+  const handleToggleCleanerVisibility = async (ticket: Ticket) => {
+    if (!adminPin) return;
+    try {
+      await updateTicket(adminPin, ticket.id, { visible_to_cleaner: !ticket.visible_to_cleaner });
+      toast.success(ticket.visible_to_cleaner ? "Hidden from cleaner" : "Visible to cleaner");
       onRefresh?.();
     } catch {
       toast.error("Failed to update");
