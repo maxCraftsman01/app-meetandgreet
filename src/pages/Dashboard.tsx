@@ -197,6 +197,18 @@ const Dashboard = () => {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            {properties.length > 1 &&
+            <Select value={selectedPropertyId} onValueChange={setSelectedPropertyId}>
+                <SelectTrigger className="w-48">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {properties.map((p) =>
+                <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                )}
+                </SelectContent>
+              </Select>
+            }
             {hasFinance &&
             <Button variant="outline" size="sm" onClick={handleSync} disabled={syncing}>
                 <RefreshCw className={`w-4 h-4 mr-1.5 ${syncing ? "animate-spin" : ""}`} />
@@ -284,20 +296,8 @@ const Dashboard = () => {
 
                 {/* Today View */}
                 <TabsContent value="today" className="space-y-4 mt-0">
-                  <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }} className="flex items-center justify-between gap-3">
+                  <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}>
                     <p className="text-sm text-muted-foreground">{today}</p>
-                    {properties.length > 1 &&
-                      <Select value={selectedPropertyId} onValueChange={setSelectedPropertyId}>
-                        <SelectTrigger className="w-48 h-8 text-xs">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {properties.map((p) =>
-                            <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
-                          )}
-                        </SelectContent>
-                      </Select>
-                    }
                   </motion.div>
 
                   {cleaningLoading ?
