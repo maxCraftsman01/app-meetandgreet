@@ -101,7 +101,7 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-background p-4 relative">
       <motion.div
         initial={{ opacity: 0, y: 24, filter: "blur(8px)" }}
         animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
@@ -174,7 +174,6 @@ const Index = () => {
           </AnimatePresence>
         </div>
       </motion.div>
-    </div>
       <p className="absolute bottom-4 text-[10px] text-muted-foreground/60">
         Developed by MaxCraftsman for MeetAndGreet
       </p>
