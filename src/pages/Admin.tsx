@@ -22,17 +22,7 @@ import { MasterTimeline } from "@/components/MasterTimeline";
 import { PropertyFinanceView } from "@/components/PropertyFinanceView";
 import { TicketForm } from "@/components/TicketForm";
 import { TicketList } from "@/components/TicketList";
-
-interface Property {
-  id: string;
-  name: string;
-  owner_name: string;
-  owner_pin: string;
-  ical_urls: string[];
-  nightly_rate: number;
-  currency: string;
-  active_bookings: number;
-}
+import type { Property, Booking, ManualReservation, Ticket } from "@/types";
 
 const emptyForm = {
   name: "",
