@@ -4,6 +4,7 @@ export interface Property {
   id: string;
   name: string;
   owner_name: string;
+  owner_pin?: string;
   nightly_rate: number;
   currency: string;
   ical_urls: string[];
