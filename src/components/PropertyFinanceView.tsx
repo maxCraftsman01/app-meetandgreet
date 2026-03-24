@@ -45,6 +45,7 @@ export const PropertyFinanceView = ({ property, bookings, manualReservations, pi
   const [bookingGuestName, setBookingGuestName] = useState("");
   const [bookingPayout, setBookingPayout] = useState("");
   const [bookingSubmitting, setBookingSubmitting] = useState(false);
+  const [payoutsExpanded, setPayoutsExpanded] = useState(false);
 
   const propertyBookings = bookings.filter((b) => b.property_id === property.id);
   const propertyManual = manualReservations.filter((r) => r.property_id === property.id);
