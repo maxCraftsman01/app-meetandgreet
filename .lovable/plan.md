@@ -1,31 +1,18 @@
 
 
-## Add "Cost Visible to Owner" Toggle
+## Fix: Hide Repair Cost from Cleaners
 
 ### Problem
-The repair cost is currently shown to owners automatically whenever it's greater than 0. The admin needs a toggle to control whether the owner can see the repair cost, similar to the existing visibility toggles.
+The cleaner GET path (lines 118-131) returns `repair_cost` without any masking. Cost masking only exists for the owner path. So cleaners always see the full repair cost.
 
 ### Changes
 
-**1. Database migration** — Add `cost_visible_to_owner` column:
-```sql
-ALTER TABLE maintenance_tickets 
-ADD COLUMN cost_visible_to_owner boolean NOT NULL DEFAULT false;
-```
+**`supabase/functions/maintenance-tickets/index.ts`** (line 128-130)
+- After fetching tickets for cleaners, mask `repair_cost` to `0` for all tickets (cleaners should never see costs)
 
-**2. `supabase/functions/maintenance-tickets/index.ts`**
-- **GET**: When returning tickets for owners, set `repair_cost` to `0` if `cost_visible_to_owner` is `false` (so the value never reaches the client)
-- **PUT**: Allow admin to toggle `cost_visible_to_owner`
+**`src/components/TicketList.tsx`**
+- Already has the `(role === "admin" || role === "owner")` check on the client side, but the server still sends the data. The server-side fix ensures the cost never reaches the client for cleaners.
 
-**3. `src/components/TicketList.tsx`**
-- Admin detail dialog: Add a third toggle **"Cost Visible to Owner"** below the existing two visibility toggles
-- Owner detail view: No change needed — the edge function will already hide the cost when the toggle is off
-- List view: The existing `(role === "admin" || role === "owner") && ticket.repair_cost > 0` check will naturally hide it since the server returns `0`
-
-### Admin controls will look like:
-- Visible to Owner — toggle
-- Visible to Cleaner — toggle
-- Cost Visible to Owner — toggle (only shown when `visible_to_owner` is on, or always shown)
-- Status — dropdown
-- Repair Cost — input + save
+### Summary
+One-line server fix: map cleaner results to set `repair_cost: 0` before returning, same pattern as the owner masking but unconditional.
 
