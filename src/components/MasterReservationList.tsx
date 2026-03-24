@@ -74,9 +74,25 @@ export function MasterReservationList({ adminPin, properties }: Props) {
     );
   }
 
+  const filteredReservations = selectedProperty
+    ? reservations.filter((r) => r.property_id === selectedProperty)
+    : reservations;
+
   return (
-    <div className="space-y-2">
-      {reservations.map((r, i) => (
+    <div className="space-y-3">
+      <select
+        value={selectedProperty}
+        onChange={(e) => setSelectedProperty(e.target.value)}
+        className="h-8 rounded-md border border-input bg-background px-2 text-xs"
+      >
+        <option value="">All Properties</option>
+        {properties.map((p) => (
+          <option key={p.id} value={p.id}>{p.name}</option>
+        ))}
+      </select>
+
+      <div className="space-y-2">
+      {filteredReservations.map((r, i) => (
          <motion.div
           key={r.id}
           initial={{ opacity: 0, y: 12, filter: "blur(4px)" }}
