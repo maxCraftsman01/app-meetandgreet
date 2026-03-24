@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { getSession, clearSession } from "@/lib/session";
-import { getAdminProperties, createProperty, updateProperty, deleteProperty, fetchIcal, getAdminPendingIcal, getOwnerData } from "@/lib/api";
+import { getAdminProperties, createProperty, updateProperty, deleteProperty, fetchIcal, getAdminPendingIcal, getOwnerData, getTickets } from "@/lib/api";
 import { toast } from "sonner";
 import { ManageReservations } from "@/components/ManageReservations";
 import { MasterReservationList } from "@/components/MasterReservationList";
@@ -20,6 +20,8 @@ import { DailyOperations } from "@/components/DailyOperations";
 import { UserManagement } from "@/components/UserManagement";
 import { MasterTimeline } from "@/components/MasterTimeline";
 import { PropertyFinanceView } from "@/components/PropertyFinanceView";
+import { TicketForm } from "@/components/TicketForm";
+import { TicketList } from "@/components/TicketList";
 
 interface Property {
   id: string;
