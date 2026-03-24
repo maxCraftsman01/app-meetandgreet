@@ -66,51 +66,29 @@ export const TicketForm = ({ pin, role, properties, preselectedPropertyId, onSuc
     }
     setSubmitting(true);
     try {
-      // Create ticket first to get ID
-      const ticket = await createTicket(pin, role, {
-        property_id: propertyId,
-        title: title.trim(),
-        description: description.trim(),
-        priority,
-      });
-
-      // Upload media
+      // Upload media files first to get storage paths
+      const tempId = crypto.randomUUID();
       const mediaEntries: { media_type: string; storage_path: string }[] = [];
 
       for (const photo of photos) {
-        const url = await uploadTicketMedia(photo, ticket.id);
+        const url = await uploadTicketMedia(photo, tempId);
         mediaEntries.push({ media_type: "photo", storage_path: url });
       }
 
       if (voiceBlob) {
         const voiceFile = new File([voiceBlob], "voice-note.webm", { type: "audio/webm" });
-        const url = await uploadTicketMedia(voiceFile, ticket.id);
+        const url = await uploadTicketMedia(voiceFile, tempId);
         mediaEntries.push({ media_type: "voice_note", storage_path: url });
       }
 
-      // If we have media, update ticket with media refs (via a second call or we handle in edge fn)
-      // For simplicity, we'll make another create call to insert media rows
-      if (mediaEntries.length > 0) {
-        // We need to add media to the ticket - use a PUT-like approach or direct insert
-        // Actually the edge function POST already handles media array, but ticket is already created.
-        // Let's use the Supabase storage URL approach - media is already uploaded, 
-        // we just need to insert ticket_media rows. We'll do this via the edge function update.
-        // For now, let's re-create with media included by making a simple fetch
-        const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-        const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-        for (const m of mediaEntries) {
-          await fetch(`${SUPABASE_URL}/rest/v1/ticket_media`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "apikey": SUPABASE_KEY,
-              "Authorization": `Bearer ${SUPABASE_KEY}`,
-              "Prefer": "return=minimal",
-            },
-            body: JSON.stringify({ ticket_id: ticket.id, media_type: m.media_type, storage_path: m.storage_path }),
-          });
-        }
-      }
+      // Create ticket with media — edge function handles ticket_media inserts server-side
+      await createTicket(pin, role, {
+        property_id: propertyId,
+        title: title.trim(),
+        description: description.trim(),
+        priority,
+        media: mediaEntries.length > 0 ? mediaEntries : undefined,
+      });
 
       toast.success("Ticket created!");
       onSuccess?.();
