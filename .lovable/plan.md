@@ -1,32 +1,20 @@
 
 
-## Allow Reverting Cleaning Status to Pending
+## Add "Revert to Pending" to Week/Month Cleaning Calendar
 
 ### Problem
-Currently, once a cleaner marks a task as "cleaned", there's no way to revert it. After supervision, an admin (or the cleaner themselves) may need to set it back to "pending".
+The "Mark as Pending" button only exists on the **Today** tab. When viewing the Week or Month calendar, completed cleaning tasks show as green but have no option to revert them.
 
 ### Solution
-Allow both admins and cleaners to toggle the cleaning status back to "pending" via the existing `cleaner-operations` PUT endpoint.
+Pass the revert handler into the `CleaningCalendar` component and show a "Mark as Pending" button alongside the existing "Mark as Cleaned" button for completed tasks.
 
 ### Changes
 
-**1. `supabase/functions/cleaner-operations/index.ts`**
-- Modify the PUT handler to accept an optional `cleaning_status` field in the body (values: `"completed"` or `"pending"`)
-- If `cleaning_status` is `"pending"`, set `cleaning_status: "pending"` and clear `last_cleaned_at` to `null`
-- Default behavior (no `cleaning_status` field) remains: mark as completed
+**1. `src/pages/Dashboard.tsx`**
+- Pass `onRevertCleaning={handleRevertCleaning}` prop to both `CleaningCalendar` instances (week and month)
 
-**2. `src/lib/api.ts`**
-- Add a new function `resetCleaningStatus(pin: string, reservationId: string)` that calls the same endpoint but passes `{ reservation_id, cleaning_status: "pending" }`
-- Add an admin variant `adminResetCleaningStatus(adminPin, reservationId)`
-
-**3. `src/pages/Dashboard.tsx` (Cleaner view)**
-- For tasks already marked as "cleaned", show a secondary button "Mark as Pending" next to the green status badge
-- On click, call `resetCleaningStatus` and refresh the task list
-
-**4. `src/components/DailyOperations.tsx` (Admin view)**
-- For completed cleaning tasks, add a "Revert to Pending" button
-- On click, call `adminResetCleaningStatus` and refresh
-
-**5. `src/components/TimelineDetailModal.tsx` (Admin timeline)**
-- When viewing a reservation with `cleaning_status: "completed"`, show a clickable badge or small button to toggle it back to pending (requires passing `adminPin` and an `onUpdate` callback as props)
+**2. `src/components/CleaningCalendar.tsx`**
+- Add `onRevertCleaning` to the Props interface
+- In the task detail rendering (where "Mark as Cleaned" button appears), add a "Mark as Pending" button for tasks with `status === "arrival-ready"` that calls `onRevertCleaning`
+- This applies to both the week view's expanded task cards and the month view's day-detail popup/modal
 
