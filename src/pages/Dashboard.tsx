@@ -13,9 +13,12 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from
 "@/components/ui/select";
 import { getSession, clearSession } from "@/lib/session";
-import { getOwnerData, fetchIcal, getCleanerTasks, markAsCleaned } from "@/lib/api";
+import { getOwnerData, fetchIcal, getCleanerTasks, markAsCleaned, getTickets } from "@/lib/api";
 import CleaningCalendar from "@/components/CleaningCalendar";
 import { PropertyFinanceView } from "@/components/PropertyFinanceView";
+import { TicketList } from "@/components/TicketList";
+import { TicketForm } from "@/components/TicketForm";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 
 // ─── Types ──────────────────────────────────────────
