@@ -114,9 +114,9 @@ const Index = () => {
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ delay: 0.15, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-            className="w-14 h-14 rounded-2xl bg-primary flex items-center justify-center"
+            className="flex items-center justify-center"
           >
-            <Building2 className="w-7 h-7 text-primary-foreground" />
+            <img src={logo} alt="MeetAndGreet logo" className="w-24 h-24 object-contain" />
           </motion.div>
 
           <div className="text-center space-y-2">
