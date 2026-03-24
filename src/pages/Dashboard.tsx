@@ -326,6 +326,12 @@ const Dashboard = () => {
                                   <span className="text-sm font-medium">Cleaning completed</span>
                                 </div>
                           }
+                              <div className="mt-3">
+                                <Button variant="outline" size="sm" className="w-full" onClick={() => { setReportPropertyId(task.property_id); setReportDialogOpen(true); }}>
+                                  <Wrench className="w-4 h-4 mr-1.5" />
+                                  Report Issue
+                                </Button>
+                              </div>
                             </Card>
                           </motion.div>);
 
