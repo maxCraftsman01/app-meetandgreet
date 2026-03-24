@@ -144,6 +144,7 @@ export function MasterReservationList({ adminPin, properties }: Props) {
           </div>
         </motion.div>
       ))}
+      </div>
     </div>
   );
 }
