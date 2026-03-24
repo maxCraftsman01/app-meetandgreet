@@ -67,12 +67,12 @@ const Admin = () => {
   const [ticketFormOpen, setTicketFormOpen] = useState(false);
 
   const adminTabs = [
+    { id: "daily-ops", label: "Daily Ops", shortLabel: "Ops", icon: Activity },
+    { id: "timeline", label: "Timeline", shortLabel: "Time", icon: CalendarRange },
+    { id: "tickets", label: "Tickets", shortLabel: "Tickets", icon: Wrench },
     { id: "properties", label: "Properties", shortLabel: "Props", icon: Building2 },
     { id: "users", label: "Users", shortLabel: "Users", icon: Users },
     { id: "master-list", label: "All Reservations", shortLabel: "Reserv", icon: List },
-    { id: "timeline", label: "Timeline", shortLabel: "Time", icon: CalendarRange },
-    { id: "daily-ops", label: "Daily Ops", shortLabel: "Ops", icon: Activity },
-    { id: "tickets", label: "Tickets", shortLabel: "Tickets", icon: Wrench },
   ];
 
   const pinnedTabs = adminTabs.slice(0, 4);
@@ -258,6 +258,18 @@ const Admin = () => {
       <main className="container px-4 py-8 pb-24 md:pb-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList className="hidden md:flex">
+            <TabsTrigger value="daily-ops">
+              <Activity className="w-4 h-4 mr-1.5" />
+              Daily Ops
+            </TabsTrigger>
+            <TabsTrigger value="timeline">
+              <CalendarRange className="w-4 h-4 mr-1.5" />
+              Timeline
+            </TabsTrigger>
+            <TabsTrigger value="tickets" onClick={() => { if (adminTickets.length === 0) loadTickets(); }}>
+              <Wrench className="w-4 h-4 mr-1.5" />
+              Tickets
+            </TabsTrigger>
             <TabsTrigger value="properties">
               <Building2 className="w-4 h-4 mr-1.5" />
               Properties
@@ -269,18 +281,6 @@ const Admin = () => {
             <TabsTrigger value="master-list">
               <List className="w-4 h-4 mr-1.5" />
               All Reservations
-            </TabsTrigger>
-            <TabsTrigger value="timeline">
-              <CalendarRange className="w-4 h-4 mr-1.5" />
-              Timeline
-            </TabsTrigger>
-            <TabsTrigger value="daily-ops">
-              <Activity className="w-4 h-4 mr-1.5" />
-              Daily Ops
-            </TabsTrigger>
-            <TabsTrigger value="tickets" onClick={() => { if (adminTickets.length === 0) loadTickets(); }}>
-              <Wrench className="w-4 h-4 mr-1.5" />
-              Tickets
             </TabsTrigger>
           </TabsList>
 
