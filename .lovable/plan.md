@@ -1,50 +1,31 @@
 
 
-## Ticket Visibility Control - Per-Role Visibility
+## Add "Cost Visible to Owner" Toggle
 
 ### Problem
-The current `visible_to_owner` toggle is a single boolean that doesn't give you fine-grained control over who sees each ticket. Additionally, there may be a bug where a cleaner user also has `can_view_finance` permission, causing them to be treated as an "owner" role — which means the `visible_to_owner` toggle affects their view too.
-
-### Root Cause (Likely Bug)
-The edge function assigns roles with priority: if a user has `can_view_finance` on any property, they become "owner" even if they also have `can_mark_cleaned`. This means a cleaner with finance access gets filtered by `visible_to_owner` instead of `created_by_user_id`.
-
-### Proposed Solution: Separate Visibility Toggles
-
-Replace the single `visible_to_owner` boolean with two independent toggles:
-- `visible_to_owner` — owner can see this ticket
-- `visible_to_cleaner` — the creating cleaner (and other cleaners on that property) can see this ticket
-
-**Default behavior when a ticket is created:**
-- Created by cleaner: `visible_to_cleaner = true`, `visible_to_owner = false` (admin decides to share with owner)
-- Created by admin: both `false` by default (admin toggles as needed)
-- Created by owner: `visible_to_owner = true`, `visible_to_cleaner = false`
-
-The ticket creator always sees their own tickets regardless of toggles.
+The repair cost is currently shown to owners automatically whenever it's greater than 0. The admin needs a toggle to control whether the owner can see the repair cost, similar to the existing visibility toggles.
 
 ### Changes
 
-**1. Database migration** — Add `visible_to_cleaner` column:
+**1. Database migration** — Add `cost_visible_to_owner` column:
 ```sql
 ALTER TABLE maintenance_tickets 
-ADD COLUMN visible_to_cleaner boolean NOT NULL DEFAULT true;
+ADD COLUMN cost_visible_to_owner boolean NOT NULL DEFAULT false;
 ```
 
 **2. `supabase/functions/maintenance-tickets/index.ts`**
-- **GET**: For cleaners, show tickets where `created_by_user_id = userId` OR (`visible_to_cleaner = true` AND `property_id` in their accessible properties). For owners, keep existing `visible_to_owner` filter but also always include tickets they created.
-- **POST**: Set defaults based on creator role
-- **PUT**: Allow admin to toggle both `visible_to_owner` and `visible_to_cleaner`
+- **GET**: When returning tickets for owners, set `repair_cost` to `0` if `cost_visible_to_owner` is `false` (so the value never reaches the client)
+- **PUT**: Allow admin to toggle `cost_visible_to_owner`
 
 **3. `src/components/TicketList.tsx`**
-- Admin detail dialog: Add a second toggle "Visible to Cleaner" alongside existing "Visible to Owner"
-- Show both toggles in the admin controls section
+- Admin detail dialog: Add a third toggle **"Cost Visible to Owner"** below the existing two visibility toggles
+- Owner detail view: No change needed — the edge function will already hide the cost when the toggle is off
+- List view: The existing `(role === "admin" || role === "owner") && ticket.repair_cost > 0` check will naturally hide it since the server returns `0`
 
-**4. Edge function role assignment fix** — In the authentication block, if a user has `can_mark_cleaned` access, they should be treated as a cleaner for ticket purposes even if they also have finance access. Alternatively, assign the most permissive role and adjust the query logic accordingly.
-
-### Visibility Summary
-
-| Scenario | Admin | Owner | Cleaner (creator) | Other cleaners |
-|---|---|---|---|---|
-| Default (cleaner creates) | Always | Toggle ON needed | Always (creator) | Toggle ON needed |
-| Default (admin creates) | Always | Toggle ON needed | Toggle ON needed | Toggle ON needed |
-| Default (owner creates) | Always | Always (creator) | Toggle ON needed | Toggle ON needed |
+### Admin controls will look like:
+- Visible to Owner — toggle
+- Visible to Cleaner — toggle
+- Cost Visible to Owner — toggle (only shown when `visible_to_owner` is on, or always shown)
+- Status — dropdown
+- Repair Cost — input + save
 
