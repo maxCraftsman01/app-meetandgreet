@@ -120,8 +120,11 @@ const Index = () => {
 
           <div className="text-center space-y-2">
             <h1 className="text-2xl font-semibold tracking-tight leading-tight">
-              Property Manager
+              Welcome to Cura App
             </h1>
+            <p className="text-lg font-medium text-foreground">
+              MeetAndGreet
+            </p>
             <p className="text-muted-foreground text-sm">
               Enter your 8-digit PIN to continue
             </p>
