@@ -125,11 +125,15 @@ Deno.serve(async (req) => {
       .eq("property_id", property_id);
 
     if (allEvents.length > 0) {
-      const blockedPatterns = ["not available", "blocked", "unavailable", "airbnb (not available)", "no disponible", "nicht verfügbar"];
+      const airbnbBlockedPatterns = ["airbnb (not available)", "blocked", "unavailable", "no disponible", "nicht verfügbar"];
       await supabase.from("bookings").insert(
         allEvents.map((e) => {
           const summaryLower = (e.summary || "").toLowerCase();
-          const isBlocked = blockedPatterns.some((p) => summaryLower.includes(p));
+          const isFromBookingCom = ((e as any).sourceUrl || "").includes("booking.com");
+          // Booking.com "CLOSED - Not available" = real booking
+          // Airbnb "Not available" = blocked
+          const isBlocked = !isFromBookingCom &&
+            airbnbBlockedPatterns.some((p) => summaryLower.includes(p));
           return {
             property_id,
             summary: e.summary,
