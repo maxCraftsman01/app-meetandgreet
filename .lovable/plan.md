@@ -1,18 +1,17 @@
+## Codebase Refactoring — Progress
 
+### ✅ Completed (Steps 1–5)
 
-## Fix: Hide Repair Cost from Cleaners
+1. **Shared types** — Created `src/types/index.ts` with `Property`, `Booking`, `ManualReservation`, `CleanerTask`, `Ticket`, `PropertyStatus`, `CalendarEvent`, and API response types. Updated all imports across Dashboard, Admin, CleaningCalendar, DailyOperations, TicketList, PropertyFinanceView, ManageReservations.
 
-### Problem
-The cleaner GET path (lines 118-131) returns `repair_cost` without any masking. Cost masking only exists for the owner path. So cleaners always see the full repair cost.
+2. **Shared status config** — Created `src/lib/status-config.ts` with `CLEANING_STATUS_CONFIG`, `CLEANING_STATUS_PRIORITY`, `TICKET_PRIORITY_COLORS`, `TICKET_STATUS_ICONS`, `TICKET_STATUS_COLORS`, `PROPERTY_COLORS`. Removed duplicate definitions from Dashboard.tsx, CleaningCalendar.tsx, DailyOperations.tsx, TicketList.tsx.
 
-### Changes
+3. **API return types & eliminate `any`** — Replaced `any[]` state in Admin.tsx (`financeData`, `adminTickets`) and Dashboard.tsx (`ownerTickets`) with proper typed state.
 
-**`supabase/functions/maintenance-tickets/index.ts`** (line 128-130)
-- After fetching tickets for cleaners, mask `repair_cost` to `0` for all tickets (cleaners should never see costs)
+4. **TicketList inline handler cleanup** — Extracted `handleToggleCostVisibility` to match the pattern of other toggle handlers.
 
-**`src/components/TicketList.tsx`**
-- Already has the `(role === "admin" || role === "owner")` check on the client side, but the server still sends the data. The server-side fix ensures the cost never reaches the client for cleaners.
+### 🔜 Deferred (Steps 6–8)
 
-### Summary
-One-line server fix: map cleaner results to set `repair_cost: 0` before returning, same pattern as the owner masking but unconditional.
-
+5. **Dashboard hooks extraction** — Extract data fetching into `useDashboardData` hook
+6. **Admin.tsx split** — Extract property form, grid, finance sheet, mobile nav into sub-components
+7. **Edge function shared auth** — Consolidate CORS/auth across 11 functions
