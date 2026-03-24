@@ -269,7 +269,7 @@ export const PropertyFinanceView = ({ property, bookings, manualReservations, pi
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-semibold">List of Reservations and payouts</h3>
               {recentPayouts.length > 2 && (
-                <Button variant="ghost" size="sm" onClick={() => setPayoutsExpanded(prev => !prev)} className="text-xs gap-1">
+                <Button variant="outline" size="sm" onClick={() => setPayoutsExpanded(prev => !prev)} className="text-xs gap-1">
                   {payoutsExpanded ? (<>Show less <ChevronUp className="h-3.5 w-3.5" /></>) : (<>Show all ({recentPayouts.length}) <ChevronDown className="h-3.5 w-3.5" /></>)}
                 </Button>
               )}
