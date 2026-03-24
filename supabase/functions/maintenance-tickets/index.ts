@@ -127,7 +127,8 @@ Deno.serve(async (req) => {
         if (propertyId) query = query.eq("property_id", propertyId);
         const { data, error } = await query;
         if (error) throw error;
-        return json(data || []);
+        const cleanerData = (data || []).map((t: any) => ({ ...t, repair_cost: 0 }));
+        return json(cleanerData);
       }
 
       return json([]);
