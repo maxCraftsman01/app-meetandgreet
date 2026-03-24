@@ -126,7 +126,7 @@ const Index = () => {
               MeetAndGreet
             </p>
             <p className="text-muted-foreground text-sm">
-              App for MeetAndGreet
+              by MeetAndGreet
             </p>
           </div>
 
