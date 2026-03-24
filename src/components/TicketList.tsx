@@ -263,6 +263,23 @@ export const TicketList = ({ tickets, role, adminPin, currency = "EUR", onRefres
                       />
                     </div>
 
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium">Cost Visible to Owner</span>
+                      <Switch
+                        checked={selectedTicket.cost_visible_to_owner}
+                        onCheckedChange={async () => {
+                          if (!adminPin) return;
+                          try {
+                            await updateTicket(adminPin, selectedTicket.id, { cost_visible_to_owner: !selectedTicket.cost_visible_to_owner });
+                            toast.success(selectedTicket.cost_visible_to_owner ? "Cost hidden from owner" : "Cost visible to owner");
+                            onRefresh?.();
+                          } catch {
+                            toast.error("Failed to update");
+                          }
+                        }}
+                      />
+                    </div>
+
                     <div>
                       <span className="text-sm font-medium">Status</span>
                       <Select value={selectedTicket.status} onValueChange={(v) => handleStatusChange(selectedTicket, v)}>

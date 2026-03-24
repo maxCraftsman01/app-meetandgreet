@@ -96,7 +96,6 @@ Deno.serve(async (req) => {
 
       if (role === "owner") {
         if (userPropertyIds.length === 0) return json([]);
-        // Owner sees: tickets they created OR visible_to_owner = true on their properties
         let query = supabase
           .from("maintenance_tickets")
           .select("*, ticket_media(*), properties:property_id(name)")
@@ -106,7 +105,14 @@ Deno.serve(async (req) => {
         if (propertyId) query = query.eq("property_id", propertyId);
         const { data, error } = await query;
         if (error) throw error;
-        return json(data || []);
+        // Mask repair_cost when cost_visible_to_owner is false and owner didn't create it
+        const masked = (data || []).map((t: any) => {
+          if (!t.cost_visible_to_owner && t.created_by_user_id !== userId) {
+            return { ...t, repair_cost: 0 };
+          }
+          return t;
+        });
+        return json(masked);
       }
 
       if (role === "cleaner") {
