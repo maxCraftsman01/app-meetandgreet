@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
-import { ChevronLeft, ChevronRight, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -45,6 +45,7 @@ export const PropertyFinanceView = ({ property, bookings, manualReservations, pi
   const [bookingGuestName, setBookingGuestName] = useState("");
   const [bookingPayout, setBookingPayout] = useState("");
   const [bookingSubmitting, setBookingSubmitting] = useState(false);
+  const [payoutsExpanded, setPayoutsExpanded] = useState(false);
 
   const propertyBookings = bookings.filter((b) => b.property_id === property.id);
   const propertyManual = manualReservations.filter((r) => r.property_id === property.id);
@@ -265,7 +266,14 @@ export const PropertyFinanceView = ({ property, bookings, manualReservations, pi
       {recentPayouts.length > 0 && (
         <motion.div initial={{ opacity: 0, y: 16, filter: "blur(4px)" }} animate={{ opacity: 1, y: 0, filter: "blur(0px)" }} transition={{ delay: 0.15, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}>
           <Card className="p-6">
-            <h3 className="font-semibold mb-4">List of Reservations and payouts</h3>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-semibold">List of Reservations and payouts</h3>
+              {recentPayouts.length > 2 && (
+                <Button variant="ghost" size="sm" onClick={() => setPayoutsExpanded(prev => !prev)} className="text-xs gap-1">
+                  {payoutsExpanded ? (<>Show less <ChevronUp className="h-3.5 w-3.5" /></>) : (<>Show all ({recentPayouts.length}) <ChevronDown className="h-3.5 w-3.5" /></>)}
+                </Button>
+              )}
+            </div>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead><tr className="border-b border-border text-left">
@@ -276,7 +284,7 @@ export const PropertyFinanceView = ({ property, bookings, manualReservations, pi
                   <th className="pb-2 font-medium text-muted-foreground text-right">Payout</th>
                 </tr></thead>
                 <tbody>
-                  {recentPayouts.map((r) =>
+                  {(payoutsExpanded ? recentPayouts : recentPayouts.slice(-2)).map((r) =>
                     <tr key={r.id} className="border-b border-border/50 last:border-0">
                       <td className="py-2.5 font-medium">{r.guest_name}</td>
                       <td className="py-2.5 text-muted-foreground">{format(parseISO(r.check_in), "MMM d")} – {format(parseISO(r.check_out), "MMM d")}</td>
