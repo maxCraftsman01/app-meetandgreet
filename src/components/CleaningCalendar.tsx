@@ -32,6 +32,7 @@ interface Props {
   pin: string;
   userProperties: PropertyAccess[];
   onMarkCleaned: (reservationId: string) => Promise<void>;
+  onRevertCleaning?: (reservationId: string) => Promise<void>;
   markingId: string | null;
   view: "week" | "month";
 }
