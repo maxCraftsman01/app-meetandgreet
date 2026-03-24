@@ -1,15 +1,12 @@
 
 
-## Move "Add Property" Button into Properties Tab
+## Move Refresh Button to Top-Right
 
-### Change
-Move the "Add Property" button from the top header bar into the Properties tab content area, and keep the Dialog definition there as well.
+### Problem
+On mobile, the `flex-col` layout causes the Refresh button to stack below the tab buttons instead of sitting to the right.
 
-### File: `src/pages/Admin.tsx`
-
-1. **Header (lines ~228-239)**: Remove the Dialog wrapper and "Add Property" button from the header. Keep only "Sync All" and "Logout" buttons.
-
-2. **Properties tab content (line ~330)**: Add an "Add Property" button at the top of the properties tab, before the grid. Show it as a header row with the button right-aligned. The existing Dialog (with the form inside, lines 233-301) moves here, wrapping this new button.
-
-3. The empty-state "Add Property" button (line ~340) stays as-is.
+### Fix
+**`src/pages/Dashboard.tsx` (line 234)**
+- Change `flex-col sm:flex-row` to just `flex-row` so the Refresh button always stays to the right of the tabs, even on mobile
+- Keep `justify-between` and `items-center` for alignment
 
