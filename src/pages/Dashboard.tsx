@@ -197,18 +197,6 @@ const Dashboard = () => {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            {properties.length > 1 &&
-            <Select value={selectedPropertyId} onValueChange={setSelectedPropertyId}>
-                <SelectTrigger className="w-48">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {properties.map((p) =>
-                <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
-                )}
-                </SelectContent>
-              </Select>
-            }
             {hasFinance &&
             <Button variant="outline" size="sm" onClick={handleSync} disabled={syncing}>
                 <RefreshCw className={`w-4 h-4 mr-1.5 ${syncing ? "animate-spin" : ""}`} />
