@@ -2,7 +2,6 @@ import { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
 import {
   ChevronLeft, ChevronRight, CheckCircle2, Key, FileText,
-  AlertTriangle, Clock, Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -15,18 +14,8 @@ import {
   getDay, isToday, parseISO,
 } from "date-fns";
 import type { PropertyAccess } from "@/lib/session";
-
-interface CalendarEvent {
-  date: string;
-  property_id: string;
-  property_name: string;
-  status: string;
-  guest_name: string | null;
-  check_out_guest: string | null;
-  reservation_id: string | null;
-  keybox_code: string | null;
-  cleaning_notes: string | null;
-}
+import type { CalendarEvent } from "@/types";
+import { CLEANING_STATUS_CONFIG, CLEANING_STATUS_PRIORITY, PROPERTY_COLORS } from "@/lib/status-config";
 
 interface Props {
   pin: string;
@@ -36,26 +25,6 @@ interface Props {
   markingId: string | null;
   view: "week" | "month";
 }
-
-const STATUS_CONFIG: Record<string, { color: string; bg: string; dot: string; border: string; label: string; icon: typeof AlertTriangle; cellBg: string; cellBorder: string; cellText: string }> = {
-  "same-day":        { color: "text-red-700",     bg: "bg-red-50",     dot: "bg-red-500",     border: "border-red-200",     label: "Same-Day Turnover",    icon: AlertTriangle, cellBg: "bg-red-100",     cellBorder: "border-red-300",     cellText: "text-red-800" },
-  "checkout-only":   { color: "text-yellow-700",  bg: "bg-yellow-50",  dot: "bg-yellow-500",  border: "border-yellow-200",  label: "Check-out Only",       icon: Clock,         cellBg: "bg-yellow-100",  cellBorder: "border-yellow-300",  cellText: "text-yellow-800" },
-  "arrival-pending": { color: "text-orange-700",  bg: "bg-orange-50",  dot: "bg-orange-500",  border: "border-orange-200",  label: "Arrival Pending Clean", icon: Clock,        cellBg: "bg-orange-100",  cellBorder: "border-orange-300",  cellText: "text-orange-800" },
-  "arrival-ready":   { color: "text-emerald-700", bg: "bg-emerald-50", dot: "bg-emerald-500", border: "border-emerald-200", label: "Ready for Arrival",    icon: CheckCircle2,  cellBg: "bg-emerald-100", cellBorder: "border-emerald-300", cellText: "text-emerald-800" },
-};
-
-const STATUS_PRIORITY: Record<string, number> = {
-  "same-day": 0,
-  "checkout-only": 1,
-  "arrival-pending": 2,
-  "arrival-ready": 3,
-};
-
-const PROPERTY_COLORS = [
-  "hsl(220, 70%, 55%)", "hsl(340, 65%, 50%)", "hsl(160, 55%, 42%)",
-  "hsl(30, 75%, 50%)", "hsl(270, 55%, 55%)", "hsl(190, 60%, 45%)",
-  "hsl(50, 70%, 45%)", "hsl(0, 60%, 50%)",
-];
 
 export default function CleaningCalendar({ pin, userProperties, onMarkCleaned, onRevertCleaning, markingId, view }: Props) {
   const [refDate, setRefDate] = useState(new Date());
@@ -117,13 +86,12 @@ export default function CleaningCalendar({ pin, userProperties, onMarkCleaned, o
 
   const monthStartPad = view === "month" ? getDay(range.start) : 0;
 
-  // Get highest-priority status for a day's events
   const getHighestPriorityStatus = (dayEvents: CalendarEvent[]) => {
     if (dayEvents.length === 0) return null;
     let best = dayEvents[0].status;
-    let bestPriority = STATUS_PRIORITY[best] ?? 99;
+    let bestPriority = CLEANING_STATUS_PRIORITY[best] ?? 99;
     for (const evt of dayEvents) {
-      const p = STATUS_PRIORITY[evt.status] ?? 99;
+      const p = CLEANING_STATUS_PRIORITY[evt.status] ?? 99;
       if (p < bestPriority) {
         best = evt.status;
         bestPriority = p;
@@ -178,7 +146,7 @@ export default function CleaningCalendar({ pin, userProperties, onMarkCleaned, o
                       </div>
                       <div className="space-y-1">
                         {dayEvents.map((evt, i) => {
-                          const cfg = STATUS_CONFIG[evt.status];
+                          const cfg = CLEANING_STATUS_CONFIG[evt.status];
                           if (!cfg) return null;
                           return (
                             <div
@@ -199,7 +167,7 @@ export default function CleaningCalendar({ pin, userProperties, onMarkCleaned, o
             </motion.div>
           )}
 
-          {/* Month View - colored cells like Finance calendar */}
+          {/* Month View */}
           {view === "month" && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4 }}>
               <div className="grid grid-cols-7 gap-1">
@@ -214,7 +182,7 @@ export default function CleaningCalendar({ pin, userProperties, onMarkCleaned, o
                   const todayRing = isToday(day) ? "ring-2 ring-foreground ring-offset-1" : "";
                   const hasEvents = dayEvents.length > 0;
                   const topStatus = getHighestPriorityStatus(dayEvents);
-                  const cfg = topStatus ? STATUS_CONFIG[topStatus] : null;
+                  const cfg = topStatus ? CLEANING_STATUS_CONFIG[topStatus] : null;
 
                   const cellStyle = hasEvents && cfg
                     ? `${cfg.cellBg} ${cfg.cellBorder} ${cfg.cellText} cursor-pointer hover:opacity-80`
@@ -260,7 +228,7 @@ export default function CleaningCalendar({ pin, userProperties, onMarkCleaned, o
                 ) : (
                   <div className="space-y-3">
                     {eventsForDay(expandedDay).map((evt, i) => {
-                      const cfg = STATUS_CONFIG[evt.status] || STATUS_CONFIG["arrival-pending"];
+                      const cfg = CLEANING_STATUS_CONFIG[evt.status] || CLEANING_STATUS_CONFIG["arrival-pending"];
                       const Icon = cfg.icon;
                       const taskAccess = userProperties.find((p) => p.id === evt.property_id);
                       const canMark = taskAccess?.can_mark_cleaned ?? false;
@@ -328,7 +296,7 @@ export default function CleaningCalendar({ pin, userProperties, onMarkCleaned, o
 
           {/* Legend */}
           <div className="flex items-center gap-4 flex-wrap text-xs text-muted-foreground pt-2">
-            {Object.entries(STATUS_CONFIG).map(([key, cfg]) => (
+            {Object.entries(CLEANING_STATUS_CONFIG).filter(([key]) => key !== "idle").map(([key, cfg]) => (
               <div key={key} className="flex items-center gap-1.5">
                 <div className={`w-3 h-3 rounded-sm ${cfg.cellBg} border ${cfg.cellBorder}`} />
                 <span>{cfg.label}</span>

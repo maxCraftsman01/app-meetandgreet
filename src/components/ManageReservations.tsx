@@ -28,19 +28,8 @@ import {
 import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
 
-export interface ManualReservation {
-  id: string;
-  property_id: string;
-  guest_name: string;
-  check_in: string;
-  check_out: string;
-  source: string;
-  net_payout: number;
-  status: string;
-  is_blocked: boolean;
-  created_at: string;
-  updated_at: string;
-}
+import type { ManualReservation } from "@/types";
+export type { ManualReservation };
 
 interface Props {
   adminPin: string;

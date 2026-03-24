@@ -17,15 +17,7 @@ import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid
 } from "recharts";
 
-interface Booking {
-  id: string; property_id: string; summary: string; start_date: string; end_date: string; status: string; source_url: string | null;
-}
-interface ManualReservation {
-  id: string; property_id: string; guest_name: string; check_in: string; check_out: string; source: string; net_payout: number; status: string;
-}
-interface Property {
-  id: string; name: string; owner_name: string; nightly_rate: number; currency: string; ical_urls: string[];
-}
+import type { Booking, ManualReservation, Property } from "@/types";
 
 interface PropertyFinanceViewProps {
   property: Property;

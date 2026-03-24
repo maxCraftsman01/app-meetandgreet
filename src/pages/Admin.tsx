@@ -22,17 +22,7 @@ import { MasterTimeline } from "@/components/MasterTimeline";
 import { PropertyFinanceView } from "@/components/PropertyFinanceView";
 import { TicketForm } from "@/components/TicketForm";
 import { TicketList } from "@/components/TicketList";
-
-interface Property {
-  id: string;
-  name: string;
-  owner_name: string;
-  owner_pin: string;
-  ical_urls: string[];
-  nightly_rate: number;
-  currency: string;
-  active_bookings: number;
-}
+import type { Property, Booking, ManualReservation, Ticket } from "@/types";
 
 const emptyForm = {
   name: "",
@@ -59,10 +49,10 @@ const Admin = () => {
   const [activeTab, setActiveTab] = useState("properties");
   const [pendingCounts, setPendingCounts] = useState<Record<string, number>>({});
   const [financeProperty, setFinanceProperty] = useState<Property | null>(null);
-  const [financeData, setFinanceData] = useState<{ bookings: any[]; manual_reservations: any[] } | null>(null);
+  const [financeData, setFinanceData] = useState<{ bookings: Booking[]; manual_reservations: ManualReservation[] } | null>(null);
   const [financeLoading, setFinanceLoading] = useState(false);
   const [moreSheetOpen, setMoreSheetOpen] = useState(false);
-  const [adminTickets, setAdminTickets] = useState<any[]>([]);
+  const [adminTickets, setAdminTickets] = useState<Ticket[]>([]);
   const [ticketsLoading, setTicketsLoading] = useState(false);
   const [ticketFormOpen, setTicketFormOpen] = useState(false);
 
