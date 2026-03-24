@@ -27,6 +27,7 @@ interface Ticket {
   priority: string;
   repair_cost: number;
   visible_to_owner: boolean;
+  visible_to_cleaner: boolean;
   created_at: string;
   resolved_at: string | null;
   ticket_media: TicketMedia[];
@@ -63,11 +64,22 @@ export const TicketList = ({ tickets, role, adminPin, currency = "EUR", onRefres
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [editCost, setEditCost] = useState("");
 
-  const handleToggleVisibility = async (ticket: Ticket) => {
+  const handleToggleOwnerVisibility = async (ticket: Ticket) => {
     if (!adminPin) return;
     try {
       await updateTicket(adminPin, ticket.id, { visible_to_owner: !ticket.visible_to_owner });
       toast.success(ticket.visible_to_owner ? "Hidden from owner" : "Visible to owner");
+      onRefresh?.();
+    } catch {
+      toast.error("Failed to update");
+    }
+  };
+
+  const handleToggleCleanerVisibility = async (ticket: Ticket) => {
+    if (!adminPin) return;
+    try {
+      await updateTicket(adminPin, ticket.id, { visible_to_cleaner: !ticket.visible_to_cleaner });
+      toast.success(ticket.visible_to_cleaner ? "Hidden from cleaner" : "Visible to cleaner");
       onRefresh?.();
     } catch {
       toast.error("Failed to update");
@@ -238,7 +250,15 @@ export const TicketList = ({ tickets, role, adminPin, currency = "EUR", onRefres
                       <span className="text-sm font-medium">Visible to Owner</span>
                       <Switch
                         checked={selectedTicket.visible_to_owner}
-                        onCheckedChange={() => handleToggleVisibility(selectedTicket)}
+                        onCheckedChange={() => handleToggleOwnerVisibility(selectedTicket)}
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium">Visible to Cleaner</span>
+                      <Switch
+                        checked={selectedTicket.visible_to_cleaner}
+                        onCheckedChange={() => handleToggleCleanerVisibility(selectedTicket)}
                       />
                     </div>
 
