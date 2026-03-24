@@ -356,6 +356,45 @@ const Dashboard = () => {
               </Tabs>
             </TabsContent>
           }
+
+          {/* ── Tickets Tab (Owner) ─────────────────────────── */}
+          {hasAnyFinance &&
+          <TabsContent value="tickets" className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-semibold">Property Tickets</h2>
+                <Button variant="outline" size="sm" onClick={loadOwnerTickets}>
+                  <RefreshCw className="w-4 h-4 mr-1.5" />
+                  Refresh
+                </Button>
+              </div>
+              {ticketsLoading ? (
+                <div className="flex justify-center py-20 text-muted-foreground">Loading...</div>
+              ) : (
+                <TicketList
+                  tickets={ownerTickets}
+                  role="owner"
+                  currency={selectedProperty?.currency}
+                />
+              )}
+            </TabsContent>
+          }
+
+          {/* Cleaner Report Issue Dialog */}
+          <Dialog open={reportDialogOpen} onOpenChange={setReportDialogOpen}>
+            <DialogContent className="sm:max-w-lg">
+              <DialogHeader>
+                <DialogTitle>Report Issue</DialogTitle>
+              </DialogHeader>
+              <TicketForm
+                pin={session!.pin}
+                role="user"
+                properties={userProperties.map((p) => ({ id: p.id, name: p.name }))}
+                preselectedPropertyId={reportPropertyId}
+                onSuccess={() => { setReportDialogOpen(false); }}
+                onCancel={() => setReportDialogOpen(false)}
+              />
+            </DialogContent>
+          </Dialog>
         </Tabs>
       </main>
     </div>);
