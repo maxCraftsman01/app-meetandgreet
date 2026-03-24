@@ -247,7 +247,7 @@ export function MasterTimeline({ adminPin }: Props) {
         open={modalOpen}
         onOpenChange={setModalOpen}
         adminPin={adminPin}
-        onUpdate={loadData}
+        onUpdate={load}
       />
     </div>
   );
