@@ -199,6 +199,7 @@ Deno.serve(async (req) => {
       if (body.visible_to_owner !== undefined) updates.visible_to_owner = body.visible_to_owner;
       if (body.visible_to_cleaner !== undefined) updates.visible_to_cleaner = body.visible_to_cleaner;
       if (body.priority !== undefined) updates.priority = body.priority;
+      if (body.cost_visible_to_owner !== undefined) updates.cost_visible_to_owner = body.cost_visible_to_owner;
 
       const { data, error } = await supabase
         .from("maintenance_tickets")
