@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
-import { ChevronLeft, ChevronRight, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
