@@ -175,6 +175,10 @@ const Index = () => {
         </div>
       </motion.div>
     </div>
+      <p className="absolute bottom-4 text-[10px] text-muted-foreground/60">
+        Developed by MaxCraftsman for MeetAndGreet
+      </p>
+    </div>
   );
 };
 
