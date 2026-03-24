@@ -32,6 +32,7 @@ interface Props {
   pin: string;
   userProperties: PropertyAccess[];
   onMarkCleaned: (reservationId: string) => Promise<void>;
+  onRevertCleaning?: (reservationId: string) => Promise<void>;
   markingId: string | null;
   view: "week" | "month";
 }
@@ -56,7 +57,7 @@ const PROPERTY_COLORS = [
   "hsl(50, 70%, 45%)", "hsl(0, 60%, 50%)",
 ];
 
-export default function CleaningCalendar({ pin, userProperties, onMarkCleaned, markingId, view }: Props) {
+export default function CleaningCalendar({ pin, userProperties, onMarkCleaned, onRevertCleaning, markingId, view }: Props) {
   const [refDate, setRefDate] = useState(new Date());
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(false);
@@ -304,9 +305,16 @@ export default function CleaningCalendar({ pin, userProperties, onMarkCleaned, m
                             </div>
                           )}
                           {evt.status === "arrival-ready" && (
-                            <div className="mt-3 flex items-center gap-2 text-emerald-700">
-                              <CheckCircle2 className="w-4 h-4" />
-                              <span className="text-sm font-medium">Cleaning completed</span>
+                            <div className="mt-3 flex items-center justify-between">
+                              <div className="flex items-center gap-2 text-emerald-700">
+                                <CheckCircle2 className="w-4 h-4" />
+                                <span className="text-sm font-medium">Cleaning completed</span>
+                              </div>
+                              {canMark && evt.reservation_id && onRevertCleaning && (
+                                <Button variant="outline" size="sm" onClick={() => onRevertCleaning(evt.reservation_id!)} disabled={markingId === evt.reservation_id}>
+                                  {markingId === evt.reservation_id ? "Updating…" : "Mark as Pending"}
+                                </Button>
+                              )}
                             </div>
                           )}
                         </div>
