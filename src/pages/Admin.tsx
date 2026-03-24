@@ -221,6 +221,18 @@ const Admin = () => {
     }
   };
 
+  const loadTickets = async () => {
+    setTicketsLoading(true);
+    try {
+      const data = await getTickets(session!.pin, "admin");
+      setAdminTickets(data);
+    } catch {
+      toast.error("Failed to load tickets");
+    } finally {
+      setTicketsLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b border-border bg-card">
