@@ -1,0 +1,1 @@
+ALTER TABLE maintenance_tickets ADD COLUMN visible_to_cleaner boolean NOT NULL DEFAULT true;

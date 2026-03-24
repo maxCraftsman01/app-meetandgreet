@@ -92,6 +92,7 @@ export type Database = {
           resolved_at: string | null
           status: string
           title: string
+          visible_to_cleaner: boolean
           visible_to_owner: boolean
         }
         Insert: {
@@ -106,6 +107,7 @@ export type Database = {
           resolved_at?: string | null
           status?: string
           title: string
+          visible_to_cleaner?: boolean
           visible_to_owner?: boolean
         }
         Update: {
@@ -120,6 +122,7 @@ export type Database = {
           resolved_at?: string | null
           status?: string
           title?: string
+          visible_to_cleaner?: boolean
           visible_to_owner?: boolean
         }
         Relationships: [
