@@ -123,9 +123,6 @@ const Index = () => {
             <h1 className="text-2xl font-semibold tracking-tight leading-tight">
               Welcome to Cura
             </h1>
-            <p className="text-lg font-medium text-foreground">
-              MeetAndGreet
-            </p>
             <p className="text-muted-foreground text-sm">
               please enter your 8 digit code to continue
             </p>
