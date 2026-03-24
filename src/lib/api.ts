@@ -154,6 +154,23 @@ export async function adminMarkCleaned(adminPin: string, reservationId: string) 
   });
 }
 
+// Reset cleaning status to pending
+export async function resetCleaningStatus(pin: string, reservationId: string) {
+  return callFunction("cleaner-operations", {
+    method: "PUT",
+    headers: { "x-user-pin": pin },
+    body: { reservation_id: reservationId, cleaning_status: "pending" },
+  });
+}
+
+export async function adminResetCleaningStatus(adminPin: string, reservationId: string) {
+  return callFunction("cleaner-operations", {
+    method: "PUT",
+    headers: { "x-admin-pin": adminPin },
+    body: { reservation_id: reservationId, cleaning_status: "pending" },
+  });
+}
+
 // Owner reservations / blocks
 export async function createOwnerReservation(pin: string, data: Record<string, unknown>) {
   return callFunction("owner-reservations", {

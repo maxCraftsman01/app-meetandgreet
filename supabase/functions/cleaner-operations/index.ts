@@ -261,10 +261,10 @@ Deno.serve(async (req) => {
       });
     }
 
-    // PUT: mark as cleaned
+    // PUT: mark as cleaned or revert to pending
     if (method === "PUT") {
       const body = await req.json();
-      const { reservation_id } = body;
+      const { reservation_id, cleaning_status } = body;
 
       if (!reservation_id) {
         return new Response(JSON.stringify({ error: "Missing reservation_id" }), {
@@ -273,12 +273,13 @@ Deno.serve(async (req) => {
         });
       }
 
+      const updates = cleaning_status === "pending"
+        ? { cleaning_status: "pending", last_cleaned_at: null }
+        : { cleaning_status: "completed", last_cleaned_at: new Date().toISOString() };
+
       const { data, error } = await supabase
         .from("manual_reservations")
-        .update({
-          cleaning_status: "completed",
-          last_cleaned_at: new Date().toISOString(),
-        })
+        .update(updates)
         .eq("id", reservation_id)
         .select()
         .single();
