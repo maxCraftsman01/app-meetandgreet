@@ -266,6 +266,10 @@ const Admin = () => {
               <Activity className="w-4 h-4 mr-1.5" />
               Daily Ops
             </TabsTrigger>
+            <TabsTrigger value="tickets" onClick={() => { if (adminTickets.length === 0) loadTickets(); }}>
+              <Wrench className="w-4 h-4 mr-1.5" />
+              Tickets
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="properties">
