@@ -265,7 +265,7 @@ export const PropertyFinanceView = ({ property, bookings, manualReservations, pi
       {recentPayouts.length > 0 && (
         <motion.div initial={{ opacity: 0, y: 16, filter: "blur(4px)" }} animate={{ opacity: 1, y: 0, filter: "blur(0px)" }} transition={{ delay: 0.15, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}>
           <Card className="p-6">
-            <h3 className="font-semibold mb-4">Recent Payouts</h3>
+            <h3 className="font-semibold mb-4">List of Reservations and payouts</h3>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead><tr className="border-b border-border text-left">
