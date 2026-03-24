@@ -84,6 +84,21 @@ export function DailyOperations({ adminPin }: { adminPin: string }) {
     }
   };
 
+  const handleRevertCleaning = async (prop: PropertyStatus) => {
+    const resId = prop.arrival_reservation?.id;
+    if (!resId) return;
+    setMarkingId(resId);
+    try {
+      await adminResetCleaningStatus(adminPin, resId);
+      toast.success(`${prop.name} reverted to pending`);
+      await load();
+    } catch {
+      toast.error("Failed to revert cleaning status");
+    } finally {
+      setMarkingId(null);
+    }
+  };
+
   const counts = {
     "same-day": properties.filter((p) => p.status === "same-day").length,
     "checkout-only": properties.filter((p) => p.status === "checkout-only").length,
