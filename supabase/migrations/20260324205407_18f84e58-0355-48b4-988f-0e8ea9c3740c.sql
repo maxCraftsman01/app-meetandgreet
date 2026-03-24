@@ -1,0 +1,1 @@
+ALTER TABLE maintenance_tickets ADD COLUMN cost_visible_to_owner boolean NOT NULL DEFAULT false;

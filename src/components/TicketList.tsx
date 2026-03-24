@@ -28,6 +28,7 @@ interface Ticket {
   repair_cost: number;
   visible_to_owner: boolean;
   visible_to_cleaner: boolean;
+  cost_visible_to_owner: boolean;
   created_at: string;
   resolved_at: string | null;
   ticket_media: TicketMedia[];
@@ -259,6 +260,23 @@ export const TicketList = ({ tickets, role, adminPin, currency = "EUR", onRefres
                       <Switch
                         checked={selectedTicket.visible_to_cleaner}
                         onCheckedChange={() => handleToggleCleanerVisibility(selectedTicket)}
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium">Cost Visible to Owner</span>
+                      <Switch
+                        checked={selectedTicket.cost_visible_to_owner}
+                        onCheckedChange={async () => {
+                          if (!adminPin) return;
+                          try {
+                            await updateTicket(adminPin, selectedTicket.id, { cost_visible_to_owner: !selectedTicket.cost_visible_to_owner });
+                            toast.success(selectedTicket.cost_visible_to_owner ? "Cost hidden from owner" : "Cost visible to owner");
+                            onRefresh?.();
+                          } catch {
+                            toast.error("Failed to update");
+                          }
+                        }}
                       />
                     </div>
 

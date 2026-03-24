@@ -81,6 +81,7 @@ export type Database = {
       }
       maintenance_tickets: {
         Row: {
+          cost_visible_to_owner: boolean
           created_at: string
           created_by_role: string
           created_by_user_id: string | null
@@ -96,6 +97,7 @@ export type Database = {
           visible_to_owner: boolean
         }
         Insert: {
+          cost_visible_to_owner?: boolean
           created_at?: string
           created_by_role?: string
           created_by_user_id?: string | null
@@ -111,6 +113,7 @@ export type Database = {
           visible_to_owner?: boolean
         }
         Update: {
+          cost_visible_to_owner?: boolean
           created_at?: string
           created_by_role?: string
           created_by_user_id?: string | null
