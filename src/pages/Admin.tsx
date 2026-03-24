@@ -52,7 +52,7 @@ const Admin = () => {
   const [financeData, setFinanceData] = useState<{ bookings: Booking[]; manual_reservations: ManualReservation[] } | null>(null);
   const [financeLoading, setFinanceLoading] = useState(false);
   const [moreSheetOpen, setMoreSheetOpen] = useState(false);
-  const [adminTickets, setAdminTickets] = useState<any[]>([]);
+  const [adminTickets, setAdminTickets] = useState<Ticket[]>([]);
   const [ticketsLoading, setTicketsLoading] = useState(false);
   const [ticketFormOpen, setTicketFormOpen] = useState(false);
 
