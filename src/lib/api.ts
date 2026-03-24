@@ -172,6 +172,59 @@ export async function getAdminTimeline(adminPin: string, from: string, to: strin
   });
 }
 
+// Maintenance tickets
+export async function getTickets(pin: string, role: "admin" | "user", propertyId?: string) {
+  const header = role === "admin" ? "x-admin-pin" : "x-user-pin";
+  return callFunction("maintenance-tickets", {
+    method: "GET",
+    headers: { [header]: pin },
+    params: propertyId ? { property_id: propertyId } : undefined,
+  });
+}
+
+export async function createTicket(pin: string, role: "admin" | "user", data: Record<string, unknown>) {
+  const header = role === "admin" ? "x-admin-pin" : "x-user-pin";
+  return callFunction("maintenance-tickets", {
+    method: "POST",
+    headers: { [header]: pin },
+    body: data,
+  });
+}
+
+export async function updateTicket(adminPin: string, id: string, data: Record<string, unknown>) {
+  return callFunction("maintenance-tickets", {
+    method: "PUT",
+    headers: { "x-admin-pin": adminPin },
+    params: { id },
+    body: data,
+  });
+}
+
+export async function deleteTicket(adminPin: string, id: string) {
+  return callFunction("maintenance-tickets", {
+    method: "DELETE",
+    headers: { "x-admin-pin": adminPin },
+    params: { id },
+  });
+}
+
+export async function uploadTicketMedia(file: File, ticketId: string): Promise<string> {
+  const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+  const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+  const ext = file.name.split(".").pop() || "bin";
+  const path = `${ticketId}/${Date.now()}.${ext}`;
+  const res = await fetch(`${SUPABASE_URL}/storage/v1/object/ticket-media/${path}`, {
+    method: "POST",
+    headers: {
+      "apikey": SUPABASE_KEY,
+      "Authorization": `Bearer ${SUPABASE_KEY}`,
+    },
+    body: file,
+  });
+  if (!res.ok) throw new Error("Upload failed");
+  return `${SUPABASE_URL}/storage/v1/object/public/ticket-media/${path}`;
+}
+
 // Admin daily operations
 export async function getDailyOperations(adminPin: string) {
   return callFunction("cleaner-operations", {
