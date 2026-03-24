@@ -28,6 +28,7 @@ interface Ticket {
   repair_cost: number;
   visible_to_owner: boolean;
   visible_to_cleaner: boolean;
+  cost_visible_to_owner: boolean;
   created_at: string;
   resolved_at: string | null;
   ticket_media: TicketMedia[];
