@@ -62,6 +62,9 @@ const Admin = () => {
   const [financeData, setFinanceData] = useState<{ bookings: any[]; manual_reservations: any[] } | null>(null);
   const [financeLoading, setFinanceLoading] = useState(false);
   const [moreSheetOpen, setMoreSheetOpen] = useState(false);
+  const [adminTickets, setAdminTickets] = useState<any[]>([]);
+  const [ticketsLoading, setTicketsLoading] = useState(false);
+  const [ticketFormOpen, setTicketFormOpen] = useState(false);
 
   const adminTabs = [
     { id: "properties", label: "Properties", shortLabel: "Props", icon: Building2 },
