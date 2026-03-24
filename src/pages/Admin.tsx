@@ -49,7 +49,7 @@ const Admin = () => {
   const [activeTab, setActiveTab] = useState("properties");
   const [pendingCounts, setPendingCounts] = useState<Record<string, number>>({});
   const [financeProperty, setFinanceProperty] = useState<Property | null>(null);
-  const [financeData, setFinanceData] = useState<{ bookings: any[]; manual_reservations: any[] } | null>(null);
+  const [financeData, setFinanceData] = useState<{ bookings: Booking[]; manual_reservations: ManualReservation[] } | null>(null);
   const [financeLoading, setFinanceLoading] = useState(false);
   const [moreSheetOpen, setMoreSheetOpen] = useState(false);
   const [adminTickets, setAdminTickets] = useState<any[]>([]);
