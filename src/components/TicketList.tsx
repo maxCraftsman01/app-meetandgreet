@@ -162,7 +162,7 @@ export const TicketList = ({ tickets, role, adminPin, currency = "EUR", onRefres
                     <div className="flex items-center gap-2 shrink-0">
                       {photos.length > 0 && <Image className="w-4 h-4 text-muted-foreground" />}
                       {hasVoice && <Mic className="w-4 h-4 text-muted-foreground" />}
-                      {ticket.repair_cost > 0 && (
+                      {(role === "admin" || role === "owner") && ticket.repair_cost > 0 && (
                         <span className="text-xs font-medium text-destructive">{ticket.repair_cost} {currency}</span>
                       )}
                       <ChevronRight className="w-4 h-4 text-muted-foreground" />
@@ -276,6 +276,13 @@ export const TicketList = ({ tickets, role, adminPin, currency = "EUR", onRefres
                       <Trash2 className="w-4 h-4 mr-1.5" />
                       Delete Ticket
                     </Button>
+                  </div>
+                )}
+
+                {role === "owner" && selectedTicket.repair_cost > 0 && (
+                  <div className="pt-3 border-t border-border">
+                    <span className="text-sm font-medium">Repair Cost: </span>
+                    <span className="text-sm text-destructive">{selectedTicket.repair_cost} {currency}</span>
                   </div>
                 )}
               </div>
