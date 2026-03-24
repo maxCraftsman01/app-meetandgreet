@@ -1,26 +1,24 @@
 
 
-## Add Property Selector to Finance Tab
+## Hide Repair Cost from Cleaners
 
-### Current State
-There is already a property selector in the header (line 200-211), but it controls the entire dashboard and is tied to finance, sync, and other features. The user wants a dedicated way to choose which property's finance data is shown, ideally within the Finance tab itself.
-
-### Solution
-Move the property selector dropdown **inside the Finance tab content area**, at the top, so the user can switch between their finance-accessible properties directly. This replaces the current header-level selector for finance context.
+### Problem
+Cleaners can currently see the repair cost value on tickets in both the list view and detail dialog. This should only be visible to admins and property owners.
 
 ### Changes
 
-**`src/pages/Dashboard.tsx`**
+**`src/components/TicketList.tsx`** — 2 locations:
 
-1. Inside the Finance `TabsContent` (line 261), add a property dropdown at the top that lists only properties where the user has `can_view_finance` access
-2. Keep the existing `selectedPropertyId` state — it already drives which property is shown
-3. Remove the header-level property selector (or keep it only if needed for other tabs)
-4. If the user has only one finance property, skip showing the dropdown
+1. **List card** (line 165-167): Wrap the repair cost display with a role check — only show when `role === "admin" || role === "owner"`
 
-The dropdown will sit above the `PropertyFinanceView` component, styled consistently with existing selects.
+2. **Detail dialog** (lines 257-268): The repair cost input section is already inside the `role === "admin"` block, so it's already hidden from cleaners and owners. However, we should also add a read-only cost display for owners. Currently owners see no cost info at all in the detail view.
 
-### Technical details
-- Filter `properties` to only those with finance access: `userProperties.filter(p => p.can_view_finance)`
-- Use existing `Select` component with the finance-accessible properties
-- On change, update `selectedPropertyId` which already triggers the correct `PropertyFinanceView` render
+   Add a read-only cost display for owners (after the admin controls block): if `role === "owner"` and `repair_cost > 0`, show the cost as plain text.
+
+### Summary of visibility:
+| Element | Admin | Owner | Cleaner |
+|---------|-------|-------|---------|
+| Cost in list card | Yes | Yes | **No** |
+| Cost edit in detail | Yes | No | No |
+| Cost read-only in detail | Yes | Yes | **No** |
 
