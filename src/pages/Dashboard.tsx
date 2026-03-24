@@ -13,7 +13,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from
 "@/components/ui/select";
 import { getSession, clearSession } from "@/lib/session";
-import { getOwnerData, fetchIcal, getCleanerTasks, markAsCleaned, getTickets } from "@/lib/api";
+import { getOwnerData, fetchIcal, getCleanerTasks, markAsCleaned, resetCleaningStatus, getTickets } from "@/lib/api";
 import CleaningCalendar from "@/components/CleaningCalendar";
 import { PropertyFinanceView } from "@/components/PropertyFinanceView";
 import { TicketList } from "@/components/TicketList";
