@@ -137,6 +137,19 @@ const Dashboard = () => {
     }
   };
 
+  const handleRevertCleaning = async (reservationId: string) => {
+    setMarkingId(reservationId);
+    try {
+      await resetCleaningStatus(session!.pin, reservationId);
+      toast.success("Reverted to pending");
+      loadCleaningTasks();
+    } catch {
+      toast.error("Failed to update");
+    } finally {
+      setMarkingId(null);
+    }
+  };
+
   const handleLogout = () => {
     clearSession();
     navigate("/");
