@@ -28,7 +28,8 @@ import {
 import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
 
-export type { ManualReservation } from "@/types";
+import type { ManualReservation } from "@/types";
+export type { ManualReservation };
 
 interface Props {
   adminPin: string;
