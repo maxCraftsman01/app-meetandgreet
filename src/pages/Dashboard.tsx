@@ -360,6 +360,18 @@ const Dashboard = () => {
                   markingId={markingId} />
                 </TabsContent>
               </Tabs>
+
+              {/* Floating Report Issue Button */}
+              <Button
+                className="fixed bottom-6 right-6 z-50 rounded-full shadow-lg h-12 px-5 gap-2"
+                onClick={() => {
+                  setReportPropertyId(userProperties.find(p => p.can_view_cleaning)?.id || "");
+                  setReportDialogOpen(true);
+                }}
+              >
+                <Wrench className="w-5 h-5" />
+                Report Issue
+              </Button>
             </TabsContent>
           }
 
