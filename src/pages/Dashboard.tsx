@@ -13,7 +13,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from
 "@/components/ui/select";
 import { getSession, clearSession } from "@/lib/session";
-import { getOwnerData, fetchIcal, getCleanerTasks, markAsCleaned, getTickets } from "@/lib/api";
+import { getOwnerData, fetchIcal, getCleanerTasks, markAsCleaned, resetCleaningStatus, getTickets } from "@/lib/api";
 import CleaningCalendar from "@/components/CleaningCalendar";
 import { PropertyFinanceView } from "@/components/PropertyFinanceView";
 import { TicketList } from "@/components/TicketList";
@@ -129,6 +129,19 @@ const Dashboard = () => {
     try {
       await markAsCleaned(session!.pin, reservationId);
       toast.success("Marked as cleaned!");
+      loadCleaningTasks();
+    } catch {
+      toast.error("Failed to update");
+    } finally {
+      setMarkingId(null);
+    }
+  };
+
+  const handleRevertCleaning = async (reservationId: string) => {
+    setMarkingId(reservationId);
+    try {
+      await resetCleaningStatus(session!.pin, reservationId);
+      toast.success("Reverted to pending");
       loadCleaningTasks();
     } catch {
       toast.error("Failed to update");
@@ -320,7 +333,18 @@ const Dashboard = () => {
                                   </Button>
                                 </div>
                           }
-                              {task.status === "arrival-ready" &&
+                              {task.status === "arrival-ready" && taskCanMark && task.reservation_id &&
+                          <div className="mt-4 flex items-center justify-between">
+                                  <div className="flex items-center gap-2 text-emerald-700">
+                                    <CheckCircle2 className="w-4 h-4" />
+                                    <span className="text-sm font-medium">Cleaning completed</span>
+                                  </div>
+                                  <Button variant="outline" size="sm" onClick={() => handleRevertCleaning(task.reservation_id!)} disabled={markingId === task.reservation_id}>
+                                    {markingId === task.reservation_id ? "Updating..." : "Mark as Pending"}
+                                  </Button>
+                                </div>
+                          }
+                              {task.status === "arrival-ready" && !taskCanMark &&
                           <div className="mt-4 flex items-center gap-2 text-emerald-700">
                                   <CheckCircle2 className="w-4 h-4" />
                                   <span className="text-sm font-medium">Cleaning completed</span>

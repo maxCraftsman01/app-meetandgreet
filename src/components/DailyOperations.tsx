@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { RefreshCw, Bell, CheckCircle2, AlertTriangle, Clock, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { getDailyOperations, adminMarkCleaned } from "@/lib/api";
+import { getDailyOperations, adminMarkCleaned, adminResetCleaningStatus } from "@/lib/api";
 import { toast } from "sonner";
 
 interface PropertyStatus {
@@ -84,6 +84,21 @@ export function DailyOperations({ adminPin }: { adminPin: string }) {
     }
   };
 
+  const handleRevertCleaning = async (prop: PropertyStatus) => {
+    const resId = prop.arrival_reservation?.id;
+    if (!resId) return;
+    setMarkingId(resId);
+    try {
+      await adminResetCleaningStatus(adminPin, resId);
+      toast.success(`${prop.name} reverted to pending`);
+      await load();
+    } catch {
+      toast.error("Failed to revert cleaning status");
+    } finally {
+      setMarkingId(null);
+    }
+  };
+
   const counts = {
     "same-day": properties.filter((p) => p.status === "same-day").length,
     "checkout-only": properties.filter((p) => p.status === "checkout-only").length,
@@ -144,10 +159,15 @@ export function DailyOperations({ adminPin }: { adminPin: string }) {
               </Button>
             )}
             {p.status === "arrival-ready" && (
-              <Button variant="outline" size="sm" className="text-xs" onClick={() => handleNotifyOwner(p)}>
-                <Bell className="w-3.5 h-3.5 mr-1" />
-                Notify Owner
-              </Button>
+              <>
+                <Button variant="outline" size="sm" className="text-xs" onClick={() => handleRevertCleaning(p)} disabled={markingId === p.arrival_reservation?.id}>
+                  {markingId === p.arrival_reservation?.id ? "Updating..." : "Revert to Pending"}
+                </Button>
+                <Button variant="outline" size="sm" className="text-xs" onClick={() => handleNotifyOwner(p)}>
+                  <Bell className="w-3.5 h-3.5 mr-1" />
+                  Notify Owner
+                </Button>
+              </>
             )}
           </div>
         </Card>

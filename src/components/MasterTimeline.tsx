@@ -246,6 +246,8 @@ export function MasterTimeline({ adminPin }: Props) {
         reservation={selectedReservation}
         open={modalOpen}
         onOpenChange={setModalOpen}
+        adminPin={adminPin}
+        onUpdate={load}
       />
     </div>
   );
