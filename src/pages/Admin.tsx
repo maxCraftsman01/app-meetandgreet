@@ -463,6 +463,48 @@ const Admin = () => {
               <DailyOperations adminPin={session!.pin} />
             </Card>
           </TabsContent>
+
+          <TabsContent value="tickets">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-semibold">Maintenance Tickets</h2>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={loadTickets}>
+                    <RefreshCw className="w-4 h-4 mr-1.5" />
+                    Refresh
+                  </Button>
+                  <Dialog open={ticketFormOpen} onOpenChange={setTicketFormOpen}>
+                    <Button size="sm" onClick={() => setTicketFormOpen(true)}>
+                      <Plus className="w-4 h-4 mr-1.5" />
+                      New Ticket
+                    </Button>
+                    <DialogContent className="sm:max-w-lg">
+                      <DialogHeader>
+                        <DialogTitle>Create Ticket</DialogTitle>
+                      </DialogHeader>
+                      <TicketForm
+                        pin={session!.pin}
+                        role="admin"
+                        properties={properties.map((p) => ({ id: p.id, name: p.name }))}
+                        onSuccess={() => { setTicketFormOpen(false); loadTickets(); }}
+                        onCancel={() => setTicketFormOpen(false)}
+                      />
+                    </DialogContent>
+                  </Dialog>
+                </div>
+              </div>
+              {ticketsLoading ? (
+                <div className="flex justify-center py-20 text-muted-foreground">Loading...</div>
+              ) : (
+                <TicketList
+                  tickets={adminTickets}
+                  role="admin"
+                  adminPin={session!.pin}
+                  onRefresh={loadTickets}
+                />
+              )}
+            </div>
+          </TabsContent>
         </Tabs>
       </main>
 
