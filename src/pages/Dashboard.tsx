@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import {
   LogOut, RefreshCw, Building2,
   CheckCircle2, Key, FileText, AlertTriangle, Clock, Sparkles,
-  DollarSign, Brush } from
+  DollarSign, Brush, Wrench } from
 "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -13,9 +13,12 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from
 "@/components/ui/select";
 import { getSession, clearSession } from "@/lib/session";
-import { getOwnerData, fetchIcal, getCleanerTasks, markAsCleaned } from "@/lib/api";
+import { getOwnerData, fetchIcal, getCleanerTasks, markAsCleaned, getTickets } from "@/lib/api";
 import CleaningCalendar from "@/components/CleaningCalendar";
 import { PropertyFinanceView } from "@/components/PropertyFinanceView";
+import { TicketList } from "@/components/TicketList";
+import { TicketForm } from "@/components/TicketForm";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 
 // ─── Types ──────────────────────────────────────────
@@ -55,6 +58,10 @@ const Dashboard = () => {
   const [cleanerTasks, setCleanerTasks] = useState<CleanerTask[]>([]);
   const [cleaningLoading, setCleaningLoading] = useState(false);
   const [markingId, setMarkingId] = useState<string | null>(null);
+  const [ownerTickets, setOwnerTickets] = useState<any[]>([]);
+  const [ticketsLoading, setTicketsLoading] = useState(false);
+  const [reportDialogOpen, setReportDialogOpen] = useState(false);
+  const [reportPropertyId, setReportPropertyId] = useState<string>("");
 
   useEffect(() => {
     if (!session || session.role !== "user") {
@@ -135,6 +142,18 @@ const Dashboard = () => {
     navigate("/");
   };
 
+  const loadOwnerTickets = async () => {
+    setTicketsLoading(true);
+    try {
+      const data = await getTickets(session!.pin, "user");
+      setOwnerTickets(data);
+    } catch {
+      toast.error("Failed to load tickets");
+    } finally {
+      setTicketsLoading(false);
+    }
+  };
+
   const selectedProperty = properties.find((p) => p.id === selectedPropertyId);
 
   if (loading) {
@@ -203,6 +222,12 @@ const Dashboard = () => {
             <TabsTrigger value="cleaning" onClick={() => {if (cleanerTasks.length === 0) loadCleaningTasks();}}>
                 <Brush className="w-4 h-4 mr-1.5" />
                 Cleaning
+              </TabsTrigger>
+            }
+            {hasAnyFinance &&
+            <TabsTrigger value="tickets" onClick={() => {if (ownerTickets.length === 0) loadOwnerTickets();}}>
+                <Wrench className="w-4 h-4 mr-1.5" />
+                Tickets
               </TabsTrigger>
             }
           </TabsList>
@@ -301,6 +326,12 @@ const Dashboard = () => {
                                   <span className="text-sm font-medium">Cleaning completed</span>
                                 </div>
                           }
+                              <div className="mt-3">
+                                <Button variant="outline" size="sm" className="w-full" onClick={() => { setReportPropertyId(task.property_id); setReportDialogOpen(true); }}>
+                                  <Wrench className="w-4 h-4 mr-1.5" />
+                                  Report Issue
+                                </Button>
+                              </div>
                             </Card>
                           </motion.div>);
 
@@ -331,6 +362,45 @@ const Dashboard = () => {
               </Tabs>
             </TabsContent>
           }
+
+          {/* ── Tickets Tab (Owner) ─────────────────────────── */}
+          {hasAnyFinance &&
+          <TabsContent value="tickets" className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-semibold">Property Tickets</h2>
+                <Button variant="outline" size="sm" onClick={loadOwnerTickets}>
+                  <RefreshCw className="w-4 h-4 mr-1.5" />
+                  Refresh
+                </Button>
+              </div>
+              {ticketsLoading ? (
+                <div className="flex justify-center py-20 text-muted-foreground">Loading...</div>
+              ) : (
+                <TicketList
+                  tickets={ownerTickets}
+                  role="owner"
+                  currency={selectedProperty?.currency}
+                />
+              )}
+            </TabsContent>
+          }
+
+          {/* Cleaner Report Issue Dialog */}
+          <Dialog open={reportDialogOpen} onOpenChange={setReportDialogOpen}>
+            <DialogContent className="sm:max-w-lg">
+              <DialogHeader>
+                <DialogTitle>Report Issue</DialogTitle>
+              </DialogHeader>
+              <TicketForm
+                pin={session!.pin}
+                role="user"
+                properties={userProperties.map((p) => ({ id: p.id, name: p.name }))}
+                preselectedPropertyId={reportPropertyId}
+                onSuccess={() => { setReportDialogOpen(false); }}
+                onCancel={() => setReportDialogOpen(false)}
+              />
+            </DialogContent>
+          </Dialog>
         </Tabs>
       </main>
     </div>);

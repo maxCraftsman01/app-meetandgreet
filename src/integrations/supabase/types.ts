@@ -79,6 +79,66 @@ export type Database = {
           },
         ]
       }
+      maintenance_tickets: {
+        Row: {
+          created_at: string
+          created_by_role: string
+          created_by_user_id: string | null
+          description: string | null
+          id: string
+          priority: string
+          property_id: string
+          repair_cost: number
+          resolved_at: string | null
+          status: string
+          title: string
+          visible_to_owner: boolean
+        }
+        Insert: {
+          created_at?: string
+          created_by_role?: string
+          created_by_user_id?: string | null
+          description?: string | null
+          id?: string
+          priority?: string
+          property_id: string
+          repair_cost?: number
+          resolved_at?: string | null
+          status?: string
+          title: string
+          visible_to_owner?: boolean
+        }
+        Update: {
+          created_at?: string
+          created_by_role?: string
+          created_by_user_id?: string | null
+          description?: string | null
+          id?: string
+          priority?: string
+          property_id?: string
+          repair_cost?: number
+          resolved_at?: string | null
+          status?: string
+          title?: string
+          visible_to_owner?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "maintenance_tickets_created_by_user_id_fkey"
+            columns: ["created_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "app_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_tickets_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       manual_reservations: {
         Row: {
           check_in: string
@@ -179,6 +239,38 @@ export type Database = {
           owner_pin?: string
         }
         Relationships: []
+      }
+      ticket_media: {
+        Row: {
+          created_at: string
+          id: string
+          media_type: string
+          storage_path: string
+          ticket_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          media_type: string
+          storage_path: string
+          ticket_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          media_type?: string
+          storage_path?: string
+          ticket_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ticket_media_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "maintenance_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_property_access: {
         Row: {

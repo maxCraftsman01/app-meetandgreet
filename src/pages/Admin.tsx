@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, LogOut, Copy, RefreshCw, Pencil, Trash2, Check, Building2, List, Clock, ChevronDown, Activity, Users, CalendarRange, BarChart3, MoreHorizontal } from "lucide-react";
+import { Plus, LogOut, Copy, RefreshCw, Pencil, Trash2, Check, Building2, List, Clock, ChevronDown, Activity, Users, CalendarRange, BarChart3, MoreHorizontal, Wrench } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { getSession, clearSession } from "@/lib/session";
-import { getAdminProperties, createProperty, updateProperty, deleteProperty, fetchIcal, getAdminPendingIcal, getOwnerData } from "@/lib/api";
+import { getAdminProperties, createProperty, updateProperty, deleteProperty, fetchIcal, getAdminPendingIcal, getOwnerData, getTickets } from "@/lib/api";
 import { toast } from "sonner";
 import { ManageReservations } from "@/components/ManageReservations";
 import { MasterReservationList } from "@/components/MasterReservationList";
@@ -20,6 +20,8 @@ import { DailyOperations } from "@/components/DailyOperations";
 import { UserManagement } from "@/components/UserManagement";
 import { MasterTimeline } from "@/components/MasterTimeline";
 import { PropertyFinanceView } from "@/components/PropertyFinanceView";
+import { TicketForm } from "@/components/TicketForm";
+import { TicketList } from "@/components/TicketList";
 
 interface Property {
   id: string;
@@ -60,6 +62,9 @@ const Admin = () => {
   const [financeData, setFinanceData] = useState<{ bookings: any[]; manual_reservations: any[] } | null>(null);
   const [financeLoading, setFinanceLoading] = useState(false);
   const [moreSheetOpen, setMoreSheetOpen] = useState(false);
+  const [adminTickets, setAdminTickets] = useState<any[]>([]);
+  const [ticketsLoading, setTicketsLoading] = useState(false);
+  const [ticketFormOpen, setTicketFormOpen] = useState(false);
 
   const adminTabs = [
     { id: "properties", label: "Properties", shortLabel: "Props", icon: Building2 },
@@ -67,6 +72,7 @@ const Admin = () => {
     { id: "master-list", label: "All Reservations", shortLabel: "Reserv", icon: List },
     { id: "timeline", label: "Timeline", shortLabel: "Time", icon: CalendarRange },
     { id: "daily-ops", label: "Daily Ops", shortLabel: "Ops", icon: Activity },
+    { id: "tickets", label: "Tickets", shortLabel: "Tickets", icon: Wrench },
   ];
 
   const pinnedTabs = adminTabs.slice(0, 4);
@@ -215,6 +221,18 @@ const Admin = () => {
     }
   };
 
+  const loadTickets = async () => {
+    setTicketsLoading(true);
+    try {
+      const data = await getTickets(session!.pin, "admin");
+      setAdminTickets(data);
+    } catch {
+      toast.error("Failed to load tickets");
+    } finally {
+      setTicketsLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b border-border bg-card">
@@ -259,6 +277,10 @@ const Admin = () => {
             <TabsTrigger value="daily-ops">
               <Activity className="w-4 h-4 mr-1.5" />
               Daily Ops
+            </TabsTrigger>
+            <TabsTrigger value="tickets" onClick={() => { if (adminTickets.length === 0) loadTickets(); }}>
+              <Wrench className="w-4 h-4 mr-1.5" />
+              Tickets
             </TabsTrigger>
           </TabsList>
 
@@ -452,6 +474,48 @@ const Admin = () => {
             <Card className="p-6">
               <DailyOperations adminPin={session!.pin} />
             </Card>
+          </TabsContent>
+
+          <TabsContent value="tickets">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-semibold">Maintenance Tickets</h2>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={loadTickets}>
+                    <RefreshCw className="w-4 h-4 mr-1.5" />
+                    Refresh
+                  </Button>
+                  <Dialog open={ticketFormOpen} onOpenChange={setTicketFormOpen}>
+                    <Button size="sm" onClick={() => setTicketFormOpen(true)}>
+                      <Plus className="w-4 h-4 mr-1.5" />
+                      New Ticket
+                    </Button>
+                    <DialogContent className="sm:max-w-lg">
+                      <DialogHeader>
+                        <DialogTitle>Create Ticket</DialogTitle>
+                      </DialogHeader>
+                      <TicketForm
+                        pin={session!.pin}
+                        role="admin"
+                        properties={properties.map((p) => ({ id: p.id, name: p.name }))}
+                        onSuccess={() => { setTicketFormOpen(false); loadTickets(); }}
+                        onCancel={() => setTicketFormOpen(false)}
+                      />
+                    </DialogContent>
+                  </Dialog>
+                </div>
+              </div>
+              {ticketsLoading ? (
+                <div className="flex justify-center py-20 text-muted-foreground">Loading...</div>
+              ) : (
+                <TicketList
+                  tickets={adminTickets}
+                  role="admin"
+                  adminPin={session!.pin}
+                  onRefresh={loadTickets}
+                />
+              )}
+            </div>
           </TabsContent>
         </Tabs>
       </main>
