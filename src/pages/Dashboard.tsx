@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   LogOut, RefreshCw, Building2,
-  CheckCircle2, Key, FileText, AlertTriangle, Clock, Sparkles,
+  CheckCircle2, Key, FileText, Sparkles,
   DollarSign, Brush, Wrench } from
 "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -20,30 +20,8 @@ import { TicketList } from "@/components/TicketList";
 import { TicketForm } from "@/components/TicketForm";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
-
-// ─── Types ──────────────────────────────────────────
-interface Booking {
-  id: string;property_id: string;summary: string;start_date: string;end_date: string;status: string;source_url: string | null;
-}
-interface ManualReservation {
-  id: string;property_id: string;guest_name: string;check_in: string;check_out: string;source: string;net_payout: number;status: string;
-}
-interface Property {
-  id: string;name: string;owner_name: string;nightly_rate: number;currency: string;ical_urls: string[];
-}
-interface CleanerTask {
-  property_id: string;property_name: string;keybox_code: string;cleaning_notes: string;
-  status: "idle" | "same-day" | "checkout-only" | "arrival-pending" | "arrival-ready";
-  reservation_id: string | null;guest_name: string | null;check_in: string | null;check_out_guest: string | null;
-}
-
-const STATUS_CONFIG: Record<string, {color: string;bg: string;border: string;label: string;icon: typeof AlertTriangle;}> = {
-  "same-day": { color: "text-red-700", bg: "bg-red-50", border: "border-red-200", label: "Same-Day Turnover", icon: AlertTriangle },
-  "checkout-only": { color: "text-yellow-700", bg: "bg-yellow-50", border: "border-yellow-200", label: "Check-out Only", icon: Clock },
-  "arrival-pending": { color: "text-orange-700", bg: "bg-orange-50", border: "border-orange-200", label: "Arrival Pending Clean", icon: Clock },
-  "arrival-ready": { color: "text-emerald-700", bg: "bg-emerald-50", border: "border-emerald-200", label: "Ready for Arrival", icon: CheckCircle2 },
-  idle: { color: "text-muted-foreground", bg: "bg-muted/50", border: "border-border", label: "No Activity Today", icon: Sparkles }
-};
+import type { Booking, ManualReservation, Property, CleanerTask, Ticket } from "@/types";
+import { CLEANING_STATUS_CONFIG, CLEANING_STATUS_PRIORITY } from "@/lib/status-config";
 
 // ─── Component ──────────────────────────────────────
 const Dashboard = () => {
@@ -58,7 +36,7 @@ const Dashboard = () => {
   const [cleanerTasks, setCleanerTasks] = useState<CleanerTask[]>([]);
   const [cleaningLoading, setCleaningLoading] = useState(false);
   const [markingId, setMarkingId] = useState<string | null>(null);
-  const [ownerTickets, setOwnerTickets] = useState<any[]>([]);
+  const [ownerTickets, setOwnerTickets] = useState<Ticket[]>([]);
   const [ticketsLoading, setTicketsLoading] = useState(false);
   const [reportDialogOpen, setReportDialogOpen] = useState(false);
   const [reportPropertyId, setReportPropertyId] = useState<string>("");
@@ -175,8 +153,7 @@ const Dashboard = () => {
 
   const cleaningPropertyIds = userProperties.filter((p) => p.can_view_cleaning).map((p) => p.id);
   const filteredTasks = cleanerTasks.filter((t) => cleaningPropertyIds.includes(t.property_id));
-  const priority: Record<string, number> = { "same-day": 0, "checkout-only": 1, "arrival-pending": 2, "arrival-ready": 3, idle: 4 };
-  const sortedTasks = [...filteredTasks].sort((a, b) => (priority[a.status] ?? 5) - (priority[b.status] ?? 5));
+  const sortedTasks = [...filteredTasks].sort((a, b) => (CLEANING_STATUS_PRIORITY[a.status] ?? 5) - (CLEANING_STATUS_PRIORITY[b.status] ?? 5));
   const today = new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
 
   const defaultTab = hasAnyFinance ? "finance" : "cleaning";
@@ -318,7 +295,7 @@ const Dashboard = () => {
 
                 <div className="space-y-4">
                       {sortedTasks.map((task, i) => {
-                    const cfg = STATUS_CONFIG[task.status] || STATUS_CONFIG.idle;
+                    const cfg = CLEANING_STATUS_CONFIG[task.status] || CLEANING_STATUS_CONFIG.idle;
                     const Icon = cfg.icon;
                     const taskAccess = userProperties.find((p) => p.id === task.property_id);
                     const taskCanMark = taskAccess?.can_mark_cleaned ?? false;

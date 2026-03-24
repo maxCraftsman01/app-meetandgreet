@@ -7,33 +7,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { AlertTriangle, Clock, CheckCircle2, Eye, EyeOff, Trash2, Image, Mic, ChevronRight } from "lucide-react";
+import { Eye, EyeOff, Trash2, Image, Mic, ChevronRight } from "lucide-react";
 import { updateTicket, deleteTicket } from "@/lib/api";
 import { toast } from "sonner";
-
-interface TicketMedia {
-  id: string;
-  media_type: string;
-  storage_path: string;
-}
-
-interface Ticket {
-  id: string;
-  property_id: string;
-  created_by_role: string;
-  title: string;
-  description: string;
-  status: string;
-  priority: string;
-  repair_cost: number;
-  visible_to_owner: boolean;
-  visible_to_cleaner: boolean;
-  cost_visible_to_owner: boolean;
-  created_at: string;
-  resolved_at: string | null;
-  ticket_media: TicketMedia[];
-  properties?: { name: string };
-}
+import type { Ticket } from "@/types";
+import { TICKET_PRIORITY_COLORS, TICKET_STATUS_ICONS, TICKET_STATUS_COLORS } from "@/lib/status-config";
+import { AlertTriangle } from "lucide-react";
 
 interface TicketListProps {
   tickets: Ticket[];
@@ -42,24 +21,6 @@ interface TicketListProps {
   currency?: string;
   onRefresh?: () => void;
 }
-
-const priorityColors: Record<string, string> = {
-  low: "bg-muted text-muted-foreground",
-  normal: "bg-blue-100 text-blue-800",
-  urgent: "bg-red-100 text-red-800",
-};
-
-const statusIcons: Record<string, typeof AlertTriangle> = {
-  open: AlertTriangle,
-  in_progress: Clock,
-  resolved: CheckCircle2,
-};
-
-const statusColors: Record<string, string> = {
-  open: "bg-orange-100 text-orange-800",
-  in_progress: "bg-blue-100 text-blue-800",
-  resolved: "bg-emerald-100 text-emerald-800",
-};
 
 export const TicketList = ({ tickets, role, adminPin, currency = "EUR", onRefresh }: TicketListProps) => {
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
@@ -81,6 +42,17 @@ export const TicketList = ({ tickets, role, adminPin, currency = "EUR", onRefres
     try {
       await updateTicket(adminPin, ticket.id, { visible_to_cleaner: !ticket.visible_to_cleaner });
       toast.success(ticket.visible_to_cleaner ? "Hidden from cleaner" : "Visible to cleaner");
+      onRefresh?.();
+    } catch {
+      toast.error("Failed to update");
+    }
+  };
+
+  const handleToggleCostVisibility = async (ticket: Ticket) => {
+    if (!adminPin) return;
+    try {
+      await updateTicket(adminPin, ticket.id, { cost_visible_to_owner: !ticket.cost_visible_to_owner });
+      toast.success(ticket.cost_visible_to_owner ? "Cost hidden from owner" : "Cost visible to owner");
       onRefresh?.();
     } catch {
       toast.error("Failed to update");
@@ -134,7 +106,7 @@ export const TicketList = ({ tickets, role, adminPin, currency = "EUR", onRefres
       <div className="space-y-3">
         <AnimatePresence>
           {tickets.map((ticket, i) => {
-            const StatusIcon = statusIcons[ticket.status] || AlertTriangle;
+            const StatusIcon = TICKET_STATUS_ICONS[ticket.status] || AlertTriangle;
             const photos = ticket.ticket_media?.filter((m) => m.media_type === "photo") || [];
             const hasVoice = ticket.ticket_media?.some((m) => m.media_type === "voice_note");
 
@@ -153,10 +125,10 @@ export const TicketList = ({ tickets, role, adminPin, currency = "EUR", onRefres
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap mb-1">
-                        <Badge className={`text-[10px] ${priorityColors[ticket.priority]}`}>
+                        <Badge className={`text-[10px] ${TICKET_PRIORITY_COLORS[ticket.priority]}`}>
                           {ticket.priority}
                         </Badge>
-                        <Badge className={`text-[10px] ${statusColors[ticket.status]}`}>
+                        <Badge className={`text-[10px] ${TICKET_STATUS_COLORS[ticket.status]}`}>
                           <StatusIcon className="w-3 h-3 mr-1" />
                           {ticket.status.replace("_", " ")}
                         </Badge>
@@ -198,8 +170,8 @@ export const TicketList = ({ tickets, role, adminPin, currency = "EUR", onRefres
               </DialogHeader>
               <div className="space-y-4">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <Badge className={priorityColors[selectedTicket.priority]}>{selectedTicket.priority}</Badge>
-                  <Badge className={statusColors[selectedTicket.status]}>
+                  <Badge className={TICKET_PRIORITY_COLORS[selectedTicket.priority]}>{selectedTicket.priority}</Badge>
+                  <Badge className={TICKET_STATUS_COLORS[selectedTicket.status]}>
                     {selectedTicket.status.replace("_", " ")}
                   </Badge>
                   <span className="text-xs text-muted-foreground">
@@ -267,16 +239,7 @@ export const TicketList = ({ tickets, role, adminPin, currency = "EUR", onRefres
                       <span className="text-sm font-medium">Cost Visible to Owner</span>
                       <Switch
                         checked={selectedTicket.cost_visible_to_owner}
-                        onCheckedChange={async () => {
-                          if (!adminPin) return;
-                          try {
-                            await updateTicket(adminPin, selectedTicket.id, { cost_visible_to_owner: !selectedTicket.cost_visible_to_owner });
-                            toast.success(selectedTicket.cost_visible_to_owner ? "Cost hidden from owner" : "Cost visible to owner");
-                            onRefresh?.();
-                          } catch {
-                            toast.error("Failed to update");
-                          }
-                        }}
+                        onCheckedChange={() => handleToggleCostVisibility(selectedTicket)}
                       />
                     </div>
 

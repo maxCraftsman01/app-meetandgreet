@@ -1,47 +1,19 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { RefreshCw, Bell, CheckCircle2, AlertTriangle, Clock, Sparkles } from "lucide-react";
+import { RefreshCw, Bell, CheckCircle2, AlertTriangle, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { getDailyOperations, adminMarkCleaned, adminResetCleaningStatus } from "@/lib/api";
 import { toast } from "sonner";
+import type { PropertyStatus } from "@/types";
+import { CLEANING_STATUS_CONFIG, CLEANING_STATUS_PRIORITY } from "@/lib/status-config";
 
-interface PropertyStatus {
-  id: string;
-  name: string;
-  owner_name: string;
-  status: "idle" | "same-day" | "checkout-only" | "arrival-pending" | "arrival-ready";
-  today_checkout: boolean;
-  today_checkin: boolean;
-  cleaning_done: boolean;
-  arrival_reservation: any;
-  keybox_code: string;
-  cleaning_notes: string;
-}
-
-const DOT_COLORS: Record<string, string> = {
-  "same-day": "bg-red-500",
-  "checkout-only": "bg-yellow-500",
-  "arrival-pending": "bg-orange-500",
-  "arrival-ready": "bg-emerald-500",
-  idle: "bg-muted-foreground/30",
-};
-
-const STATUS_LABELS: Record<string, string> = {
-  "same-day": "Same-Day Turnover",
-  "checkout-only": "Check-out Only",
-  "arrival-pending": "Arrival Pending",
-  "arrival-ready": "Ready",
-  idle: "No Activity",
-};
-
-const STATUS_ICONS: Record<string, typeof AlertTriangle> = {
-  "same-day": AlertTriangle,
-  "checkout-only": Clock,
-  "arrival-pending": Clock,
-  "arrival-ready": CheckCircle2,
-  idle: Sparkles,
-};
+const DOT_COLORS = Object.fromEntries(
+  Object.entries(CLEANING_STATUS_CONFIG).map(([k, v]) => [k, v.dot])
+);
+const STATUS_LABELS = Object.fromEntries(
+  Object.entries(CLEANING_STATUS_CONFIG).map(([k, v]) => [k, v.label])
+);
 
 export function DailyOperations({ adminPin }: { adminPin: string }) {
   const [properties, setProperties] = useState<PropertyStatus[]>([]);
@@ -113,17 +85,15 @@ export function DailyOperations({ adminPin }: { adminPin: string }) {
     return <div className="flex justify-center py-12 text-muted-foreground">Loading...</div>;
   }
 
-  // Group into sections
   const cleaningNeeded = properties.filter((p) => p.status === "same-day" || p.status === "arrival-pending");
   const readyForGuest = properties.filter((p) => p.status === "arrival-ready");
   const otherActivity = properties.filter((p) => p.status === "checkout-only");
 
-  // Sort: urgent first within each group
   const priority: Record<string, number> = { "same-day": 0, "arrival-pending": 1 };
   cleaningNeeded.sort((a, b) => (priority[a.status] ?? 2) - (priority[b.status] ?? 2));
 
   const allSorted = [...properties].sort(
-    (a, b) => ({ "same-day": 0, "checkout-only": 1, "arrival-pending": 2, "arrival-ready": 3, idle: 4 }[a.status] ?? 5) - ({ "same-day": 0, "checkout-only": 1, "arrival-pending": 2, "arrival-ready": 3, idle: 4 }[b.status] ?? 5)
+    (a, b) => (CLEANING_STATUS_PRIORITY[a.status] ?? 5) - (CLEANING_STATUS_PRIORITY[b.status] ?? 5)
   );
 
   const renderCard = (p: PropertyStatus, i: number) => {
