@@ -1,0 +1,234 @@
+import { useState, useRef } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Camera, Mic, MicOff, X, Upload } from "lucide-react";
+import { uploadTicketMedia, createTicket } from "@/lib/api";
+import { toast } from "sonner";
+
+interface TicketFormProps {
+  pin: string;
+  role: "admin" | "user";
+  properties: { id: string; name: string }[];
+  preselectedPropertyId?: string;
+  onSuccess?: () => void;
+  onCancel?: () => void;
+}
+
+export const TicketForm = ({ pin, role, properties, preselectedPropertyId, onSuccess, onCancel }: TicketFormProps) => {
+  const [propertyId, setPropertyId] = useState(preselectedPropertyId || "");
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [priority, setPriority] = useState("normal");
+  const [photos, setPhotos] = useState<File[]>([]);
+  const [voiceBlob, setVoiceBlob] = useState<Blob | null>(null);
+  const [recording, setRecording] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream, { mimeType: "audio/webm" });
+      chunksRef.current = [];
+      recorder.ondataavailable = (e) => { if (e.data.size > 0) chunksRef.current.push(e.data); };
+      recorder.onstop = () => {
+        const blob = new Blob(chunksRef.current, { type: "audio/webm" });
+        setVoiceBlob(blob);
+        stream.getTracks().forEach((t) => t.stop());
+      };
+      recorder.start();
+      mediaRecorderRef.current = recorder;
+      setRecording(true);
+    } catch {
+      toast.error("Microphone access denied");
+    }
+  };
+
+  const stopRecording = () => {
+    mediaRecorderRef.current?.stop();
+    setRecording(false);
+  };
+
+  const handlePhotoAdd = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    setPhotos((prev) => [...prev, ...files].slice(0, 5));
+    e.target.value = "";
+  };
+
+  const handleSubmit = async () => {
+    if (!propertyId || !title.trim()) {
+      toast.error("Property and title are required");
+      return;
+    }
+    setSubmitting(true);
+    try {
+      // Create ticket first to get ID
+      const ticket = await createTicket(pin, role, {
+        property_id: propertyId,
+        title: title.trim(),
+        description: description.trim(),
+        priority,
+      });
+
+      // Upload media
+      const mediaEntries: { media_type: string; storage_path: string }[] = [];
+
+      for (const photo of photos) {
+        const url = await uploadTicketMedia(photo, ticket.id);
+        mediaEntries.push({ media_type: "photo", storage_path: url });
+      }
+
+      if (voiceBlob) {
+        const voiceFile = new File([voiceBlob], "voice-note.webm", { type: "audio/webm" });
+        const url = await uploadTicketMedia(voiceFile, ticket.id);
+        mediaEntries.push({ media_type: "voice_note", storage_path: url });
+      }
+
+      // If we have media, update ticket with media refs (via a second call or we handle in edge fn)
+      // For simplicity, we'll make another create call to insert media rows
+      if (mediaEntries.length > 0) {
+        // We need to add media to the ticket - use a PUT-like approach or direct insert
+        // Actually the edge function POST already handles media array, but ticket is already created.
+        // Let's use the Supabase storage URL approach - media is already uploaded, 
+        // we just need to insert ticket_media rows. We'll do this via the edge function update.
+        // For now, let's re-create with media included by making a simple fetch
+        const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+        const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+        for (const m of mediaEntries) {
+          await fetch(`${SUPABASE_URL}/rest/v1/ticket_media`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "apikey": SUPABASE_KEY,
+              "Authorization": `Bearer ${SUPABASE_KEY}`,
+              "Prefer": "return=minimal",
+            },
+            body: JSON.stringify({ ticket_id: ticket.id, media_type: m.media_type, storage_path: m.storage_path }),
+          });
+        }
+      }
+
+      toast.success("Ticket created!");
+      onSuccess?.();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to create ticket");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      {!preselectedPropertyId && (
+        <div>
+          <Label>Property</Label>
+          <Select value={propertyId} onValueChange={setPropertyId}>
+            <SelectTrigger><SelectValue placeholder="Select property" /></SelectTrigger>
+            <SelectContent>
+              {properties.map((p) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+
+      <div>
+        <Label>Title</Label>
+        <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Broken shower head" />
+      </div>
+
+      <div>
+        <Label>Description</Label>
+        <textarea
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          placeholder="Describe the issue..."
+          rows={3}
+          className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+        />
+      </div>
+
+      <div>
+        <Label>Priority</Label>
+        <Select value={priority} onValueChange={setPriority}>
+          <SelectTrigger><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="low">Low</SelectItem>
+            <SelectItem value="normal">Normal</SelectItem>
+            <SelectItem value="urgent">Urgent</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Photos */}
+      <div>
+        <Label>Photos (max 5)</Label>
+        <div className="flex flex-wrap gap-2 mt-1">
+          {photos.map((f, i) => (
+            <div key={i} className="relative w-16 h-16 rounded-lg overflow-hidden border border-border">
+              <img src={URL.createObjectURL(f)} alt="" className="w-full h-full object-cover" />
+              <button
+                onClick={() => setPhotos((prev) => prev.filter((_, j) => j !== i))}
+                className="absolute top-0 right-0 bg-destructive text-destructive-foreground rounded-bl p-0.5"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </div>
+          ))}
+          {photos.length < 5 && (
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="w-16 h-16 rounded-lg border-2 border-dashed border-border flex items-center justify-center text-muted-foreground hover:border-primary hover:text-primary transition-colors"
+            >
+              <Camera className="w-5 h-5" />
+            </button>
+          )}
+        </div>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          multiple
+          className="hidden"
+          onChange={handlePhotoAdd}
+        />
+      </div>
+
+      {/* Voice Note */}
+      <div>
+        <Label>Voice Note</Label>
+        <div className="flex items-center gap-2 mt-1">
+          {!voiceBlob ? (
+            <Button
+              type="button"
+              variant={recording ? "destructive" : "outline"}
+              size="sm"
+              onClick={recording ? stopRecording : startRecording}
+            >
+              {recording ? <><MicOff className="w-4 h-4 mr-1.5" />Stop Recording</> : <><Mic className="w-4 h-4 mr-1.5" />Record</>}
+            </Button>
+          ) : (
+            <div className="flex items-center gap-2">
+              <audio controls src={URL.createObjectURL(voiceBlob)} className="h-8" />
+              <Button variant="ghost" size="sm" onClick={() => setVoiceBlob(null)}>
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="flex gap-2 pt-2">
+        {onCancel && <Button variant="outline" onClick={onCancel} className="flex-1">Cancel</Button>}
+        <Button onClick={handleSubmit} disabled={submitting} className="flex-1">
+          {submitting ? "Submitting..." : "Submit Ticket"}
+          {!submitting && <Upload className="w-4 h-4 ml-1.5" />}
+        </Button>
+      </div>
+    </div>
+  );
+};
