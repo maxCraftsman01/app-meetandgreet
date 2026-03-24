@@ -278,6 +278,13 @@ export const TicketList = ({ tickets, role, adminPin, currency = "EUR", onRefres
                     </Button>
                   </div>
                 )}
+
+                {role === "owner" && selectedTicket.repair_cost > 0 && (
+                  <div className="pt-3 border-t border-border">
+                    <span className="text-sm font-medium">Repair Cost: </span>
+                    <span className="text-sm text-destructive">{selectedTicket.repair_cost} {currency}</span>
+                  </div>
+                )}
               </div>
             </>
           )}
