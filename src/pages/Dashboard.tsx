@@ -224,6 +224,12 @@ const Dashboard = () => {
                 Cleaning
               </TabsTrigger>
             }
+            {hasAnyFinance &&
+            <TabsTrigger value="tickets" onClick={() => {if (ownerTickets.length === 0) loadOwnerTickets();}}>
+                <Wrench className="w-4 h-4 mr-1.5" />
+                Tickets
+              </TabsTrigger>
+            }
           </TabsList>
 
           {/* ── Finance Tab ─────────────────────────── */}
