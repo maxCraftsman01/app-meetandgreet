@@ -175,7 +175,7 @@ const Index = () => {
         </div>
       </motion.div>
       <p className="absolute bottom-4 text-[10px] text-muted-foreground/60">
-        Developed by MaxCraftsman for MeetAndGreet
+        Developed by <a href="https://whereismax.pl" target="_blank" rel="noopener noreferrer" className="underline text-inherit">MaxCraftsman</a> for MeetAndGreet
       </p>
     </div>
   );
