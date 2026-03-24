@@ -67,12 +67,12 @@ const Admin = () => {
   const [ticketFormOpen, setTicketFormOpen] = useState(false);
 
   const adminTabs = [
+    { id: "daily-ops", label: "Daily Ops", shortLabel: "Ops", icon: Activity },
+    { id: "timeline", label: "Timeline", shortLabel: "Time", icon: CalendarRange },
+    { id: "tickets", label: "Tickets", shortLabel: "Tickets", icon: Wrench },
     { id: "properties", label: "Properties", shortLabel: "Props", icon: Building2 },
     { id: "users", label: "Users", shortLabel: "Users", icon: Users },
     { id: "master-list", label: "All Reservations", shortLabel: "Reserv", icon: List },
-    { id: "timeline", label: "Timeline", shortLabel: "Time", icon: CalendarRange },
-    { id: "daily-ops", label: "Daily Ops", shortLabel: "Ops", icon: Activity },
-    { id: "tickets", label: "Tickets", shortLabel: "Tickets", icon: Wrench },
   ];
 
   const pinnedTabs = adminTabs.slice(0, 4);
