@@ -58,6 +58,10 @@ const Dashboard = () => {
   const [cleanerTasks, setCleanerTasks] = useState<CleanerTask[]>([]);
   const [cleaningLoading, setCleaningLoading] = useState(false);
   const [markingId, setMarkingId] = useState<string | null>(null);
+  const [ownerTickets, setOwnerTickets] = useState<any[]>([]);
+  const [ticketsLoading, setTicketsLoading] = useState(false);
+  const [reportDialogOpen, setReportDialogOpen] = useState(false);
+  const [reportPropertyId, setReportPropertyId] = useState<string>("");
 
   useEffect(() => {
     if (!session || session.role !== "user") {
