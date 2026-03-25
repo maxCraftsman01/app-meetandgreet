@@ -59,7 +59,7 @@ const Admin = () => {
   const adminTabs = [
     { id: "daily-ops", label: "Daily Ops", shortLabel: "Ops", icon: Activity },
     { id: "timeline", label: "Timeline", shortLabel: "Time", icon: CalendarRange },
-    { id: "tickets", label: "Tickets", shortLabel: "Tickets", icon: Wrench },
+    { id: "tickets", label: "Issues", shortLabel: "Issues", icon: Wrench },
     { id: "properties", label: "Properties", shortLabel: "Props", icon: Building2 },
     { id: "users", label: "Users", shortLabel: "Users", icon: Users },
     { id: "master-list", label: "All Reservations", shortLabel: "Reserv", icon: List },
@@ -217,7 +217,7 @@ const Admin = () => {
       const data = await getTickets(session!.pin, "admin");
       setAdminTickets(data);
     } catch {
-      toast.error("Failed to load tickets");
+      toast.error("Failed to load issues");
     } finally {
       setTicketsLoading(false);
     }
@@ -258,7 +258,7 @@ const Admin = () => {
             </TabsTrigger>
             <TabsTrigger value="tickets" onClick={() => { if (adminTickets.length === 0) loadTickets(); }}>
               <Wrench className="w-4 h-4 mr-1.5" />
-              Tickets
+              Issues
             </TabsTrigger>
             <TabsTrigger value="properties">
               <Building2 className="w-4 h-4 mr-1.5" />
@@ -469,7 +469,7 @@ const Admin = () => {
           <TabsContent value="tickets">
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold">Maintenance Tickets</h2>
+                <h2 className="text-lg font-semibold">Maintenance Issues</h2>
                 <div className="flex gap-2">
                   <Button variant="outline" size="sm" onClick={loadTickets}>
                     <RefreshCw className="w-4 h-4 mr-1.5" />
@@ -478,11 +478,11 @@ const Admin = () => {
                   <Dialog open={ticketFormOpen} onOpenChange={setTicketFormOpen}>
                     <Button size="sm" onClick={() => setTicketFormOpen(true)}>
                       <Plus className="w-4 h-4 mr-1.5" />
-                      New Ticket
+                      New Issue
                     </Button>
                     <DialogContent className="sm:max-w-lg">
                       <DialogHeader>
-                        <DialogTitle>Create Ticket</DialogTitle>
+                        <DialogTitle>Create Issue</DialogTitle>
                       </DialogHeader>
                       <TicketForm
                         pin={session!.pin}

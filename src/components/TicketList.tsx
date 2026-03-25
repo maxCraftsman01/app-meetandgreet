@@ -82,10 +82,10 @@ export const TicketList = ({ tickets, role, adminPin, currency = "EUR", onRefres
   };
 
   const handleDelete = async (ticket: Ticket) => {
-    if (!adminPin || !confirm("Delete this ticket?")) return;
+    if (!adminPin || !confirm("Delete this issue?")) return;
     try {
       await deleteTicket(adminPin, ticket.id);
-      toast.success("Ticket deleted");
+      toast.success("Issue deleted");
       setSelectedTicket(null);
       onRefresh?.();
     } catch {
@@ -96,7 +96,7 @@ export const TicketList = ({ tickets, role, adminPin, currency = "EUR", onRefres
   if (tickets.length === 0) {
     return (
       <Card className="p-8 text-center text-muted-foreground">
-        <p>No tickets found.</p>
+        <p>No issues found.</p>
       </Card>
     );
   }
@@ -194,7 +194,7 @@ export const TicketList = ({ tickets, role, adminPin, currency = "EUR", onRefres
                           <a key={m.id} href={m.storage_path} target="_blank" rel="noopener noreferrer">
                             <img
                               src={m.storage_path}
-                              alt="Ticket photo"
+                              alt="Issue photo"
                               className="w-full h-32 object-cover rounded-lg border border-border"
                               loading="lazy"
                             />
