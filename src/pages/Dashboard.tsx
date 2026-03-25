@@ -197,7 +197,7 @@ const Dashboard = () => {
       </header>
 
       <main className="container px-4 py-4 md:py-8 pb-24 md:pb-8">
-        <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-3 md:space-y-6">
           {/* Desktop-only top tabs */}
           <div className="hidden md:flex flex-row items-center justify-between gap-3">
             <TabsList>
@@ -233,7 +233,7 @@ const Dashboard = () => {
 
           {/* ── Finance Tab ─────────────────────────── */}
           {hasAnyFinance &&
-          <TabsContent value="finance" className="space-y-8">
+          <TabsContent value="finance" className="space-y-4 mt-0">
               {(() => {
                 const financeProperties = userProperties.filter(p => p.can_view_finance);
                 const financePropertyData = properties.filter(p => financeProperties.some(fp => fp.id === p.id));
