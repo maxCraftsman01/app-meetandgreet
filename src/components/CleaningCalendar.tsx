@@ -185,16 +185,19 @@ export default function CleaningCalendar({ pin, userProperties, onMarkCleaned, o
                   const cfg = topStatus ? CLEANING_STATUS_CONFIG[topStatus] : null;
 
                   const cellStyle = hasEvents && cfg
-                    ? `${cfg.cellBg} ${cfg.cellBorder} ${cfg.cellText} cursor-pointer hover:opacity-80`
+                    ? `${cfg.cellBg} ${cfg.cellBorder} ${cfg.cellText} cursor-pointer hover:opacity-80 border-2`
                     : "border-transparent text-muted-foreground";
 
                   return (
                     <div
                       key={dateStr}
                       onClick={() => hasEvents ? setExpandedDay(isExpanded ? null : dateStr) : null}
-                      className={`relative aspect-square flex items-center justify-center rounded-lg border text-sm font-medium transition-colors duration-150 ${todayRing} ${cellStyle}`}
+                      className={`relative aspect-square flex flex-col items-center justify-center rounded-lg text-sm transition-colors duration-150 ${todayRing} ${cellStyle}`}
                     >
-                      {format(day, "d")}
+                      <span className={hasEvents ? "font-bold" : "font-medium"}>{format(day, "d")}</span>
+                      {hasEvents && cfg && (
+                        <div className={`absolute bottom-1 left-1/2 -translate-x-1/2 h-1.5 w-3/5 rounded-full ${cfg.dot}`} />
+                      )}
                       {dayEvents.length > 1 && (
                         <Badge variant="secondary" className="absolute top-0.5 right-0.5 h-4 min-w-[16px] px-1 text-[10px] leading-none">
                           {dayEvents.length}
@@ -298,7 +301,7 @@ export default function CleaningCalendar({ pin, userProperties, onMarkCleaned, o
           <div className="flex items-center gap-4 flex-wrap text-xs text-muted-foreground pt-2">
             {Object.entries(CLEANING_STATUS_CONFIG).filter(([key]) => key !== "idle").map(([key, cfg]) => (
               <div key={key} className="flex items-center gap-1.5">
-                <div className={`w-3 h-3 rounded-sm ${cfg.cellBg} border ${cfg.cellBorder}`} />
+                <div className={`w-4 h-4 rounded-sm ${cfg.cellBg} border-2 ${cfg.cellBorder}`} />
                 <span>{cfg.label}</span>
               </div>
             ))}
