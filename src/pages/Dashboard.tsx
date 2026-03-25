@@ -49,6 +49,7 @@ const Dashboard = () => {
   const [activeTab, setActiveTab] = useState(defaultTab);
 
   useEffect(() => {
+    window.scrollTo(0, 0);
     if (!session || session.role !== "user") {
       navigate("/");
       return;
@@ -195,7 +196,7 @@ const Dashboard = () => {
         </div>
       </header>
 
-      <main className="container px-4 py-8 pb-24 md:pb-8">
+      <main className="container px-4 py-4 md:py-8 pb-24 md:pb-8">
         <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
           {/* Desktop-only top tabs */}
           <div className="hidden md:flex flex-row items-center justify-between gap-3">
