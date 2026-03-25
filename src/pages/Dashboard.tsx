@@ -139,7 +139,7 @@ const Dashboard = () => {
       const data = await getTickets(session!.pin, "user");
       setOwnerTickets(data);
     } catch {
-      toast.error("Failed to load tickets");
+      toast.error("Failed to load issues");
     } finally {
       setTicketsLoading(false);
     }
@@ -206,7 +206,7 @@ const Dashboard = () => {
               {hasAnyFinance &&
               <TabsTrigger value="tickets" onClick={() => {if (ownerTickets.length === 0) loadOwnerTickets();}}>
                   <Wrench className="w-4 h-4 mr-1.5" />
-                  Tickets
+                   Issues
                 </TabsTrigger>
               }
             </TabsList>
@@ -390,7 +390,7 @@ const Dashboard = () => {
           {hasAnyFinance &&
           <TabsContent value="tickets" className="space-y-4">
               <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold">Property Tickets</h2>
+                <h2 className="text-lg font-semibold">Property Issues</h2>
                 <Button variant="outline" size="sm" onClick={loadOwnerTickets}>
                   <RefreshCw className="w-4 h-4 mr-1.5" />
                   Refresh

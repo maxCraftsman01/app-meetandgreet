@@ -90,10 +90,10 @@ export const TicketForm = ({ pin, role, properties, preselectedPropertyId, onSuc
         media: mediaEntries.length > 0 ? mediaEntries : undefined,
       });
 
-      toast.success("Ticket created!");
+      toast.success("Issue created!");
       onSuccess?.();
     } catch (err: any) {
-      toast.error(err.message || "Failed to create ticket");
+      toast.error(err.message || "Failed to create issue");
     } finally {
       setSubmitting(false);
     }
@@ -203,7 +203,7 @@ export const TicketForm = ({ pin, role, properties, preselectedPropertyId, onSuc
       <div className="flex gap-2 pt-2">
         {onCancel && <Button variant="outline" onClick={onCancel} className="flex-1">Cancel</Button>}
         <Button onClick={handleSubmit} disabled={submitting} className="flex-1">
-          {submitting ? "Submitting..." : "Submit Ticket"}
+          {submitting ? "Submitting..." : "Submit Issue"}
           {!submitting && <Upload className="w-4 h-4 ml-1.5" />}
         </Button>
       </div>
