@@ -1,17 +1,37 @@
-## Codebase Refactoring — Progress
 
-### ✅ Completed (Steps 1–5)
 
-1. **Shared types** — Created `src/types/index.ts` with `Property`, `Booking`, `ManualReservation`, `CleanerTask`, `Ticket`, `PropertyStatus`, `CalendarEvent`, and API response types. Updated all imports across Dashboard, Admin, CleaningCalendar, DailyOperations, TicketList, PropertyFinanceView, ManageReservations.
+## Rename "Tickets" to "Issues" Across UI
 
-2. **Shared status config** — Created `src/lib/status-config.ts` with `CLEANING_STATUS_CONFIG`, `CLEANING_STATUS_PRIORITY`, `TICKET_PRIORITY_COLORS`, `TICKET_STATUS_ICONS`, `TICKET_STATUS_COLORS`, `PROPERTY_COLORS`. Removed duplicate definitions from Dashboard.tsx, CleaningCalendar.tsx, DailyOperations.tsx, TicketList.tsx.
+### Scope
+Change all user-facing text from "Ticket/Tickets" to "Issue/Issues" for consistency with the "Report Issue" button. Internal code identifiers (variable names, function names, type names, file names) will remain unchanged to keep this low-risk.
 
-3. **API return types & eliminate `any`** — Replaced `any[]` state in Admin.tsx (`financeData`, `adminTickets`) and Dashboard.tsx (`ownerTickets`) with proper typed state.
+### Changes
 
-4. **TicketList inline handler cleanup** — Extracted `handleToggleCostVisibility` to match the pattern of other toggle handlers.
+**`src/pages/Admin.tsx`** — 5 text changes:
+- Tab label: "Tickets" → "Issues" (line 62, both `label` and `shortLabel`)
+- Desktop tab text: "Tickets" → "Issues" (line 261)
+- Section heading: "Maintenance Tickets" → "Maintenance Issues" (line 472)
+- Button text: "New Ticket" → "New Issue" (line 481)
+- Dialog title: "Create Ticket" → "Create Issue" (line 485)
 
-### 🔜 Deferred (Steps 6–8)
+**`src/pages/Dashboard.tsx`** — 3 text changes:
+- Tab label: "Tickets" → "Issues" (line 209)
+- Section heading: "Property Tickets" → "Property Issues" (line 393)
+- Toast error: "Failed to load tickets" → "Failed to load issues" (line 142)
 
-5. **Dashboard hooks extraction** — Extract data fetching into `useDashboardData` hook
-6. **Admin.tsx split** — Extract property form, grid, finance sheet, mobile nav into sub-components
-7. **Edge function shared auth** — Consolidate CORS/auth across 11 functions
+**`src/components/TicketForm.tsx`** — 3 text changes:
+- Toast success: "Ticket created!" → "Issue created!" (line 93)
+- Toast error: "Failed to create ticket" → "Failed to create issue" (line 96)
+- Button text: "Submit Ticket" → "Submit Issue" (line 206)
+
+**`src/components/TicketList.tsx`** — 4 text changes:
+- Empty state: "No tickets found." → "No issues found."
+- Confirm dialog: "Delete this ticket?" → "Delete this issue?"
+- Toast: "Ticket deleted" → "Issue deleted"
+- Detail dialog photo alt: "Ticket photo" → "Issue photo"
+
+**`src/pages/Admin.tsx`** — 1 additional toast:
+- "Failed to load tickets" → "Failed to load issues" (line 220)
+
+No file renames, no type renames, no API function renames — purely user-facing string updates.
+
