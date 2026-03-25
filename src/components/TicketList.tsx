@@ -275,7 +275,7 @@ export const TicketList = ({ tickets, role, adminPin, currency = "EUR", onRefres
                       onClick={() => handleDelete(selectedTicket)}
                     >
                       <Trash2 className="w-4 h-4 mr-1.5" />
-                      Delete Ticket
+                      Delete Issue
                     </Button>
                   </div>
                 )}
