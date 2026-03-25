@@ -119,7 +119,7 @@ export const TicketList = ({ tickets, role, adminPin, currency = "EUR", onRefres
                 transition={{ delay: i * 0.04, duration: 0.4 }}
               >
                 <Card
-                  className="p-4 cursor-pointer hover:shadow-md transition-shadow"
+                  className="p-4 cursor-pointer hover:shadow-md transition-all active:scale-[0.98]"
                   onClick={() => { setSelectedTicket(ticket); setEditCost(String(ticket.repair_cost)); }}
                 >
                   <div className="flex items-start justify-between gap-3">
