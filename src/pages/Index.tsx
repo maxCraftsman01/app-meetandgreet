@@ -89,7 +89,7 @@ const Index = () => {
         navigate("/dashboard");
       }
     } catch {
-      setError("Invalid PIN. Please try again.");
+      setError("Wrong PIN");
       setShake(true);
       setTimeout(() => {
         setShake(false);
