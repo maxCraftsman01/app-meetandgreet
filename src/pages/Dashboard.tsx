@@ -22,6 +22,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { toast } from "sonner";
 import type { Booking, ManualReservation, Property, CleanerTask, Ticket } from "@/types";
 import { CLEANING_STATUS_CONFIG, CLEANING_STATUS_PRIORITY } from "@/lib/status-config";
+import BottomNav from "@/components/BottomNav";
 
 // ─── Component ──────────────────────────────────────
 const Dashboard = () => {
@@ -41,6 +42,12 @@ const Dashboard = () => {
   const [reportDialogOpen, setReportDialogOpen] = useState(false);
   const [reportPropertyId, setReportPropertyId] = useState<string>("");
 
+  const userProperties = session?.properties || [];
+  const hasAnyFinance = userProperties.some((p) => p.can_view_finance);
+  const hasAnyCleaning = userProperties.some((p) => p.can_view_cleaning);
+  const defaultTab = hasAnyFinance ? "finance" : "cleaning";
+  const [activeTab, setActiveTab] = useState(defaultTab);
+
   useEffect(() => {
     if (!session || session.role !== "user") {
       navigate("/");
@@ -50,12 +57,8 @@ const Dashboard = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const userProperties = session?.properties || [];
   const selectedAccess = userProperties.find((p) => p.id === selectedPropertyId);
   const hasFinance = selectedAccess?.can_view_finance ?? false;
-
-  const hasAnyFinance = userProperties.some((p) => p.can_view_finance);
-  const hasAnyCleaning = userProperties.some((p) => p.can_view_cleaning);
 
   const loadData = async () => {
     try {
@@ -145,6 +148,12 @@ const Dashboard = () => {
     }
   };
 
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab);
+    if (tab === "cleaning" && cleanerTasks.length === 0) loadCleaningTasks();
+    if (tab === "tickets" && ownerTickets.length === 0) loadOwnerTickets();
+  };
+
   const selectedProperty = properties.find((p) => p.id === selectedPropertyId);
 
   if (loading) {
@@ -155,8 +164,6 @@ const Dashboard = () => {
   const filteredTasks = cleanerTasks.filter((t) => cleaningPropertyIds.includes(t.property_id));
   const sortedTasks = [...filteredTasks].sort((a, b) => (CLEANING_STATUS_PRIORITY[a.status] ?? 5) - (CLEANING_STATUS_PRIORITY[b.status] ?? 5));
   const today = new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
-
-  const defaultTab = hasAnyFinance ? "finance" : "cleaning";
 
   return (
     <div className="min-h-screen bg-background">
@@ -173,7 +180,8 @@ const Dashboard = () => {
               }
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          {/* Desktop header actions */}
+          <div className="hidden md:flex items-center gap-2">
             {hasFinance &&
             <Button variant="outline" size="sm" onClick={handleSync} disabled={syncing}>
                 <RefreshCw className={`w-4 h-4 mr-1.5 ${syncing ? "animate-spin" : ""}`} />
@@ -187,9 +195,10 @@ const Dashboard = () => {
         </div>
       </header>
 
-      <main className="container px-4 py-8">
-        <Tabs defaultValue={defaultTab} className="space-y-6">
-          <div className="flex flex-row items-center justify-between gap-3">
+      <main className="container px-4 py-8 pb-24 md:pb-8">
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
+          {/* Desktop-only top tabs */}
+          <div className="hidden md:flex flex-row items-center justify-between gap-3">
             <TabsList>
               {hasAnyFinance &&
               <TabsTrigger value="finance">
@@ -198,13 +207,13 @@ const Dashboard = () => {
                 </TabsTrigger>
               }
               {hasAnyCleaning &&
-              <TabsTrigger value="cleaning" onClick={() => {if (cleanerTasks.length === 0) loadCleaningTasks();}}>
+              <TabsTrigger value="cleaning">
                   <Brush className="w-4 h-4 mr-1.5" />
                   Cleaning
                 </TabsTrigger>
               }
               {hasAnyFinance &&
-              <TabsTrigger value="tickets" onClick={() => {if (ownerTickets.length === 0) loadOwnerTickets();}}>
+              <TabsTrigger value="tickets">
                   <Wrench className="w-4 h-4 mr-1.5" />
                    Issues
                 </TabsTrigger>
@@ -305,7 +314,7 @@ const Dashboard = () => {
                       animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
                       transition={{ delay: i * 0.08, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}>
                         
-                            <Card className={`p-5 border-2 ${cfg.border} ${cfg.bg} transition-colors duration-300`}>
+                            <Card className={`p-5 border-2 ${cfg.border} ${cfg.bg} transition-all duration-300 active:scale-[0.98] cursor-pointer`}>
                               <div className="flex items-start justify-between mb-3">
                                 <div>
                                   <div className="flex items-center gap-2 mb-1">
@@ -323,7 +332,7 @@ const Dashboard = () => {
                               </div>
                               {taskCanMark && task.reservation_id && task.status !== "arrival-ready" &&
                           <div className="mt-4">
-                                  <Button className="w-full" onClick={() => handleMarkCleaned(task.reservation_id!)} disabled={markingId === task.reservation_id}>
+                                  <Button className="w-full" onClick={(e) => { e.stopPropagation(); handleMarkCleaned(task.reservation_id!); }} disabled={markingId === task.reservation_id}>
                                     <CheckCircle2 className="w-4 h-4 mr-1.5" />
                                     {markingId === task.reservation_id ? "Updating..." : "Mark as Cleaned"}
                                   </Button>
@@ -335,7 +344,7 @@ const Dashboard = () => {
                                     <CheckCircle2 className="w-4 h-4" />
                                     <span className="text-sm font-medium">Cleaning completed</span>
                                   </div>
-                                  <Button variant="outline" size="sm" onClick={() => handleRevertCleaning(task.reservation_id!)} disabled={markingId === task.reservation_id}>
+                                  <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); handleRevertCleaning(task.reservation_id!); }} disabled={markingId === task.reservation_id}>
                                     {markingId === task.reservation_id ? "Updating..." : "Mark as Pending"}
                                   </Button>
                                 </div>
@@ -347,7 +356,7 @@ const Dashboard = () => {
                                 </div>
                           }
                               <div className="mt-3">
-                                <Button variant="outline" size="sm" className="w-full" onClick={() => { setReportPropertyId(task.property_id); setReportDialogOpen(true); }}>
+                                <Button variant="outline" size="sm" className="w-full" onClick={(e) => { e.stopPropagation(); setReportPropertyId(task.property_id); setReportDialogOpen(true); }}>
                                   <Wrench className="w-4 h-4 mr-1.5" />
                                   Report Issue
                                 </Button>
@@ -426,6 +435,21 @@ const Dashboard = () => {
           </Dialog>
         </Tabs>
       </main>
+
+      {/* Mobile Bottom Nav */}
+      <BottomNav
+        activeTab={activeTab}
+        onTabChange={handleTabChange}
+        hasAnyFinance={hasAnyFinance}
+        hasAnyCleaning={hasAnyCleaning}
+        onLogout={handleLogout}
+        onSync={handleSync}
+        syncing={syncing}
+        onReportIssue={() => {
+          setReportPropertyId(userProperties.find(p => p.can_view_cleaning)?.id || "");
+          setReportDialogOpen(true);
+        }}
+      />
     </div>);
 
 };
