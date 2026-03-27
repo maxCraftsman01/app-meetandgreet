@@ -30,6 +30,7 @@ function parseICS(icsText: string): ICalEvent[] {
           summary: current.summary || "Booked",
           startDate: current.startDate,
           endDate: current.endDate,
+          uid: current.uid || "",
         });
       }
     } else if (inEvent) {
@@ -41,6 +42,8 @@ function parseICS(icsText: string): ICalEvent[] {
         current.endDate = parseICalDate(val);
       } else if (line.startsWith("SUMMARY:")) {
         current.summary = line.substring(8);
+      } else if (line.startsWith("UID:")) {
+        current.uid = line.substring(4);
       }
     }
   }
