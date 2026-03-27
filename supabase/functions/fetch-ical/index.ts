@@ -10,6 +10,7 @@ interface ICalEvent {
   summary: string;
   startDate: string;
   endDate: string;
+  uid: string;
 }
 
 function parseICS(icsText: string): ICalEvent[] {
