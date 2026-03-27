@@ -118,6 +118,68 @@ export const TicketForm = ({ pin, role, properties, preselectedPropertyId, onSuc
         <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Broken shower head" />
       </div>
 
+      {/* Photos & Voice side by side */}
+      <div className="grid grid-cols-2 gap-3">
+        {/* Photos */}
+        <div>
+          <Label>Photos (max 5)</Label>
+          <div className="flex flex-wrap gap-2 mt-1">
+            {photos.map((f, i) => (
+              <div key={i} className="relative w-14 h-14 rounded-lg overflow-hidden border border-border">
+                <img src={URL.createObjectURL(f)} alt="" className="w-full h-full object-cover" />
+                <button
+                  onClick={() => setPhotos((prev) => prev.filter((_, j) => j !== i))}
+                  className="absolute top-0 right-0 bg-destructive text-destructive-foreground rounded-bl p-0.5"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+            ))}
+            {photos.length < 5 && (
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="w-14 h-14 rounded-lg border-2 border-dashed border-border flex items-center justify-center text-muted-foreground hover:border-primary hover:text-primary transition-colors"
+              >
+                <Camera className="w-5 h-5" />
+              </button>
+            )}
+          </div>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            multiple
+            className="hidden"
+            onChange={handlePhotoAdd}
+          />
+        </div>
+
+        {/* Voice Note */}
+        <div>
+          <Label>Voice Note</Label>
+          <div className="flex items-center gap-2 mt-1">
+            {!voiceBlob ? (
+              <Button
+                type="button"
+                variant={recording ? "destructive" : "outline"}
+                size="sm"
+                onClick={recording ? stopRecording : startRecording}
+              >
+                {recording ? <><MicOff className="w-4 h-4 mr-1.5" />Stop</> : <><Mic className="w-4 h-4 mr-1.5" />Record</>}
+              </Button>
+            ) : (
+              <div className="flex items-center gap-2">
+                <audio controls src={URL.createObjectURL(voiceBlob)} className="h-8 max-w-[120px]" />
+                <Button variant="ghost" size="sm" onClick={() => setVoiceBlob(null)}>
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
       <div>
         <Label>Description</Label>
         <textarea
@@ -128,78 +190,6 @@ export const TicketForm = ({ pin, role, properties, preselectedPropertyId, onSuc
           className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
         />
       </div>
-
-      <div>
-        <Label>Priority</Label>
-        <Select value={priority} onValueChange={setPriority}>
-          <SelectTrigger><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="low">Low</SelectItem>
-            <SelectItem value="normal">Normal</SelectItem>
-            <SelectItem value="urgent">Urgent</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      {/* Photos */}
-      <div>
-        <Label>Photos (max 5)</Label>
-        <div className="flex flex-wrap gap-2 mt-1">
-          {photos.map((f, i) => (
-            <div key={i} className="relative w-16 h-16 rounded-lg overflow-hidden border border-border">
-              <img src={URL.createObjectURL(f)} alt="" className="w-full h-full object-cover" />
-              <button
-                onClick={() => setPhotos((prev) => prev.filter((_, j) => j !== i))}
-                className="absolute top-0 right-0 bg-destructive text-destructive-foreground rounded-bl p-0.5"
-              >
-                <X className="w-3 h-3" />
-              </button>
-            </div>
-          ))}
-          {photos.length < 5 && (
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              className="w-16 h-16 rounded-lg border-2 border-dashed border-border flex items-center justify-center text-muted-foreground hover:border-primary hover:text-primary transition-colors"
-            >
-              <Camera className="w-5 h-5" />
-            </button>
-          )}
-        </div>
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          capture="environment"
-          multiple
-          className="hidden"
-          onChange={handlePhotoAdd}
-        />
-      </div>
-
-      {/* Voice Note */}
-      <div>
-        <Label>Voice Note</Label>
-        <div className="flex items-center gap-2 mt-1">
-          {!voiceBlob ? (
-            <Button
-              type="button"
-              variant={recording ? "destructive" : "outline"}
-              size="sm"
-              onClick={recording ? stopRecording : startRecording}
-            >
-              {recording ? <><MicOff className="w-4 h-4 mr-1.5" />Stop Recording</> : <><Mic className="w-4 h-4 mr-1.5" />Record</>}
-            </Button>
-          ) : (
-            <div className="flex items-center gap-2">
-              <audio controls src={URL.createObjectURL(voiceBlob)} className="h-8" />
-              <Button variant="ghost" size="sm" onClick={() => setVoiceBlob(null)}>
-                <X className="w-4 h-4" />
-              </Button>
-            </div>
-          )}
-        </div>
-      </div>
-
       <div className="flex gap-2 pt-2">
         {onCancel && <Button variant="outline" onClick={onCancel} className="flex-1">Cancel</Button>}
         <Button onClick={handleSubmit} disabled={submitting} className="flex-1">
