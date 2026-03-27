@@ -17,7 +17,7 @@ export const CLEANING_STATUS_CONFIG: Record<string, {
   "checkout-only":   { color: "text-yellow-700",  bg: "bg-yellow-50",  dot: "bg-yellow-500",  border: "border-yellow-200",  label: "Check-out Only",       icon: Clock,         cellBg: "bg-yellow-100",  cellBorder: "border-yellow-300",  cellText: "text-yellow-800" },
   "arrival-pending": { color: "text-orange-700",  bg: "bg-orange-50",  dot: "bg-orange-500",  border: "border-orange-200",  label: "Arrival Pending Clean", icon: Clock,        cellBg: "bg-orange-100",  cellBorder: "border-orange-300",  cellText: "text-orange-800" },
   "arrival-ready":   { color: "text-emerald-700", bg: "bg-emerald-50", dot: "bg-emerald-500", border: "border-emerald-200", label: "Ready for Arrival",    icon: CheckCircle2,  cellBg: "bg-emerald-100", cellBorder: "border-emerald-300", cellText: "text-emerald-800" },
-  idle:              { color: "text-muted-foreground", bg: "bg-muted/50", dot: "bg-muted-foreground/30", border: "border-border", label: "No Activity Today", icon: Sparkles, cellBg: "bg-muted/50", cellBorder: "border-border", cellText: "text-muted-foreground" },
+  idle:              { color: "text-emerald-600", bg: "bg-emerald-50", dot: "bg-emerald-400", border: "border-emerald-200", label: "No Activity Today", icon: Sparkles, cellBg: "bg-emerald-50", cellBorder: "border-emerald-200", cellText: "text-emerald-700" },
 };
 
 export const CLEANING_STATUS_PRIORITY: Record<string, number> = {
