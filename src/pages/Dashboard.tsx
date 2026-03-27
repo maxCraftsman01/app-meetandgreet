@@ -406,6 +406,17 @@ const Dashboard = () => {
                   Refresh
                 </Button>
               </div>
+              <Button
+                variant="outline"
+                className="w-full mb-4"
+                onClick={() => {
+                  setReportPropertyId(userProperties.find(p => p.can_view_finance)?.id || "");
+                  setReportDialogOpen(true);
+                }}
+              >
+                <Wrench className="w-4 h-4 mr-1.5" />
+                Report New Issue
+              </Button>
               {ticketsLoading ? (
                 <div className="flex justify-center py-20 text-muted-foreground">Loading...</div>
               ) : (
