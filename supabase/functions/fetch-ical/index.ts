@@ -43,7 +43,7 @@ function parseICS(icsText: string): ICalEvent[] {
       } else if (line.startsWith("SUMMARY:")) {
         current.summary = line.substring(8);
       } else if (line.startsWith("UID:")) {
-        current.uid = line.substring(4);
+        current.uid = line.substring(4).trim();
       }
     }
   }
@@ -136,24 +136,20 @@ Deno.serve(async (req) => {
           const summaryLower = (e.summary || "").toLowerCase();
           const sourceUrl = (e as any).sourceUrl || "";
           const isFromBookingCom = sourceUrl.includes("booking.com");
-          const isFromAirbnb = sourceUrl.includes("airbnb");
+          const isFromAirbnb = sourceUrl.includes("airbnb.com") || sourceUrl.includes("airbnb");
 
-          const isBlocked = isFromBookingCom
-            ? bookingComBlockedPatterns.some((p) => summaryLower.includes(p))
-            : airbnbBlockedPatterns.some((p) => summaryLower.includes(p));
+          const isBlocked =
+            (isFromAirbnb && airbnbBlockedPatterns.some((p) => summaryLower.includes(p))) ||
+            (isFromBookingCom && bookingComBlockedPatterns.some((p) => summaryLower.includes(p)));
 
-          // Smart summary
+          // Build smart display name
           let displaySummary = e.summary;
-          if (!isBlocked) {
-            if (isFromAirbnb) displaySummary = "Airbnb";
-            else if (isFromBookingCom) displaySummary = "Booking.com";
+          const shortUid = e.uid ? e.uid.replace(/@.*$/, "").replace(/[^a-zA-Z0-9]/g, "").slice(-10).toUpperCase() : null;
 
-            if (e.uid) {
-              const ref = e.uid.slice(-8).toUpperCase();
-              displaySummary = `${displaySummary} #${ref}`;
-            }
-          } else {
-            displaySummary = "Blocked";
+          if (isFromBookingCom) {
+            displaySummary = shortUid ? `Booking.com #${shortUid}` : "Booking.com";
+          } else if (isFromAirbnb) {
+            displaySummary = shortUid ? `Airbnb #${shortUid}` : "Airbnb";
           }
 
           return {
