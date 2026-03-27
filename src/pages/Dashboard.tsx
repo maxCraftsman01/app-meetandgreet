@@ -410,7 +410,7 @@ const Dashboard = () => {
                 variant="outline"
                 className="w-full mb-4"
                 onClick={() => {
-                  setReportPropertyId(userProperties.find(p => p.can_view_finance)?.id || "");
+                  setReportPropertyId("");
                   setReportDialogOpen(true);
                 }}
               >
