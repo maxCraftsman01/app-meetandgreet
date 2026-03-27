@@ -10,7 +10,6 @@ interface ICalEvent {
   summary: string;
   startDate: string;
   endDate: string;
-  uid: string;
 }
 
 function parseICS(icsText: string): ICalEvent[] {
@@ -30,7 +29,6 @@ function parseICS(icsText: string): ICalEvent[] {
           summary: current.summary || "Booked",
           startDate: current.startDate,
           endDate: current.endDate,
-          uid: current.uid || "",
         });
       }
     } else if (inEvent) {
@@ -42,8 +40,6 @@ function parseICS(icsText: string): ICalEvent[] {
         current.endDate = parseICalDate(val);
       } else if (line.startsWith("SUMMARY:")) {
         current.summary = line.substring(8);
-      } else if (line.startsWith("UID:")) {
-        current.uid = line.substring(4).trim();
       }
     }
   }
@@ -77,7 +73,6 @@ Deno.serve(async (req) => {
     const isAdmin = owner_pin === adminPin;
 
     if (!isAdmin) {
-      // Check if PIN matches the property's owner_pin
       const { data: prop } = await supabase
         .from("properties")
         .select("id")
@@ -86,30 +81,10 @@ Deno.serve(async (req) => {
         .single();
 
       if (!prop) {
-        // Check if PIN belongs to a user with access to this property
-        const { data: user } = await supabase
-          .from("app_users")
-          .select("id")
-          .eq("pin", owner_pin)
-          .single();
-
-        let hasAccess = false;
-        if (user) {
-          const { data: access } = await supabase
-            .from("user_property_access")
-            .select("id")
-            .eq("user_id", user.id)
-            .eq("property_id", property_id)
-            .single();
-          hasAccess = !!access;
-        }
-
-        if (!hasAccess) {
-          return new Response(JSON.stringify({ error: "Unauthorized" }), {
-            status: 401,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        }
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
     }
 
@@ -151,34 +126,20 @@ Deno.serve(async (req) => {
 
     if (allEvents.length > 0) {
       const airbnbBlockedPatterns = ["airbnb (not available)", "blocked", "unavailable", "no disponible", "nicht verfügbar"];
-      const bookingComBlockedPatterns = ["closed - not available", "not available", "closed"];
       await supabase.from("bookings").insert(
         allEvents.map((e) => {
           const summaryLower = (e.summary || "").toLowerCase();
-          const sourceUrl = (e as any).sourceUrl || "";
-          const isFromBookingCom = sourceUrl.includes("booking.com");
-          const isFromAirbnb = sourceUrl.includes("airbnb.com") || sourceUrl.includes("airbnb");
-
-          const isBlocked =
-            (isFromAirbnb && airbnbBlockedPatterns.some((p) => summaryLower.includes(p))) ||
-            (isFromBookingCom && bookingComBlockedPatterns.some((p) => summaryLower.includes(p)));
-
-          // Build smart display name
-          let displaySummary = e.summary;
-          const shortUid = e.uid ? e.uid.replace(/@.*$/, "").replace(/[^a-zA-Z0-9]/g, "").slice(-10).toUpperCase() : null;
-
-          if (isFromBookingCom) {
-            displaySummary = shortUid ? `Booking.com #${shortUid}` : "Booking.com";
-          } else if (isFromAirbnb) {
-            displaySummary = shortUid ? `Airbnb #${shortUid}` : "Airbnb";
-          }
-
+          const isFromBookingCom = ((e as any).sourceUrl || "").includes("booking.com");
+          // Booking.com "CLOSED - Not available" = real booking
+          // Airbnb "Not available" = blocked
+          const isBlocked = !isFromBookingCom &&
+            airbnbBlockedPatterns.some((p) => summaryLower.includes(p));
           return {
             property_id,
-            summary: displaySummary,
+            summary: e.summary,
             start_date: e.startDate,
             end_date: e.endDate,
-            source_url: sourceUrl,
+            source_url: (e as any).sourceUrl,
             status: isBlocked ? "blocked" : "booked",
           };
         })
