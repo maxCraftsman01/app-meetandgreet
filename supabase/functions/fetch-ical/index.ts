@@ -77,6 +77,7 @@ Deno.serve(async (req) => {
     const isAdmin = owner_pin === adminPin;
 
     if (!isAdmin) {
+      // Check if PIN matches the property's owner_pin
       const { data: prop } = await supabase
         .from("properties")
         .select("id")
@@ -85,10 +86,30 @@ Deno.serve(async (req) => {
         .single();
 
       if (!prop) {
-        return new Response(JSON.stringify({ error: "Unauthorized" }), {
-          status: 401,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        // Check if PIN belongs to a user with access to this property
+        const { data: user } = await supabase
+          .from("app_users")
+          .select("id")
+          .eq("pin", owner_pin)
+          .single();
+
+        let hasAccess = false;
+        if (user) {
+          const { data: access } = await supabase
+            .from("user_property_access")
+            .select("id")
+            .eq("user_id", user.id)
+            .eq("property_id", property_id)
+            .single();
+          hasAccess = !!access;
+        }
+
+        if (!hasAccess) {
+          return new Response(JSON.stringify({ error: "Unauthorized" }), {
+            status: 401,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
       }
     }
 
