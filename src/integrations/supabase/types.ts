@@ -40,7 +40,9 @@ export type Database = {
       }
       bookings: {
         Row: {
+          description: string | null
           end_date: string
+          guest_name: string | null
           id: string
           property_id: string
           source_url: string | null
@@ -48,9 +50,12 @@ export type Database = {
           status: string
           summary: string | null
           synced_at: string
+          uid: string | null
         }
         Insert: {
+          description?: string | null
           end_date: string
+          guest_name?: string | null
           id?: string
           property_id: string
           source_url?: string | null
@@ -58,9 +63,12 @@ export type Database = {
           status?: string
           summary?: string | null
           synced_at?: string
+          uid?: string | null
         }
         Update: {
+          description?: string | null
           end_date?: string
+          guest_name?: string | null
           id?: string
           property_id?: string
           source_url?: string | null
@@ -68,6 +76,7 @@ export type Database = {
           status?: string
           summary?: string | null
           synced_at?: string
+          uid?: string | null
         }
         Relationships: [
           {
