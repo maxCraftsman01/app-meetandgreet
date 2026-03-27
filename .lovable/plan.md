@@ -1,39 +1,29 @@
 
 
-## Add Brute-Force Protection to PIN Validation
+## Add "Report New Issue" Button to Issues Tab
 
-### Problem
-The `validate-pin` endpoint has no rate limiting. An attacker can try all 100M 8-digit PINs without restriction.
+### Change
 
-### Solution
-Create a `pin_attempts` table to track failed attempts per IP. After 5 failed attempts within 15 minutes, return 429 (Too Many Requests). Successful logins clear the counter.
+**`src/pages/Dashboard.tsx`** — Lines 408-409 (between the header row and the loading/list section):
 
-### Database Migration
-```sql
-CREATE TABLE public.pin_attempts (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  ip_address text NOT NULL,
-  attempted_at timestamptz NOT NULL DEFAULT now()
-);
+Insert a full-width "Report New Issue" button that reuses the existing `reportDialogOpen` / `reportPropertyId` state:
 
-ALTER TABLE public.pin_attempts ENABLE ROW LEVEL SECURITY;
--- No policies = default deny for client-side (access only via service_role in edge function)
-
-CREATE INDEX idx_pin_attempts_ip_time ON public.pin_attempts (ip_address, attempted_at DESC);
+```tsx
+<Button
+  variant="outline"
+  className="w-full mb-4"
+  onClick={() => {
+    setReportPropertyId(userProperties.find(p => p.can_view_finance)?.id || "");
+    setReportDialogOpen(true);
+  }}
+>
+  <Wrench className="w-4 h-4 mr-1.5" />
+  Report New Issue
+</Button>
 ```
 
-### Edge Function Changes (`supabase/functions/validate-pin/index.ts`)
-1. Extract client IP from request headers (`x-forwarded-for` or `x-real-ip`)
-2. Before PIN validation, query `pin_attempts` for the last 15 minutes from that IP
-3. If count >= 5, return `429 Too Many Requests` with a `Retry-After` header
-4. On failed PIN, insert a row into `pin_attempts`
-5. On successful PIN, delete all rows for that IP (reset counter)
-6. Add a periodic cleanup: delete rows older than 1 hour (inline, cheap query)
+This picks the first finance-capable property as the preselected property (matching the pattern used elsewhere). The existing dialog and `TicketForm` handle everything else.
 
-### Constants
-- **Max attempts**: 5 per IP per 15-minute window
-- **Lockout message**: "Too many attempts. Please try again later."
-
-### No frontend changes needed
-The login page already displays error messages from the API response.
+### No other files changed
+Only the Issues tab panel in `Dashboard.tsx` is modified. No new state, no new dialog.
 
