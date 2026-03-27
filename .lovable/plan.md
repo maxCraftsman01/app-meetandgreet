@@ -1,29 +1,15 @@
 
 
-## Add "Report New Issue" Button to Issues Tab
+## Update iCal Display Names: Shorter Labels
 
-### Change
+### Change from approved plan
 
-**`src/pages/Dashboard.tsx`** — Lines 408-409 (between the header row and the loading/list section):
+In **`supabase/functions/fetch-ical/index.ts`**, the smart summary rewriting step:
 
-Insert a full-width "Report New Issue" button that reuses the existing `reportDialogOpen` / `reportPropertyId` state:
+- `"Airbnb Reservation"` → `"Airbnb"`
+- `"Booking.com Reservation"` → `"Booking.com"`
 
-```tsx
-<Button
-  variant="outline"
-  className="w-full mb-4"
-  onClick={() => {
-    setReportPropertyId(userProperties.find(p => p.can_view_finance)?.id || "");
-    setReportDialogOpen(true);
-  }}
->
-  <Wrench className="w-4 h-4 mr-1.5" />
-  Report New Issue
-</Button>
-```
+With UID appended: e.g. `"Airbnb #A3F2B1C4"`, `"Booking.com #A3F2B1C4"`
 
-This picks the first finance-capable property as the preselected property (matching the pattern used elsewhere). The existing dialog and `TicketForm` handle everything else.
-
-### No other files changed
-Only the Issues tab panel in `Dashboard.tsx` is modified. No new state, no new dialog.
+Everything else from the approved plan remains identical (UID capture, Booking.com blocked detection, no frontend changes needed).
 
