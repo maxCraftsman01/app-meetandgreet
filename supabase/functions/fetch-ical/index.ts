@@ -10,6 +10,7 @@ interface ICalEvent {
   summary: string;
   startDate: string;
   endDate: string;
+  uid: string;
 }
 
 function parseICS(icsText: string): ICalEvent[] {
@@ -29,6 +30,7 @@ function parseICS(icsText: string): ICalEvent[] {
           summary: current.summary || "Booked",
           startDate: current.startDate,
           endDate: current.endDate,
+          uid: current.uid || "",
         });
       }
     } else if (inEvent) {
@@ -40,6 +42,8 @@ function parseICS(icsText: string): ICalEvent[] {
         current.endDate = parseICalDate(val);
       } else if (line.startsWith("SUMMARY:")) {
         current.summary = line.substring(8);
+      } else if (line.startsWith("UID:")) {
+        current.uid = line.substring(4);
       }
     }
   }
@@ -126,20 +130,38 @@ Deno.serve(async (req) => {
 
     if (allEvents.length > 0) {
       const airbnbBlockedPatterns = ["airbnb (not available)", "blocked", "unavailable", "no disponible", "nicht verfügbar"];
+      const bookingComBlockedPatterns = ["closed - not available", "not available", "closed"];
       await supabase.from("bookings").insert(
         allEvents.map((e) => {
           const summaryLower = (e.summary || "").toLowerCase();
-          const isFromBookingCom = ((e as any).sourceUrl || "").includes("booking.com");
-          // Booking.com "CLOSED - Not available" = real booking
-          // Airbnb "Not available" = blocked
-          const isBlocked = !isFromBookingCom &&
-            airbnbBlockedPatterns.some((p) => summaryLower.includes(p));
+          const sourceUrl = (e as any).sourceUrl || "";
+          const isFromBookingCom = sourceUrl.includes("booking.com");
+          const isFromAirbnb = sourceUrl.includes("airbnb");
+
+          const isBlocked = isFromBookingCom
+            ? bookingComBlockedPatterns.some((p) => summaryLower.includes(p))
+            : airbnbBlockedPatterns.some((p) => summaryLower.includes(p));
+
+          // Smart summary
+          let displaySummary = e.summary;
+          if (!isBlocked) {
+            if (isFromAirbnb) displaySummary = "Airbnb";
+            else if (isFromBookingCom) displaySummary = "Booking.com";
+
+            if (e.uid) {
+              const ref = e.uid.slice(-8).toUpperCase();
+              displaySummary = `${displaySummary} #${ref}`;
+            }
+          } else {
+            displaySummary = "Blocked";
+          }
+
           return {
             property_id,
-            summary: e.summary,
+            summary: displaySummary,
             start_date: e.startDate,
             end_date: e.endDate,
-            source_url: (e as any).sourceUrl,
+            source_url: sourceUrl,
             status: isBlocked ? "blocked" : "booked",
           };
         })
