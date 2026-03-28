@@ -181,16 +181,48 @@ Deno.serve(async (req) => {
             };
           }
 
-          // Existing Airbnb blocked logic
+          // Airbnb logic
           const summaryLower = (e.summary || "").toLowerCase();
           const isFromBookingCom = e.sourceUrl.includes("booking.com");
           const isBlocked = !isFromBookingCom &&
             airbnbBlockedPatterns.some((p) => summaryLower.includes(p));
 
+          // Extract Airbnb guest name from DESCRIPTION or SUMMARY
+          let airbnbGuestName: string | null = null;
+          let airbnbSummary = e.summary;
+
+          if (!isBlocked && !isFromBookingCom) {
+            // Try DESCRIPTION field first for guest name patterns
+            if (e.description) {
+              const guestMatch = e.description.match(/GUEST:\s*(.+)/i);
+              const nameMatch = e.description.match(/(?:^|\n)Name:\s*(.+)/i);
+              const checkinName = e.description.match(/Check-in:\s*.*?\n.*?([A-Z][a-z]+ [A-Z][a-z]+)/);
+              airbnbGuestName = (guestMatch?.[1] || nameMatch?.[1] || checkinName?.[1] || "").trim() || null;
+            }
+
+            // If no name from description, use SUMMARY if it looks like a real name
+            // (not a platform label like "Reserved" or "Airbnb (Not available)")
+            if (!airbnbGuestName && e.summary) {
+              const looksLikeName = /^[A-Z][a-z]+(\s+[A-Z][a-z]*\.?)+$/.test(e.summary.trim());
+              if (looksLikeName) {
+                airbnbGuestName = e.summary.trim();
+              }
+            }
+
+            // Build a ref from UID if available
+            if (airbnbGuestName && e.uid) {
+              const refMatch = e.uid.match(/([a-f0-9]{6,})/i);
+              const ref = refMatch ? refMatch[1].substring(0, 8) : "";
+              if (ref) {
+                airbnbSummary = `Airbnb #${ref}`;
+              }
+            }
+          }
+
           return {
             property_id,
-            summary: e.summary,
-            guest_name: null,
+            summary: airbnbSummary,
+            guest_name: airbnbGuestName,
             start_date: e.startDate,
             end_date: e.endDate,
             source_url: e.sourceUrl,
