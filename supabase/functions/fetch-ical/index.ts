@@ -10,6 +10,8 @@ interface ICalEvent {
   summary: string;
   startDate: string;
   endDate: string;
+  uid: string;
+  description: string;
 }
 
 function parseICS(icsText: string): ICalEvent[] {
@@ -29,6 +31,8 @@ function parseICS(icsText: string): ICalEvent[] {
           summary: current.summary || "Booked",
           startDate: current.startDate,
           endDate: current.endDate,
+          uid: current.uid || "",
+          description: current.description || "",
         });
       }
     } else if (inEvent) {
@@ -40,6 +44,10 @@ function parseICS(icsText: string): ICalEvent[] {
         current.endDate = parseICalDate(val);
       } else if (line.startsWith("SUMMARY:")) {
         current.summary = line.substring(8);
+      } else if (line.startsWith("UID:")) {
+        current.uid = line.substring(4);
+      } else if (line.startsWith("DESCRIPTION:")) {
+        current.description = line.substring(12);
       }
     }
   }
@@ -47,12 +55,43 @@ function parseICS(icsText: string): ICalEvent[] {
 }
 
 function parseICalDate(val: string): string {
-  // Handle YYYYMMDD and YYYYMMDDTHHmmssZ formats
   const clean = val.replace(/[TZ]/g, "");
   const y = clean.substring(0, 4);
   const m = clean.substring(4, 6);
   const d = clean.substring(6, 8);
   return `${y}-${m}-${d}`;
+}
+
+function extractBookingComInfo(event: ICalEvent, sourceUrl: string): { guest_name: string; summary: string; isBookingCom: true } | null {
+  const summaryLower = (event.summary || "").toLowerCase();
+  const isFromBookingCom = sourceUrl.includes("booking.com");
+
+  const isClosedPattern = summaryLower.includes("closed - not available") || summaryLower === "reserved";
+
+  if (!isFromBookingCom && !isClosedPattern) return null;
+  if (isFromBookingCom && !isClosedPattern) return null;
+
+  // Extract reservation ref from UID
+  let ref = "";
+  if (event.uid) {
+    const numMatch = event.uid.match(/([a-f0-9]{6,})/i);
+    ref = numMatch ? numMatch[1].substring(0, 8) : "";
+  }
+
+  // Check DESCRIPTION for guest name pattern
+  let guestFromDesc = "";
+  if (event.description) {
+    const guestMatch = event.description.match(/GUEST:\s*(.+)/i);
+    if (guestMatch) guestFromDesc = guestMatch[1].trim();
+  }
+
+  const guest_name = guestFromDesc
+    ? guestFromDesc + (ref ? ` (#${ref})` : "")
+    : "Booking.com Guest" + (ref ? ` (#${ref})` : "");
+
+  const summary = ref ? `Booking.com #${ref}` : "Booking.com Guest";
+
+  return { guest_name, summary, isBookingCom: true };
 }
 
 Deno.serve(async (req) => {
@@ -68,7 +107,6 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Validate access: either admin or owner
     const adminPin = Deno.env.get("ADMIN_PIN");
     const isAdmin = owner_pin === adminPin;
 
@@ -88,7 +126,6 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Get property iCal URLs
     const { data: property, error: propError } = await supabase
       .from("properties")
       .select("ical_urls")
@@ -103,7 +140,7 @@ Deno.serve(async (req) => {
     }
 
     const icalUrls = property.ical_urls || [];
-    const allEvents: ICalEvent[] = [];
+    const allEvents: (ICalEvent & { sourceUrl: string })[] = [];
 
     for (const url of icalUrls) {
       try {
@@ -118,7 +155,6 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Clear old bookings and insert new ones
     await supabase
       .from("bookings")
       .delete()
@@ -126,27 +162,46 @@ Deno.serve(async (req) => {
 
     if (allEvents.length > 0) {
       const airbnbBlockedPatterns = ["airbnb (not available)", "blocked", "unavailable", "no disponible", "nicht verfügbar"];
+
       await supabase.from("bookings").insert(
         allEvents.map((e) => {
+          const bookingComInfo = extractBookingComInfo(e, e.sourceUrl);
+
+          if (bookingComInfo) {
+            return {
+              property_id,
+              summary: bookingComInfo.summary,
+              guest_name: bookingComInfo.guest_name,
+              start_date: e.startDate,
+              end_date: e.endDate,
+              source_url: e.sourceUrl,
+              uid: e.uid || null,
+              description: e.description || null,
+              status: "booked",
+            };
+          }
+
+          // Existing Airbnb blocked logic
           const summaryLower = (e.summary || "").toLowerCase();
-          const isFromBookingCom = ((e as any).sourceUrl || "").includes("booking.com");
-          // Booking.com "CLOSED - Not available" = real booking
-          // Airbnb "Not available" = blocked
+          const isFromBookingCom = e.sourceUrl.includes("booking.com");
           const isBlocked = !isFromBookingCom &&
             airbnbBlockedPatterns.some((p) => summaryLower.includes(p));
+
           return {
             property_id,
             summary: e.summary,
+            guest_name: null,
             start_date: e.startDate,
             end_date: e.endDate,
-            source_url: (e as any).sourceUrl,
+            source_url: e.sourceUrl,
+            uid: e.uid || null,
+            description: e.description || null,
             status: isBlocked ? "blocked" : "booked",
           };
         })
       );
     }
 
-    // Return bookings
     const { data: bookings } = await supabase
       .from("bookings")
       .select("*")
