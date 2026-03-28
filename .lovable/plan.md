@@ -1,23 +1,19 @@
 
 
-## Fix: Display Guest Name Instead of "Closed - Not available"
+## Clear Old Bookings and Re-Sync
 
 ### Root Cause
-In `src/components/MasterTimeline.tsx` line 89, synced bookings use `b.summary` for the display name instead of the new `b.guest_name` column. Since `summary` often contains raw iCal values like "Closed - Not available" or "Reserved", the extracted guest name is ignored.
+Bookings synced before the guest name extraction update still have `guest_name = NULL` and the raw iCal summary "CLOSED - Not available". The `fetch-ical` function already deletes and re-inserts bookings per property on each sync, but only when triggered. The simplest fix is to wipe all existing bookings so the next sync populates them with proper guest names.
 
-### Changes
+### Steps
 
-**`src/components/MasterTimeline.tsx`** — Line 89:
-```
-// Before
-guest_name: b.summary || "iCal Booking",
+1. **Delete all rows from `bookings` table** using a data operation:
+   ```sql
+   DELETE FROM public.bookings;
+   ```
 
-// After
-guest_name: b.guest_name || b.summary || "iCal Booking",
-```
+2. **Trigger a re-sync** — After clearing, the admin can hit the sync/refresh button in the app. The `fetch-ical` function will re-fetch all iCal feeds and populate bookings with the updated parsing logic that extracts guest names and reference IDs.
 
-This single change makes the timeline prefer the extracted guest name (which contains parsed names or platform reference IDs like "Booking.com #ABC123") over the raw summary.
-
-### Note
-After this code change, you will need to **re-sync** your properties' iCal feeds for the `guest_name` column to be populated on existing bookings. Bookings synced before the migration will have `guest_name = null` until the next sync.
+### No code changes needed
+The parsing logic in `fetch-ical/index.ts` and the display logic in `MasterTimeline.tsx` are already correct. This is purely a data refresh.
 
