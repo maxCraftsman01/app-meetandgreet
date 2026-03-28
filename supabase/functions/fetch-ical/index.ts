@@ -10,16 +10,11 @@ interface ICalEvent {
   summary: string;
   startDate: string;
   endDate: string;
-  description: string;
-  uid: string;
-  sourceUrl?: string;
 }
 
 function parseICS(icsText: string): ICalEvent[] {
   const events: ICalEvent[] = [];
-  // Unfold continuation lines (RFC 5545: lines starting with space/tab are continuations)
-  const unfolded = icsText.replace(/\r?\n[ \t]/g, "");
-  const lines = unfolded.split(/\r?\n/);
+  const lines = icsText.replace(/\r\n /g, "").split(/\r?\n/);
   let inEvent = false;
   let current: Partial<ICalEvent> = {};
 
@@ -34,8 +29,6 @@ function parseICS(icsText: string): ICalEvent[] {
           summary: current.summary || "Booked",
           startDate: current.startDate,
           endDate: current.endDate,
-          description: current.description || "",
-          uid: current.uid || "",
         });
       }
     } else if (inEvent) {
@@ -47,10 +40,6 @@ function parseICS(icsText: string): ICalEvent[] {
         current.endDate = parseICalDate(val);
       } else if (line.startsWith("SUMMARY:")) {
         current.summary = line.substring(8);
-      } else if (line.startsWith("DESCRIPTION:")) {
-        current.description = line.substring(12).replace(/\\n/g, "\n").replace(/\\,/g, ",");
-      } else if (line.startsWith("UID:")) {
-        current.uid = line.substring(4);
       }
     }
   }
@@ -58,43 +47,12 @@ function parseICS(icsText: string): ICalEvent[] {
 }
 
 function parseICalDate(val: string): string {
+  // Handle YYYYMMDD and YYYYMMDDTHHmmssZ formats
   const clean = val.replace(/[TZ]/g, "");
   const y = clean.substring(0, 4);
   const m = clean.substring(4, 6);
   const d = clean.substring(6, 8);
   return `${y}-${m}-${d}`;
-}
-
-function extractGuestName(summary: string, description: string, uid: string, sourceUrl: string): string {
-  // Try DESCRIPTION patterns first
-  if (description) {
-    const guestMatch = description.match(/(?:GUEST|Guest name|Booker|Guest|Name|Nombre):\s*(.+)/i);
-    if (guestMatch) {
-      const name = guestMatch[1].trim();
-      if (name.length > 0 && name.length < 100) return name;
-    }
-    // Booking.com reference pattern
-    const bookingRef = description.match(/(?:Booking reference|Reservation ID|Confirmation):\s*(\S+)/i);
-    if (bookingRef) {
-      const platform = sourceUrl.includes("booking.com") ? "Booking.com" : "Booking";
-      return `${platform} #${bookingRef[1].trim()}`;
-    }
-  }
-
-  // If summary is generic, try UID for a reference
-  const genericSummaries = ["reserved", "closed - not available", "booked", "not available", "no disponible", "nicht verfügbar"];
-  if (genericSummaries.includes((summary || "").toLowerCase().trim())) {
-    if (uid) {
-      const cleanUid = uid.replace(/@.*$/, "").replace(/[^a-zA-Z0-9]/g, "");
-      if (cleanUid.length > 4) {
-        const platform = sourceUrl.includes("booking.com") ? "Booking.com" :
-                         sourceUrl.includes("airbnb") ? "Airbnb" : "Booking";
-        return `${platform} #${cleanUid.slice(-10).toUpperCase()}`;
-      }
-    }
-  }
-
-  return summary; // fallback
 }
 
 Deno.serve(async (req) => {
@@ -167,24 +125,22 @@ Deno.serve(async (req) => {
       .eq("property_id", property_id);
 
     if (allEvents.length > 0) {
-      const airbnbBlockedPatterns = ["airbnb (not available)", "not available", "blocked", "unavailable", "no disponible", "nicht verfügbar"];
+      const airbnbBlockedPatterns = ["airbnb (not available)", "blocked", "unavailable", "no disponible", "nicht verfügbar"];
       await supabase.from("bookings").insert(
         allEvents.map((e) => {
           const summaryLower = (e.summary || "").toLowerCase();
-          const isFromBookingCom = (e.sourceUrl || "").includes("booking.com");
+          const isFromBookingCom = ((e as any).sourceUrl || "").includes("booking.com");
+          // Booking.com "CLOSED - Not available" = real booking
+          // Airbnb "Not available" = blocked
           const isBlocked = !isFromBookingCom &&
             airbnbBlockedPatterns.some((p) => summaryLower.includes(p));
-          const guestName = extractGuestName(e.summary, e.description, e.uid, e.sourceUrl || "");
           return {
             property_id,
             summary: e.summary,
             start_date: e.startDate,
             end_date: e.endDate,
-            source_url: e.sourceUrl,
+            source_url: (e as any).sourceUrl,
             status: isBlocked ? "blocked" : "booked",
-            description: e.description || null,
-            uid: e.uid || null,
-            guest_name: guestName,
           };
         })
       );

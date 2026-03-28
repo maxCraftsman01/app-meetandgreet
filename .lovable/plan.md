@@ -1,43 +1,29 @@
 
 
-## Fix: Airbnb Blocked Days Not Detected from iCal
+## Add "Report New Issue" Button to Issues Tab
 
-### Root Cause (Two Issues)
+### Change
 
-**Issue 1: Pattern mismatch in `fetch-ical/index.ts`**
-The blocked-detection patterns include `"unavailable"` but Airbnb's actual summary for owner-blocked dates is `"Not available"`. The string `"not available"` does NOT contain `"unavailable"` as a substring — they're different words. So these entries get `status: "booked"` instead of `"blocked"`.
+**`src/pages/Dashboard.tsx`** — Lines 408-409 (between the header row and the loading/list section):
 
-Current patterns:
-```
-["airbnb (not available)", "blocked", "unavailable", "no disponible", "nicht verfügbar"]
-```
+Insert a full-width "Report New Issue" button that reuses the existing `reportDialogOpen` / `reportPropertyId` state:
 
-Missing: `"not available"` as a standalone pattern.
-
-**Issue 2: Calendar allows selecting blocked days**
-In `PropertyFinanceView.tsx` line 199, `isClickable` only includes `available`, `isManual`, or `isPending`. Blocked days are not clickable (correct), BUT `handleCalendarDayClick` (line 70) still fires on blocked days and starts a range selection because blocked days fall into the `else` branch. The click handler should also prevent range selection on blocked days.
-
-### Changes
-
-**`supabase/functions/fetch-ical/index.ts`** — Update the blocked patterns array to include `"not available"`:
-```js
-const airbnbBlockedPatterns = [
-  "airbnb (not available)", "not available", "blocked", 
-  "unavailable", "no disponible", "nicht verfügbar"
-];
-```
-
-**`src/components/PropertyFinanceView.tsx`** — Line 70-74, prevent range selection on blocked days:
 ```tsx
-const handleCalendarDayClick = (day: Date, info: any) => {
-  if (info.status === "blocked") return; // Don't allow interaction with blocked days
-  if (info.isManual || info.isPending) {
-    setSelectedDay({ date: day, info });
-    return;
-  }
-  // ... rest of range selection logic
+<Button
+  variant="outline"
+  className="w-full mb-4"
+  onClick={() => {
+    setReportPropertyId(userProperties.find(p => p.can_view_finance)?.id || "");
+    setReportDialogOpen(true);
+  }}
+>
+  <Wrench className="w-4 h-4 mr-1.5" />
+  Report New Issue
+</Button>
 ```
 
-### After deploying
-You'll need to re-sync iCal feeds again so the corrected blocked detection runs on the fresh data.
+This picks the first finance-capable property as the preselected property (matching the pattern used elsewhere). The existing dialog and `TicketForm` handle everything else.
+
+### No other files changed
+Only the Issues tab panel in `Dashboard.tsx` is modified. No new state, no new dialog.
 

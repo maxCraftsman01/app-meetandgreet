@@ -68,7 +68,6 @@ export const PropertyFinanceView = ({ property, bookings, manualReservations, pi
   };
 
   const handleCalendarDayClick = (day: Date, info: any) => {
-    if (info.status === "blocked") return;
     if (info.isManual || info.isPending) {
       setSelectedDay({ date: day, info });
       return;
