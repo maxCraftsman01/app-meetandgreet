@@ -12,6 +12,7 @@ A property management app for short-term rentals with three user roles: **Admin*
 - Users authenticate via a PIN stored in `app_users` table
 - Role is determined by `user_property_access` permissions, not a role column
 - Session stored in `src/lib/session.ts`
+- **Brute-force protection**: `pin_attempts` table tracks failed attempts per IP; after 5 failures in 15 minutes, returns 429. Successful login clears the counter. Old attempts cleaned up automatically.
 
 ### 2. Role Determination Logic
 - **Admin**: `app_users.is_admin = true`
@@ -42,22 +43,47 @@ A property management app for short-term rentals with three user roles: **Admin*
 - Status colors, labels, icons, priorities in `src/lib/status-config.ts`
 - Eliminates duplicate definitions across components
 
+### 6. Mobile-First Navigation
+- **Bottom navigation bar** (`src/components/BottomNav.tsx`) visible only on mobile (`md:hidden`)
+- Replaces top tabs on mobile for better thumb reachability
+- Desktop (768px+) retains top tab navigation unchanged
+- Tactile press feedback on interactive cards
+
+### 7. iCal Integration & Guest Name Extraction
+- Server-side iCal parser in `fetch-ical` edge function
+- Captures `SUMMARY`, `DESCRIPTION`, and `UID` fields (handles RFC 5545 line folding)
+- Extracts guest names via regex patterns (e.g., `GUEST: [Name]`, `Guest name: [Name]`)
+- Falls back to smart platform references: `Airbnb #REF` or `Booking.com #REF` from UID
+- Booking.com `CLOSED - Not available` treated as confirmed booking (not blocked)
+- Airbnb blocked detection patterns: `"airbnb (not available)"`, `"not available"`, `"blocked"`, `"unavailable"`, `"no disponible"`, `"nicht verfügbar"`
+- `bookings` table has `guest_name`, `description`, and `uid` columns
+- `MasterTimeline.tsx` prefers `guest_name` over raw `summary` for display
+
+### 8. Security: RLS on app_users
+- RLS enabled on `app_users` with restrictive policies
+- Only service-role key can read PINs and admin flags
+- Prevents public exposure of authentication data
+
 ---
 
 ## Database Schema
 
 ### Tables
 - `properties` — rental properties with iCal URLs, rates, PINs
-- `bookings` — synced from iCal feeds
+- `bookings` — synced from iCal feeds (includes `guest_name`, `description`, `uid`)
 - `manual_reservations` — manually entered or imported reservations with cleaning status
 - `maintenance_tickets` — tickets with visibility toggles and cost controls
 - `ticket_media` — photos/videos attached to tickets
-- `app_users` — PIN-based users (not Supabase auth)
+- `app_users` — PIN-based users (not Supabase auth), RLS-protected
 - `user_property_access` — per-user, per-property permissions (finance, cleaning, mark-cleaned)
+- `pin_attempts` — brute-force rate limiting (IP, timestamp)
 
 ### Key Columns Added During Development
 - `maintenance_tickets.visible_to_cleaner` (boolean, default `true`)
 - `maintenance_tickets.cost_visible_to_owner` (boolean, default `false`)
+- `bookings.guest_name` (text, nullable) — extracted from iCal DESCRIPTION/UID
+- `bookings.description` (text, nullable) — raw iCal DESCRIPTION field
+- `bookings.uid` (text, nullable) — iCal UID for deduplication
 
 ---
 
@@ -65,7 +91,7 @@ A property management app for short-term rentals with three user roles: **Admin*
 
 | Function | Purpose |
 |----------|---------|
-| `validate-pin` | Authenticate user by PIN, return role + accessible properties |
+| `validate-pin` | Authenticate user by PIN, return role + accessible properties. Rate-limited via `pin_attempts` table. |
 | `owner-data` | Fetch owner dashboard data (properties, reservations, bookings) |
 | `owner-reservations` | Owner-specific reservation management |
 | `cleaner-operations` | Cleaner task list with cleaning statuses |
@@ -75,7 +101,7 @@ A property management app for short-term rentals with three user roles: **Admin*
 | `admin-timeline` | Timeline data for admin view |
 | `admin-pending-ical` | Pending iCal import management |
 | `admin-users` | User and access management |
-| `fetch-ical` | Sync bookings from iCal feeds |
+| `fetch-ical` | Sync bookings from iCal feeds with guest name extraction and blocked day detection |
 
 ---
 
@@ -110,6 +136,21 @@ A property management app for short-term rentals with three user roles: **Admin*
 
 ---
 
+## UI/UX Changes (Conversation History)
+
+| Change | Details |
+|--------|---------|
+| Mobile bottom nav | Fixed bottom bar with Finance, Cleaning, Issues, Profile tabs; hidden on desktop |
+| Reduced dashboard padding | `py-4 md:py-8` on main, compact property selector, tighter spacing on mobile |
+| Scroll-to-top on login | `window.scrollTo(0, 0)` on Dashboard mount to prevent mid-page start |
+| "No activity today" green styling | Green background/border on the empty-state card for cleaners to represent a free day |
+| Report New Issue button | Full-width button on Issues tab (cleaner view) with property selector dropdown |
+| TicketForm property selector | Added property dropdown to TicketForm when opened from Issues tab, showing only accessible properties |
+| TicketForm layout | Record audio + Add Photo buttons side-by-side above description field, below title |
+| Calendar blocked days | Fixed Airbnb blocked day detection; prevented click interaction on blocked days |
+
+---
+
 ## Feature Changelog
 
 | Date | Change |
@@ -122,6 +163,18 @@ A property management app for short-term rentals with three user roles: **Admin*
 | — | Server-side repair cost masking for cleaners (always `0`) |
 | — | Server-side repair cost masking for owners when toggle is off |
 | — | Completed refactoring steps 1–5 (types, status config, typing, cleanup) |
+| — | Mobile bottom navigation bar with tactile card feedback |
+| — | Reduced mobile padding and fixed scroll-to-top after login |
+| — | Security: RLS policies on `app_users` table |
+| — | Security: Brute-force protection on PIN validation (5 attempts / 15 min) |
+| — | Report New Issue button with property selector on Issues tab |
+| — | TicketForm: record/photo buttons repositioned side-by-side |
+| — | "No activity today" green styling for cleaner free days |
+| — | iCal guest name extraction from DESCRIPTION and UID fields |
+| — | MasterTimeline displays `guest_name` instead of raw `summary` |
+| — | Fixed Airbnb blocked day detection (added "not available" pattern) |
+| — | Calendar: blocked days are non-interactive |
+| — | Cleared and re-synced all bookings for fresh guest name data |
 
 ---
 
