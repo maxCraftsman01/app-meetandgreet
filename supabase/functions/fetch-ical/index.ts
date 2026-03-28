@@ -167,7 +167,7 @@ Deno.serve(async (req) => {
       .eq("property_id", property_id);
 
     if (allEvents.length > 0) {
-      const airbnbBlockedPatterns = ["airbnb (not available)", "blocked", "unavailable", "no disponible", "nicht verfügbar"];
+      const airbnbBlockedPatterns = ["airbnb (not available)", "not available", "blocked", "unavailable", "no disponible", "nicht verfügbar"];
       await supabase.from("bookings").insert(
         allEvents.map((e) => {
           const summaryLower = (e.summary || "").toLowerCase();
