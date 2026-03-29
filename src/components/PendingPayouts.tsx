@@ -153,7 +153,7 @@ export function PendingPayouts({ adminPin, properties, propertyId }: Props) {
               >
                 <div className="space-y-0.5 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-medium text-sm truncate">{evt.summary || "Guest"}</span>
+                    <span className="font-medium text-sm truncate">{evt.guest_name || evt.summary || "Guest"}</span>
                     <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-orange-100 text-orange-800">
                       Pending
                     </span>
