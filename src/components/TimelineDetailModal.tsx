@@ -18,6 +18,7 @@ interface Reservation {
   cleaning_status?: string;
   is_blocked?: boolean;
   source?: string;
+  source_url?: string;
   net_payout?: number;
   property_name?: string;
 }

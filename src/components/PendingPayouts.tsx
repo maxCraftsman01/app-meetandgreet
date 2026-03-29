@@ -27,6 +27,7 @@ import { format, parseISO } from "date-fns";
 
 interface ICalEvent {
   summary: string;
+  guest_name?: string;
   start_date: string;
   end_date: string;
   source_url: string | null;
