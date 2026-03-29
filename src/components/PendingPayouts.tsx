@@ -27,6 +27,7 @@ import { format, parseISO } from "date-fns";
 
 interface ICalEvent {
   summary: string;
+  guest_name?: string;
   start_date: string;
   end_date: string;
   source_url: string | null;
@@ -152,7 +153,7 @@ export function PendingPayouts({ adminPin, properties, propertyId }: Props) {
               >
                 <div className="space-y-0.5 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-medium text-sm truncate">{evt.summary || "Guest"}</span>
+                    <span className="font-medium text-sm truncate">{evt.guest_name || evt.summary || "Guest"}</span>
                     <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-orange-100 text-orange-800">
                       Pending
                     </span>
@@ -197,7 +198,7 @@ export function PendingPayouts({ adminPin, properties, propertyId }: Props) {
             <div className="grid gap-3 py-2">
               <div>
                 <Label className="text-muted-foreground text-xs">Guest</Label>
-                <p className="font-medium">{convertDialog.summary || "Guest"}</p>
+                <p className="font-medium">{convertDialog.guest_name || convertDialog.summary || "Guest"}</p>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>

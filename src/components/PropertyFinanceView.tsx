@@ -61,7 +61,8 @@ export const PropertyFinanceView = ({ property, bookings, manualReservations, pi
       const end = startOfDay(parseISO(b.end_date));
       if (isWithinInterval(day, { start, end: endOfDay(end) })) {
         if (b.status === "blocked") return { status: "blocked", label: "Blocked", isManual: false, isPending: false };
-        return { status: "booked", label: `${b.summary || "Booked"} (Pending Verification)`, isManual: false, isPending: true, booking: b };
+        const channel = b.source_url?.includes("booking.com") ? "Booking.com" : b.source_url?.includes("airbnb") ? "Airbnb" : "Other";
+        return { status: "booked", label: `${(b as any).guest_name || b.summary || "Booked"} · ${channel} (Pending Verification)`, isManual: false, isPending: true, booking: b };
       }
     }
     return { status: "available", label: "Available", isManual: false, isPending: false };

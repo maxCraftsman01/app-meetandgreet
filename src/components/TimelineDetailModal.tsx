@@ -18,6 +18,7 @@ interface Reservation {
   cleaning_status?: string;
   is_blocked?: boolean;
   source?: string;
+  source_url?: string;
   net_payout?: number;
   property_name?: string;
 }
@@ -90,9 +91,17 @@ export function TimelineDetailModal({ reservation, open, onOpenChange, adminPin,
             <span>{checkOut ? format(parseISO(checkOut), "MMM d, yyyy") : "—"}</span>
           </div>
           {r.source && (
-            <div className="flex justify-between">
+            <div className="flex justify-between items-center">
               <span className="text-muted-foreground">Source</span>
-              <span>{r.source}</span>
+              <Badge className="bg-muted text-muted-foreground border-border">{r.source}</Badge>
+            </div>
+          )}
+          {!r.source && r.source_url && (
+            <div className="flex justify-between items-center">
+              <span className="text-muted-foreground">Channel</span>
+              <Badge className="bg-muted text-muted-foreground border-border">
+                {r.source_url.includes("booking.com") ? "Booking.com" : r.source_url.includes("airbnb") ? "Airbnb" : "Other"}
+              </Badge>
             </div>
           )}
           {r.status && (

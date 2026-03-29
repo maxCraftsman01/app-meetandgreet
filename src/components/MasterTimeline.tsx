@@ -86,7 +86,9 @@ export function MasterTimeline({ adminPin }: Props) {
         ...b,
         check_in: b.start_date,
         check_out: b.end_date,
-        guest_name: b.summary || "iCal Booking",
+        guest_name: b.guest_name || b.summary || "iCal Booking",
+        source: b.source_url?.includes("booking.com") ? "Booking.com" : b.source_url?.includes("airbnb") ? "Airbnb" : "Other",
+        source_url: b.source_url,
       });
     });
     return map;
