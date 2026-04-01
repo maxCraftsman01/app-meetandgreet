@@ -18,6 +18,7 @@ export interface Booking {
   id: string;
   property_id: string;
   summary: string;
+  guest_name: string | null;
   start_date: string;
   end_date: string;
   status: string;
