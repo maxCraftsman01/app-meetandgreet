@@ -111,6 +111,10 @@ const Admin = () => {
       toast.error("Name, owner name, and owner PIN are required.");
       return;
     }
+    if (form.owner_pin.length !== 8 || !/^\d{8}$/.test(form.owner_pin)) {
+      toast.error("Owner PIN must be exactly 8 digits.");
+      return;
+    }
     setSaving(true);
     try {
       const payload = {
