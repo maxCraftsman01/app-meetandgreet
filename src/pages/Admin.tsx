@@ -306,7 +306,7 @@ const Admin = () => {
                   </div>
                   <div>
                     <Label>Owner PIN</Label>
-                    <Input value={form.owner_pin} onChange={(e) => setForm({ ...form, owner_pin: e.target.value })} placeholder="12345678" className="font-mono" />
+                    <Input value={form.owner_pin} onChange={(e) => setForm({ ...form, owner_pin: e.target.value.replace(/\D/g, "").slice(0, 8) })} placeholder="12345678" maxLength={8} className="font-mono" />
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
