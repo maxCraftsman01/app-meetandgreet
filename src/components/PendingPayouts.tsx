@@ -197,7 +197,7 @@ export function PendingPayouts({ adminPin, properties, propertyId }: Props) {
           {convertDialog && (
             <div className="grid gap-3 py-2">
               <div>
-                <Label className="text-muted-foreground text-xs">Guest</Label>
+                <Label className="text-muted-foreground text-xs">Reservation ID</Label>
                 <p className="font-medium">{convertDialog.guest_name || convertDialog.summary || "Guest"}</p>
               </div>
               <div className="grid grid-cols-2 gap-3">
