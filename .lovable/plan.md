@@ -1,37 +1,28 @@
 
 
-## Fix Guest Name Display and Add Channel Badges for iCal Bookings
+## Fix: Save Guest ID (Not "Guest" or "Reserved") When Confirming Reservations
 
 ### Problem
-Several components show `b.summary` (raw iCal text like "Not Available") instead of `b.guest_name` (parsed guest info). Channel source is also not shown separately for iCal bookings.
+Line 101 in `PendingPayouts.tsx` saves `convertDialog.summary || "Guest"` as the guest_name to the database. This writes "Reserved" or "Not Available" instead of the actual guest ID (like "423507b6") that was parsed from the iCal UID.
 
-### Changes
+### Fix — One line change
 
-**1. `src/components/MasterTimeline.tsx`** (line 89)
-- Change `guest_name: b.summary || "iCal Booking"` to `guest_name: b.guest_name || b.summary || "iCal Booking"`
-- Add `source` field derived from `b.source_url` (Booking.com / Airbnb / Other)
-- Add `source_url` passthrough so downstream components can use it
+**File: `src/components/PendingPayouts.tsx`**, line 101
 
-**2. `src/components/TimelineBar.tsx`**
-- Already shows `guest_name || summary` — no name change needed
-- The `getSourceLabel` function already handles source display in the tooltip
-- Source badge is already shown inline via `sourceLabel` — just ensure the new `source` field flows through
+Change:
+```typescript
+guest_name: convertDialog.summary || "Guest",
+```
+To:
+```typescript
+guest_name: convertDialog.guest_name || convertDialog.summary || "",
+```
 
-**3. `src/components/TimelineDetailModal.tsx`**
-- Add `source_url?: string` to the Reservation interface
-- Add a "Channel" row that derives the channel from `r.source` (manual reservations) or `r.source_url` (iCal bookings) using the same Booking.com/Airbnb detection logic
-- Display as a badge matching existing styling
+This prioritizes `guest_name` (the parsed ID like "423507b6") and falls back to `summary` only if guest_name is missing. The final fallback is an empty string instead of the word "Guest" — so you'll never get a fake name stored.
 
-**4. `src/components/PropertyFinanceView.tsx`** (line 64)
-- Change `b.summary || "Booked"` to `b.guest_name || b.summary || "Booked"`
-- Derive channel from `b.source_url` and append as a separate badge in the label, e.g. `"GuestName"` + `[Airbnb]` badge
-- Keep the "(Pending Verification)" suffix for unverified iCal bookings
+### Already correct (no changes needed)
+- Lines 156 and 201 (display only) already show `evt.guest_name || evt.summary || "Guest"` — these are fine for display purposes since they don't write to the database.
 
-**5. `src/components/PendingPayouts.tsx`** (lines 155, 200)
-- Change `evt.summary || "Guest"` to `evt.guest_name || evt.summary || "Guest"` in both the list item and the confirm dialog
-- Add `guest_name` to the `ICalEvent` interface
-- Enrich events in the `load` function to carry `guest_name` from the API response
-- Channel badge already shown via `platform` variable — no change needed there
-
-### No backend or schema changes
+### Note on existing data
+Reservations already saved with "Reserved" as guest_name won't auto-fix. Those would need manual correction in the database.
 
