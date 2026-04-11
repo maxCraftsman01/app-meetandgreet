@@ -98,7 +98,7 @@ export function PendingPayouts({ adminPin, properties, propertyId }: Props) {
     try {
       await createReservation(adminPin, {
         property_id: convertDialog.property_id,
-        guest_name: convertDialog.summary || "Guest",
+        guest_name: convertDialog.guest_name || convertDialog.summary || "",
         check_in: convertDialog.start_date,
         check_out: convertDialog.end_date,
         source: detectPlatform(convertDialog.source_url),
