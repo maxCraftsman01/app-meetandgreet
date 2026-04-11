@@ -1,28 +1,19 @@
 
 
-## Fix: Save Guest ID (Not "Guest" or "Reserved") When Confirming Reservations
+## Add Edit Button to All Reservations (Master List)
 
-### Problem
-Line 101 in `PendingPayouts.tsx` saves `convertDialog.summary || "Guest"` as the guest_name to the database. This writes "Reserved" or "Not Available" instead of the actual guest ID (like "423507b6") that was parsed from the iCal UID.
+### What changes
+**File: `src/components/MasterReservationList.tsx`**
 
-### Fix — One line change
+Add an edit dialog identical to the one in `ManageReservations.tsx`:
 
-**File: `src/components/PendingPayouts.tsx`**, line 101
+1. Add state for `dialogOpen`, `editingId`, and `form` (guest_name, check_in, check_out, source, net_payout, status)
+2. Add a `handleEdit` function that populates the form from the selected reservation and opens the dialog
+3. Add a `handleSave` function that calls `updateReservation(adminPin, id, payload)` — reusing the existing API import
+4. Add a `Dialog` component with the same form fields (Guest Name, Check-in, Check-out, Source, Status, Net Payout) — matching the existing pattern in `ManageReservations`
+5. Add a `Pencil` edit button (already imported but unused) between the Block and Delete buttons in each row
+6. The property dropdown in the edit dialog is read-only (shows property name) since changing property assignment from this view would be unusual
 
-Change:
-```typescript
-guest_name: convertDialog.summary || "Guest",
-```
-To:
-```typescript
-guest_name: convertDialog.guest_name || convertDialog.summary || "",
-```
-
-This prioritizes `guest_name` (the parsed ID like "423507b6") and falls back to `summary` only if guest_name is missing. The final fallback is an empty string instead of the word "Guest" — so you'll never get a fake name stored.
-
-### Already correct (no changes needed)
-- Lines 156 and 201 (display only) already show `evt.guest_name || evt.summary || "Guest"` — these are fine for display purposes since they don't write to the database.
-
-### Note on existing data
-Reservations already saved with "Reserved" as guest_name won't auto-fix. Those would need manual correction in the database.
+### No backend changes needed
+The `PUT` endpoint in `admin-reservations` already supports updating all these fields.
 
