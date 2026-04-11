@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { List, Pencil, Trash2, Ban } from "lucide-react";
+import { Pencil, Trash2, Ban } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { getAdminReservations, deleteReservation, updateReservation } from "@/lib/api";
 import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
@@ -17,6 +19,9 @@ export function MasterReservationList({ adminPin, properties }: Props) {
   const [reservations, setReservations] = useState<(ManualReservation & { property_name?: string; currency?: string })[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedProperty, setSelectedProperty] = useState<string>("");
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [form, setForm] = useState({ guest_name: "", check_in: "", check_out: "", source: "", net_payout: 0, status: "Confirmed" });
 
   const load = async () => {
     try {
@@ -51,6 +56,32 @@ export function MasterReservationList({ adminPin, properties }: Props) {
     }
   };
 
+  const handleEdit = (r: ManualReservation) => {
+    setEditingId(r.id);
+    setForm({
+      guest_name: r.guest_name,
+      check_in: r.check_in,
+      check_out: r.check_out,
+      source: r.source,
+      net_payout: r.net_payout,
+      status: r.status,
+    });
+    setDialogOpen(true);
+  };
+
+  const handleSave = async () => {
+    if (!editingId) return;
+    try {
+      await updateReservation(adminPin, editingId, form);
+      toast.success("Reservation updated");
+      setDialogOpen(false);
+      setEditingId(null);
+      load();
+    } catch {
+      toast.error("Failed to update");
+    }
+  };
+
   const statusBadge = (status: string) => {
     const colors: Record<string, string> = {
       Confirmed: "bg-amber-100 text-amber-800",
@@ -77,6 +108,8 @@ export function MasterReservationList({ adminPin, properties }: Props) {
   const filteredReservations = selectedProperty
     ? reservations.filter((r) => r.property_id === selectedProperty)
     : reservations;
+
+  const editingReservation = editingId ? reservations.find((r) => r.id === editingId) : null;
 
   return (
     <div className="space-y-3">
@@ -126,6 +159,15 @@ export function MasterReservationList({ adminPin, properties }: Props) {
             <Button
               variant="ghost"
               size="icon"
+              className="h-7 w-7 text-muted-foreground"
+              title="Edit"
+              onClick={() => handleEdit(r)}
+            >
+              <Pencil className="w-3 h-3" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
               className={`h-7 w-7 ${r.is_blocked ? "text-zinc-500" : "text-muted-foreground"}`}
               title={r.is_blocked ? "Unblock" : "Mark as Blocked"}
               onClick={async () => {
@@ -145,6 +187,59 @@ export function MasterReservationList({ adminPin, properties }: Props) {
         </motion.div>
       ))}
       </div>
+
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Reservation</DialogTitle>
+          </DialogHeader>
+          {editingReservation && (
+            <p className="text-xs text-muted-foreground">Property: {editingReservation.property_name}</p>
+          )}
+          <div className="space-y-3">
+            <div>
+              <Label className="text-xs">Guest Name</Label>
+              <Input value={form.guest_name} onChange={(e) => setForm({ ...form, guest_name: e.target.value })} className="h-8 text-sm" />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-xs">Check-in</Label>
+                <Input type="date" value={form.check_in} onChange={(e) => setForm({ ...form, check_in: e.target.value })} className="h-8 text-sm" />
+              </div>
+              <div>
+                <Label className="text-xs">Check-out</Label>
+                <Input type="date" value={form.check_out} onChange={(e) => setForm({ ...form, check_out: e.target.value })} className="h-8 text-sm" />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-xs">Source</Label>
+                <Input value={form.source} onChange={(e) => setForm({ ...form, source: e.target.value })} className="h-8 text-sm" />
+              </div>
+              <div>
+                <Label className="text-xs">Status</Label>
+                <select
+                  value={form.status}
+                  onChange={(e) => setForm({ ...form, status: e.target.value })}
+                  className="h-8 w-full rounded-md border border-input bg-background px-2 text-sm"
+                >
+                  <option>Confirmed</option>
+                  <option>Paid</option>
+                  <option>Cancelled</option>
+                </select>
+              </div>
+            </div>
+            <div>
+              <Label className="text-xs">Net Payout</Label>
+              <Input type="number" value={form.net_payout} onChange={(e) => setForm({ ...form, net_payout: Number(e.target.value) })} className="h-8 text-sm" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setDialogOpen(false)}>Cancel</Button>
+            <Button size="sm" onClick={handleSave}>Save</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
