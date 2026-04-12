@@ -87,7 +87,7 @@ function extractBookingComInfo(event: ICalEvent, sourceUrl: string): { guest_nam
 
   const guest_name = guestFromDesc
     ? guestFromDesc + (ref ? ` (#${ref})` : "")
-    : "Booking.com Guest" + (ref ? ` (#${ref})` : "");
+    : ref || "";
 
   const summary = ref ? `Booking.com #${ref}` : "Booking.com Guest";
 
