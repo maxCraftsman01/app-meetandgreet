@@ -1,57 +1,29 @@
 
 
-## Fix: Remove "Booking.com Guest" Fallback from iCal Parser
+## Pending Refactoring — Steps 6, 7, and 8
 
-### Problem
-In `supabase/functions/fetch-ical/index.ts`, the `extractBookingComInfo` function (line 87) uses `"Booking.com Guest"` as a fallback when no guest name is found in the DESCRIPTION. This writes strings like `Booking.com Guest (#1418fb94)` into the `guest_name` column instead of just the reference ID.
+Three refactoring tasks remain from the PROJECT_LOG:
 
-### Fix
+### Step 6: Dashboard Hooks Extraction
+**Current state**: `Dashboard.tsx` is 469 lines with data fetching, state, and UI mixed together.
+**Plan**: Extract all data-fetching logic into `src/hooks/useDashboardData.ts` — owner data, cleaner tasks, tickets, sync. Dashboard becomes a presentational wrapper (~200 lines).
 
-**File: `supabase/functions/fetch-ical/index.ts`**
+### Step 7: Admin.tsx Split
+**Current state**: `Admin.tsx` is 608 lines containing property form, property grid, finance sheet, and mobile nav all in one file.
+**Plan**: Extract into sub-components:
+- `src/components/admin/PropertyFormDialog.tsx` — create/edit property dialog
+- `src/components/admin/PropertyGrid.tsx` — property cards grid
+- `src/components/admin/AdminFinanceSheet.tsx` — finance side sheet
+- `src/components/admin/AdminMobileNav.tsx` — bottom tab navigation
+- `Admin.tsx` stays as orchestrator (~150 lines)
 
-Change the guest_name construction in `extractBookingComInfo` (around line 85-87):
+### Step 8: Edge Function Shared Auth
+**Current state**: All 11 edge functions duplicate the same CORS headers and PIN validation (~30 lines each).
+**Plan**: Create shared modules:
+- `supabase/functions/_shared/cors.ts` — export `corsHeaders` and OPTIONS handler
+- `supabase/functions/_shared/auth.ts` — export `validateAdminPin()` helper
+- Update all edge functions to import from shared modules (~300 lines reduced total)
 
-From:
-```typescript
-const guest_name = guestFromDesc
-  ? guestFromDesc + (ref ? ` (#${ref})` : "")
-  : "Booking.com Guest" + (ref ? ` (#${ref})` : "");
-```
-
-To:
-```typescript
-const guest_name = guestFromDesc
-  ? guestFromDesc + (ref ? ` (#${ref})` : "")
-  : ref || "";
-```
-
-This way, if there's no guest name from DESCRIPTION, it stores just the reference ID (e.g. `1418fb94`) — no fake "Booking.com Guest" prefix.
-
-### Database cleanup
-Run a SQL update to fix existing records that already have "Booking.com Guest" in the `guest_name`:
-
-```sql
--- In bookings table
-UPDATE bookings
-SET guest_name = regexp_replace(guest_name, '^Booking\.com Guest \(#', '')
-WHERE guest_name LIKE 'Booking.com Guest%';
-
-UPDATE bookings
-SET guest_name = rtrim(guest_name, ')')
-WHERE guest_name LIKE '%)'
-  AND guest_name NOT LIKE 'Booking.com%';
-
--- In manual_reservations table
-UPDATE manual_reservations
-SET guest_name = regexp_replace(guest_name, '^Booking\.com Guest \(#', '')
-WHERE guest_name LIKE 'Booking.com Guest%';
-
-UPDATE manual_reservations
-SET guest_name = rtrim(guest_name, ')')
-WHERE guest_name LIKE '%)'
-  AND guest_name NOT LIKE 'Booking.com%';
-```
-
-### Deploy
-Redeploy the `fetch-ical` edge function after the code change.
+### Execution order
+Steps 6 → 7 → 8 (frontend first, then backend). No database changes needed — pure refactoring.
 
