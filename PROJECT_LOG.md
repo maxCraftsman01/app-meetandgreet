@@ -91,22 +91,22 @@ A property management app for short-term rentals with three user roles: **Admin*
 
 ## Pending Refactoring (Steps 6–8)
 
-### 6. Dashboard Hooks Extraction
-- Extract data fetching into `src/hooks/useDashboardData.ts`
-- Dashboard becomes purely presentational (~200 lines)
+### 6. Dashboard Hooks Extraction ✅
+- Extracted all data-fetching logic from `Dashboard.tsx` into `src/hooks/useDashboardData.ts`
+- Dashboard is now a presentational wrapper importing the custom hook
 
-### 7. Admin.tsx Split
-- Extract into sub-components:
+### 7. Admin.tsx Split ✅
+- Extracted sub-components:
   - `src/components/admin/PropertyFormDialog.tsx`
   - `src/components/admin/PropertyGrid.tsx`
-  - `src/components/admin/AdminFinanceSheet.tsx`
   - `src/components/admin/AdminMobileNav.tsx`
-- Keep `Admin.tsx` as orchestrator (~150 lines)
+- `Admin.tsx` is now an orchestrator (~200 lines)
 
-### 8. Edge Function Shared Auth
-- Create `supabase/functions/_shared/auth.ts` and `cors.ts`
-- Consolidate duplicated CORS headers and PIN validation across 11 functions
-- ~300+ lines reduced total
+### 8. Edge Function Shared Auth ✅
+- Created `supabase/functions/_shared/cors.ts` (corsHeaders, handleCors, json helper)
+- Created `supabase/functions/_shared/auth.ts` (getSupabaseClient, validateAdminPin)
+- All 11 edge functions now import from shared modules
+- ~300+ lines of duplication eliminated
 
 ---
 
@@ -122,6 +122,7 @@ A property management app for short-term rentals with three user roles: **Admin*
 | — | Server-side repair cost masking for cleaners (always `0`) |
 | — | Server-side repair cost masking for owners when toggle is off |
 | — | Completed refactoring steps 1–5 (types, status config, typing, cleanup) |
+| — | Completed refactoring steps 6–8 (dashboard hooks, admin split, shared edge modules) |
 
 ---
 

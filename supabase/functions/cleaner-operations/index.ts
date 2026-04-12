@@ -1,30 +1,19 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-cleaner-pin, x-admin-pin, x-user-pin, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-  "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-};
+import { handleCors, corsHeaders } from "../_shared/cors.ts";
+import { getSupabaseClient } from "../_shared/auth.ts";
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
+  const corsResp = handleCors(req);
+  if (corsResp) return corsResp;
 
-  const supabase = createClient(
-    Deno.env.get("SUPABASE_URL")!,
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-  );
-
+  const supabase = getSupabaseClient();
   const cleanerPin = req.headers.get("x-cleaner-pin");
   const adminPin = req.headers.get("x-admin-pin");
-  const userPin = req.headers.get("x-user-pin") || cleanerPin; // unified PIN support
+  const userPin = req.headers.get("x-user-pin") || cleanerPin;
   const isAdmin = adminPin === Deno.env.get("ADMIN_PIN");
 
   try {
     const method = req.method;
 
-    // Admin: get all properties' cleaning status for daily ops dashboard
     if (method === "GET" && isAdmin) {
       const url = new URL(req.url);
       const fromParam = url.searchParams.get("from");
@@ -32,18 +21,12 @@ Deno.serve(async (req) => {
       const today = new Date().toISOString().split("T")[0];
 
       const { data: properties } = await supabase
-        .from("properties")
-        .select("id, name, owner_name, keybox_code, cleaning_notes, cleaner_pin");
+        .from("properties").select("id, name, owner_name, keybox_code, cleaning_notes, cleaner_pin");
 
-      // If from/to provided, return schedule for range
       if (fromParam && toParam) {
         const { data: reservations } = await supabase
-          .from("manual_reservations")
-          .select("*")
-          .neq("status", "Cancelled")
-          .eq("is_blocked", false)
-          .lte("check_in", toParam)
-          .gte("check_out", fromParam);
+          .from("manual_reservations").select("*").neq("status", "Cancelled").eq("is_blocked", false)
+          .lte("check_in", toParam).gte("check_out", fromParam);
 
         const events: any[] = [];
         const current = new Date(fromParam);
@@ -65,15 +48,10 @@ Deno.serve(async (req) => {
               else if (hasArrival && cleaningDone) status = "arrival-ready";
 
               events.push({
-                date: dateStr,
-                property_id: p.id,
-                property_name: p.name,
-                status,
+                date: dateStr, property_id: p.id, property_name: p.name, status,
                 guest_name: checkingIn?.guest_name || null,
                 check_out_guest: propRes.find((r: any) => r.check_out === dateStr)?.guest_name || null,
-                reservation_id: checkingIn?.id || null,
-                keybox_code: p.keybox_code,
-                cleaning_notes: p.cleaning_notes,
+                reservation_id: checkingIn?.id || null, keybox_code: p.keybox_code, cleaning_notes: p.cleaning_notes,
               });
             }
           }
@@ -85,13 +63,9 @@ Deno.serve(async (req) => {
         });
       }
 
-      // Default: today only (existing behavior)
       const { data: reservations } = await supabase
-        .from("manual_reservations")
-        .select("*")
-        .or(`check_in.eq.${today},check_out.eq.${today}`)
-        .neq("status", "Cancelled")
-        .eq("is_blocked", false);
+        .from("manual_reservations").select("*").or(`check_in.eq.${today},check_out.eq.${today}`)
+        .neq("status", "Cancelled").eq("is_blocked", false);
 
       const propertyStatuses = (properties || []).map((p: any) => {
         const propRes = (reservations || []).filter((r: any) => r.property_id === p.id);
@@ -106,14 +80,7 @@ Deno.serve(async (req) => {
         else if (hasArrival && !cleaningDone) status = "arrival-pending";
         else if (hasArrival && cleaningDone) status = "arrival-ready";
 
-        return {
-          ...p,
-          status,
-          today_checkout: checkingOut,
-          today_checkin: hasArrival,
-          cleaning_done: cleaningDone,
-          arrival_reservation: checkingIn || null,
-        };
+        return { ...p, status, today_checkout: checkingOut, today_checkin: hasArrival, cleaning_done: cleaningDone, arrival_reservation: checkingIn || null };
       });
 
       return new Response(JSON.stringify(propertyStatuses), {
@@ -121,32 +88,20 @@ Deno.serve(async (req) => {
       });
     }
 
-    // User access: look up by PIN in app_users + user_property_access
     if (method === "GET" && userPin) {
       const url = new URL(req.url);
       const fromParam = url.searchParams.get("from");
       const toParam = url.searchParams.get("to");
 
-      // Find user by PIN
-      const { data: user } = await supabase
-        .from("app_users")
-        .select("id")
-        .eq("pin", userPin)
-        .single();
-
+      const { data: user } = await supabase.from("app_users").select("id").eq("pin", userPin).single();
       if (!user) {
         return new Response(JSON.stringify({ error: "Invalid PIN" }), {
-          status: 401,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
 
-      // Get properties where user has cleaning access
       const { data: access } = await supabase
-        .from("user_property_access")
-        .select("property_id, can_mark_cleaned")
-        .eq("user_id", user.id)
-        .eq("can_view_cleaning", true);
+        .from("user_property_access").select("property_id, can_mark_cleaned").eq("user_id", user.id).eq("can_view_cleaning", true);
 
       if (!access || access.length === 0) {
         return new Response(JSON.stringify([]), {
@@ -155,22 +110,13 @@ Deno.serve(async (req) => {
       }
 
       const propertyIds = access.map((a: any) => a.property_id);
-
       const { data: properties } = await supabase
-        .from("properties")
-        .select("id, name, keybox_code, cleaning_notes")
-        .in("id", propertyIds);
+        .from("properties").select("id, name, keybox_code, cleaning_notes").in("id", propertyIds);
 
-      // Range query for week/month views
       if (fromParam && toParam) {
         const { data: reservations } = await supabase
-          .from("manual_reservations")
-          .select("*")
-          .in("property_id", propertyIds)
-          .neq("status", "Cancelled")
-          .eq("is_blocked", false)
-          .lte("check_in", toParam)
-          .gte("check_out", fromParam);
+          .from("manual_reservations").select("*").in("property_id", propertyIds)
+          .neq("status", "Cancelled").eq("is_blocked", false).lte("check_in", toParam).gte("check_out", fromParam);
 
         const events: any[] = [];
         const current = new Date(fromParam);
@@ -192,15 +138,10 @@ Deno.serve(async (req) => {
               else if (hasArrival && cleaningDone) status = "arrival-ready";
 
               events.push({
-                date: dateStr,
-                property_id: p.id,
-                property_name: p.name,
-                status,
+                date: dateStr, property_id: p.id, property_name: p.name, status,
                 guest_name: checkingIn?.guest_name || null,
                 check_out_guest: propRes.find((r: any) => r.check_out === dateStr)?.guest_name || null,
-                reservation_id: checkingIn?.id || null,
-                keybox_code: p.keybox_code,
-                cleaning_notes: p.cleaning_notes,
+                reservation_id: checkingIn?.id || null, keybox_code: p.keybox_code, cleaning_notes: p.cleaning_notes,
               });
             }
           }
@@ -212,16 +153,10 @@ Deno.serve(async (req) => {
         });
       }
 
-      // Default: today only
       const today = new Date().toISOString().split("T")[0];
-
       const { data: reservations } = await supabase
-        .from("manual_reservations")
-        .select("*")
-        .in("property_id", propertyIds)
-        .or(`check_in.eq.${today},check_out.eq.${today}`)
-        .neq("status", "Cancelled")
-        .eq("is_blocked", false);
+        .from("manual_reservations").select("*").in("property_id", propertyIds)
+        .or(`check_in.eq.${today},check_out.eq.${today}`).neq("status", "Cancelled").eq("is_blocked", false);
 
       const tasks = (properties || []).map((p: any) => {
         const propRes = (reservations || []).filter((r: any) => r.property_id === p.id);
@@ -237,13 +172,8 @@ Deno.serve(async (req) => {
         else if (hasArrival && cleaningDone) status = "arrival-ready";
 
         return {
-          property_id: p.id,
-          property_name: p.name,
-          keybox_code: p.keybox_code,
-          cleaning_notes: p.cleaning_notes,
-          status,
-          reservation_id: checkingIn?.id || null,
-          guest_name: checkingIn?.guest_name || null,
+          property_id: p.id, property_name: p.name, keybox_code: p.keybox_code, cleaning_notes: p.cleaning_notes,
+          status, reservation_id: checkingIn?.id || null, guest_name: checkingIn?.guest_name || null,
           check_in: checkingIn?.check_in || null,
           check_out_guest: propRes.find((r: any) => r.check_out === today)?.guest_name || null,
         };
@@ -256,49 +186,34 @@ Deno.serve(async (req) => {
 
     if (!userPin && !isAdmin) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // PUT: mark as cleaned or revert to pending
     if (method === "PUT") {
       const body = await req.json();
       const { reservation_id, cleaning_status } = body;
-
       if (!reservation_id) {
         return new Response(JSON.stringify({ error: "Missing reservation_id" }), {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-
       const updates = cleaning_status === "pending"
         ? { cleaning_status: "pending", last_cleaned_at: null }
         : { cleaning_status: "completed", last_cleaned_at: new Date().toISOString() };
-
-      const { data, error } = await supabase
-        .from("manual_reservations")
-        .update(updates)
-        .eq("id", reservation_id)
-        .select()
-        .single();
-
+      const { data, error } = await supabase.from("manual_reservations").update(updates).eq("id", reservation_id).select().single();
       if (error) throw error;
-
       return new Response(JSON.stringify(data), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     return new Response(JSON.stringify({ error: "Method not allowed" }), {
-      status: 405,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 405, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
     return new Response(JSON.stringify({ error: err.message }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 });
