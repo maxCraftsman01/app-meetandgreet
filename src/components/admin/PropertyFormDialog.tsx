@@ -14,6 +14,7 @@ export interface PropertyFormData {
   currency: string;
   keybox_code: string;
   cleaning_notes: string;
+  listing_urls: string;
 }
 
 export const emptyForm: PropertyFormData = {
@@ -26,6 +27,7 @@ export const emptyForm: PropertyFormData = {
   currency: "EUR",
   keybox_code: "",
   cleaning_notes: "",
+  listing_urls: "",
 };
 
 interface Props {
@@ -92,6 +94,16 @@ export function PropertyFormDialog({ open, onOpenChange, editingId, form, setFor
               onChange={(e) => setForm({ ...form, cleaning_notes: e.target.value })}
               placeholder="Special instructions for cleaning..."
               rows={2}
+              className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+            />
+          </div>
+          <div>
+            <Label>Listing URLs (one per line)</Label>
+            <textarea
+              value={form.listing_urls}
+              onChange={(e) => setForm({ ...form, listing_urls: e.target.value })}
+              placeholder={"https://airbnb.com/rooms/12345\nhttps://booking.com/hotel/abc"}
+              rows={3}
               className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
             />
           </div>

@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
-import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, X, Copy, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -353,6 +353,33 @@ export const PropertyFinanceView = ({ property, bookings, manualReservations, pi
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Listing Links */}
+      {property.listing_urls && property.listing_urls.length > 0 && (
+        <Card className="p-4 mt-4">
+          <h3 className="font-semibold text-sm mb-3 flex items-center gap-2">
+            <ExternalLink className="w-4 h-4" /> Listing Links
+          </h3>
+          <div className="space-y-2">
+            {property.listing_urls.map((url, i) => (
+              <div key={i} className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground truncate flex-1 min-w-0">{url}</span>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="shrink-0 h-7 px-2 text-xs"
+                  onClick={() => {
+                    navigator.clipboard.writeText(url);
+                    toast.success("Link copied to clipboard");
+                  }}
+                >
+                  <Copy className="w-3 h-3 mr-1" /> Copy
+                </Button>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
     </div>
   );
 };

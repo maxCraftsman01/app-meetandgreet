@@ -12,6 +12,7 @@ export interface Property {
   cleaner_pin?: string;
   keybox_code?: string;
   cleaning_notes?: string;
+  listing_urls?: string[];
 }
 
 export interface Booking {
