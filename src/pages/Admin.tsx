@@ -88,6 +88,7 @@ const Admin = () => {
         ical_urls: form.ical_urls.split("\n").map((u) => u.trim()).filter(Boolean),
         nightly_rate: parseFloat(form.nightly_rate) || 0, currency: form.currency,
         keybox_code: form.keybox_code, cleaning_notes: form.cleaning_notes,
+        listing_urls: form.listing_urls.split("\n").map((u) => u.trim()).filter(Boolean),
       };
       if (editingId) { await updateProperty(session!.pin, editingId, payload); toast.success("Property updated"); }
       else { await createProperty(session!.pin, payload); toast.success("Property created"); }
@@ -110,6 +111,7 @@ const Admin = () => {
       ical_urls: (p.ical_urls || []).join("\n"),
       nightly_rate: String(p.nightly_rate), currency: p.currency,
       keybox_code: (p as any).keybox_code || "", cleaning_notes: (p as any).cleaning_notes || "",
+      listing_urls: (p.listing_urls || []).join("\n"),
     });
     setDialogOpen(true);
   };
