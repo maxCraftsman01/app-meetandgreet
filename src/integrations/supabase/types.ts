@@ -240,6 +240,7 @@ export type Database = {
           ical_urls: string[] | null
           id: string
           keybox_code: string | null
+          listing_urls: string[] | null
           name: string
           nightly_rate: number
           owner_name: string
@@ -253,6 +254,7 @@ export type Database = {
           ical_urls?: string[] | null
           id?: string
           keybox_code?: string | null
+          listing_urls?: string[] | null
           name: string
           nightly_rate?: number
           owner_name: string
@@ -266,6 +268,7 @@ export type Database = {
           ical_urls?: string[] | null
           id?: string
           keybox_code?: string | null
+          listing_urls?: string[] | null
           name?: string
           nightly_rate?: number
           owner_name?: string

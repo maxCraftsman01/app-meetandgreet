@@ -1,0 +1,1 @@
+ALTER TABLE public.properties ADD COLUMN listing_urls text[] DEFAULT '{}'::text[];
