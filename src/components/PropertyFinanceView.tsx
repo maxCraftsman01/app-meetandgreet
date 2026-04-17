@@ -10,6 +10,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 import { createOwnerReservation, fetchExpenses } from "@/lib/api";
 import { toast } from "sonner";
 import {
@@ -395,6 +398,12 @@ export const PropertyFinanceView = ({ property, bookings, manualReservations, pi
         </motion.div>
       )}
 
+      {/* Property Expenses */}
+      <PropertyExpensesSection
+        expenses={expenses.filter((e) => e.visible_to_owner)}
+        currency={property.currency}
+      />
+
       {/* Chart */}
       {chartData.length > 0 && (
         <motion.div initial={{ opacity: 0, y: 16, filter: "blur(4px)" }} animate={{ opacity: 1, y: 0, filter: "blur(0px)" }} transition={{ delay: 0.2, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}>
@@ -483,5 +492,149 @@ export const PropertyFinanceView = ({ property, bookings, manualReservations, pi
         </Card>
       )}
     </div>
+  );
+};
+
+// ============================================================
+// Property Expenses Section (owner-visible expenses, collapsible)
+// ============================================================
+const ALL_CATEGORIES: Expense["category"][] = [
+  "cleaning", "maintenance", "repair", "shopping", "supplies", "other",
+];
+
+interface PropertyExpensesSectionProps {
+  expenses: Expense[];
+  currency: string;
+}
+
+const PropertyExpensesSection = ({ expenses, currency }: PropertyExpensesSectionProps) => {
+  const [open, setOpen] = useState(false);
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [dateFrom, setDateFrom] = useState<string>("");
+  const [dateTo, setDateTo] = useState<string>("");
+
+  const filtered = useMemo(() => {
+    return expenses
+      .filter((e) => categoryFilter === "all" || e.category === categoryFilter)
+      .filter((e) => !dateFrom || e.date >= dateFrom)
+      .filter((e) => !dateTo || e.date <= dateTo)
+      .sort((a, b) => b.date.localeCompare(a.date));
+  }, [expenses, categoryFilter, dateFrom, dateTo]);
+
+  const { total, missingCount } = useMemo(() => {
+    let total = 0;
+    let missingCount = 0;
+    for (const e of filtered) {
+      if (e.amount == null) missingCount++;
+      else total += e.amount;
+    }
+    return { total, missingCount };
+  }, [filtered]);
+
+  return (
+    <motion.div initial={{ opacity: 0, y: 16, filter: "blur(4px)" }} animate={{ opacity: 1, y: 0, filter: "blur(0px)" }} transition={{ delay: 0.18, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}>
+      <Card className="p-6">
+        <Collapsible open={open} onOpenChange={setOpen}>
+          <CollapsibleTrigger asChild>
+            <button
+              type="button"
+              className="w-full flex items-center justify-between text-left"
+            >
+              <div>
+                <h3 className="font-semibold">Property Expenses</h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {expenses.length} {expenses.length === 1 ? "item" : "items"} visible to you
+                </p>
+              </div>
+              {open ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+            </button>
+          </CollapsibleTrigger>
+
+          <CollapsibleContent className="mt-4 space-y-4">
+            {/* Filters */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div>
+                <Label className="text-xs text-muted-foreground">Category</Label>
+                <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                  <SelectTrigger className="h-9 mt-1">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All categories</SelectItem>
+                    {ALL_CATEGORIES.map((c) => (
+                      <SelectItem key={c} value={c} className="capitalize">{c}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="exp-from" className="text-xs text-muted-foreground">From</Label>
+                <Input id="exp-from" type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="h-9 mt-1" />
+              </div>
+              <div>
+                <Label htmlFor="exp-to" className="text-xs text-muted-foreground">To</Label>
+                <Input id="exp-to" type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="h-9 mt-1" />
+              </div>
+            </div>
+
+            {/* List */}
+            {filtered.length === 0 ? (
+              <div className="text-center py-8 text-sm text-muted-foreground border border-dashed border-border rounded-lg">
+                No expenses to display.
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-border text-left">
+                      <th className="pb-2 font-medium text-muted-foreground">Date</th>
+                      <th className="pb-2 font-medium text-muted-foreground">Category</th>
+                      <th className="pb-2 font-medium text-muted-foreground">Title</th>
+                      <th className="pb-2 font-medium text-muted-foreground text-right">Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filtered.map((e) => (
+                      <tr key={e.id} className="border-b border-border/50 last:border-0">
+                        <td className="py-2.5 text-muted-foreground whitespace-nowrap">
+                          {format(parseISO(e.date), "MMM d, yyyy")}
+                        </td>
+                        <td className="py-2.5">
+                          <Badge variant="secondary" className="capitalize font-normal">{e.category}</Badge>
+                        </td>
+                        <td className="py-2.5 font-medium">
+                          <div>{e.title}</div>
+                          {e.description && (
+                            <div className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{e.description}</div>
+                          )}
+                        </td>
+                        <td className="py-2.5 text-right font-medium tabular-nums whitespace-nowrap">
+                          {e.amount == null ? <span className="text-muted-foreground">—</span> : `${e.amount.toLocaleString()} ${currency}`}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot>
+                    <tr className="border-t-2 border-border">
+                      <td colSpan={3} className="pt-3 font-semibold">
+                        Total
+                        {missingCount > 0 && (
+                          <span className="ml-2 text-xs font-normal text-muted-foreground">
+                            ({missingCount} {missingCount === 1 ? "item has" : "items have"} no amount)
+                          </span>
+                        )}
+                      </td>
+                      <td className="pt-3 text-right font-semibold tabular-nums whitespace-nowrap">
+                        {total.toLocaleString()} {currency}
+                      </td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            )}
+          </CollapsibleContent>
+        </Collapsible>
+      </Card>
+    </motion.div>
   );
 };
