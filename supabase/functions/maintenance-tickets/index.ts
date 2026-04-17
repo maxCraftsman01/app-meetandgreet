@@ -1,5 +1,5 @@
 import { handleCors, corsHeaders, json } from "../_shared/cors.ts";
-import { getSupabaseClient } from "../_shared/auth.ts";
+import { getSupabaseClient, validateAdminPin } from "../_shared/auth.ts";
 
 Deno.serve(async (req) => {
   const corsResp = handleCors(req);
@@ -8,7 +8,6 @@ Deno.serve(async (req) => {
   const supabase = getSupabaseClient();
   const adminPinHeader = req.headers.get("x-admin-pin");
   const userPinHeader = req.headers.get("x-user-pin");
-  const envAdminPin = Deno.env.get("ADMIN_PIN");
 
   let role: "admin" | "cleaner" | "owner" | null = null;
   let userId: string | null = null;
@@ -17,16 +16,21 @@ Deno.serve(async (req) => {
   let financePropertyIds: string[] = [];
 
   if (adminPinHeader) {
-    if (adminPinHeader === envAdminPin) {
+    if (await validateAdminPin(adminPinHeader)) {
       role = "admin";
-    } else {
-      const { data: adminUser } = await supabase
-        .from("app_users").select("id, is_admin").eq("pin", adminPinHeader).single();
-      if (adminUser?.is_admin) { role = "admin"; userId = adminUser.id; }
+      const { data: adminRows, error: adminErr } = await supabase
+        .from("app_users").select("id").eq("pin", adminPinHeader).eq("is_admin", true).limit(1);
+      if (adminErr) console.error("maintenance-tickets admin lookup error", adminErr);
+      if (adminRows?.[0]) userId = adminRows[0].id;
     }
   } else if (userPinHeader) {
-    const { data: user } = await supabase
-      .from("app_users").select("id, is_admin").eq("pin", userPinHeader).single();
+    const { data: userRows, error: userErr } = await supabase
+      .from("app_users").select("id, is_admin").eq("pin", userPinHeader).limit(1);
+    if (userErr) {
+      console.error("maintenance-tickets app_users lookup error", userErr);
+      return json({ error: "Server error" }, 500);
+    }
+    const user = userRows?.[0];
     if (user) {
       userId = user.id;
       if (user.is_admin) {

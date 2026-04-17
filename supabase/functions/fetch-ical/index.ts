@@ -1,5 +1,5 @@
 import { handleCors, corsHeaders } from "../_shared/cors.ts";
-import { getSupabaseClient } from "../_shared/auth.ts";
+import { getSupabaseClient, validateAdminPin } from "../_shared/auth.ts";
 
 interface ICalEvent {
   summary: string;
@@ -65,8 +65,7 @@ Deno.serve(async (req) => {
   try {
     const { property_id, owner_pin } = await req.json();
     const supabase = getSupabaseClient();
-    const adminPin = Deno.env.get("ADMIN_PIN");
-    const isAdmin = owner_pin === adminPin;
+    const isAdmin = await validateAdminPin(owner_pin || "");
 
     if (!isAdmin) {
       // Check direct owner_pin match

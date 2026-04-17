@@ -1,5 +1,5 @@
 import { handleCors, corsHeaders } from "../_shared/cors.ts";
-import { getSupabaseClient } from "../_shared/auth.ts";
+import { getSupabaseClient, validateAdminPin } from "../_shared/auth.ts";
 
 Deno.serve(async (req) => {
   const corsResp = handleCors(req);
@@ -14,20 +14,25 @@ Deno.serve(async (req) => {
     }
 
     const supabase = getSupabaseClient();
-    const adminPin = Deno.env.get("ADMIN_PIN");
-    let isAdmin = false;
+    let isAdmin = await validateAdminPin(pin);
     let financePropertyIds: string[] = [];
 
-    if (pin === adminPin) {
-      isAdmin = true;
-    } else {
-      const { data: user } = await supabase.from("app_users").select("id, is_admin").eq("pin", pin).single();
+    if (!isAdmin) {
+      const { data: userRows, error: userErr } = await supabase
+        .from("app_users").select("id, is_admin").eq("pin", pin).limit(1);
+      if (userErr) {
+        console.error("owner-data app_users lookup error", userErr);
+        return new Response(JSON.stringify({ error: "Server error" }), {
+          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const user = userRows?.[0];
       if (!user) {
         return new Response(JSON.stringify({ error: "Unauthorized" }), {
           status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      isAdmin = user.is_admin;
+      isAdmin = !!user.is_admin;
       if (!isAdmin) {
         const { data: access } = await supabase.from("user_property_access").select("property_id, can_view_finance").eq("user_id", user.id);
         financePropertyIds = (access || []).filter((a: any) => a.can_view_finance).map((a: any) => a.property_id);
