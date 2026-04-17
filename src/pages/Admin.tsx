@@ -18,12 +18,15 @@ import { TicketList } from "@/components/TicketList";
 import { PropertyFormDialog, emptyForm, type PropertyFormData } from "@/components/admin/PropertyFormDialog";
 import { PropertyGrid } from "@/components/admin/PropertyGrid";
 import { AdminMobileNav } from "@/components/admin/AdminMobileNav";
+import { ExpenseList } from "@/components/ExpenseList";
+import { OwnerExpenseStatement } from "@/components/OwnerExpenseStatement";
 import type { Property, Booking, ManualReservation, Ticket } from "@/types";
 
 const adminTabs = [
   { id: "daily-ops", label: "Daily Ops", shortLabel: "Ops", icon: Activity },
   { id: "timeline", label: "Timeline", shortLabel: "Time", icon: CalendarRange },
   { id: "tickets", label: "Issues", shortLabel: "Issues", icon: Wrench },
+  { id: "expenses", label: "Expenses", shortLabel: "Exp", icon: Receipt },
   { id: "properties", label: "Properties", shortLabel: "Props", icon: Building2 },
   { id: "users", label: "Users", shortLabel: "Users", icon: Users },
   { id: "master-list", label: "All Reservations", shortLabel: "Reserv", icon: List },
