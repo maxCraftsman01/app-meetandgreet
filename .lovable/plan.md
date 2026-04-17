@@ -1,73 +1,36 @@
 
 
-## Plan: Filterable Issues panel with admin Edit mode
+## Refine Mobile Issues Panel Layout
 
-### 1. New filter bar (TicketList.tsx)
-Add filter controls at top of the list (props-driven so the same component works for admin and dashboard):
+### Summary
+Replace the mobile Filters button+Sheet with two inline dropdown selects (Property + Status) shown directly in the panel. Change default filter to "All statuses" for clarity. Tighten vertical spacing around the "Maintenance Issues" title on mobile.
 
-- **Property filter** — Select with "All properties" + one item per property (built from `tickets` or passed-in `properties`).
-- **Status filter** — Tabs/Segmented on desktop, Select on mobile. Values: All · Open · In Progress · Resolved.
-- **Clear filters** button shown only when any filter is non-default.
-- **Default**: `status = active` (Open + In Progress) so the list opens focused on actionable issues. A toggle "Active only" off → "All" exposes Resolved.
+### Changes
 
-Layout:
-- Desktop (`sm:`): inline row above list — `[Property select] [Status segmented] [Clear]`.
-- Mobile (`<sm`): single "Filters" button (with active-count badge) → opens a `Sheet` (bottom drawer) containing the same controls + Clear + Apply.
+**1. TicketList.tsx — Mobile Filter UI**
+- Remove the mobile "Filters" button (lines 162-175) and the Sheet component (lines 279-316)
+- Add two `Select` dropdowns that are visible on mobile (`sm:hidden` removed, keep `hidden sm:flex` for desktop)
+- Layout: stacked vertically on mobile with gap-2, full-width triggers
+- Property dropdown: default "All properties"
+- Status dropdown: default "All statuses", options: All statuses, Open, In Progress, Resolved
+- Keep desktop inline controls unchanged (`hidden sm:flex`)
 
-Filtering happens client-side over the already-loaded `tickets` array — no API change.
+**2. TicketList.tsx — Filter Defaults**
+- Change default `statusFilter` from `"active"` to `"all"` (line 50)
+- Remove "active" option from status dropdown; use explicit values only
+- Update `StatusFilter` type to exclude "active": `type StatusFilter = "all" | "open" | "in_progress" | "resolved"`
+- Update `filteredTickets` logic to remove the "active" special case
 
-### 2. Issue list (unchanged interaction)
-- Cards remain tap-to-open. **Remove** any inline edit affordance from row (none exists today beyond cost/visibility — those move to detail edit mode).
-- Keep status icon, priority badge, photo/voice icons, cost (admin/owner), chevron.
-- Empty state respects filters: "No issues match your filters" with Clear button.
+**3. Admin.tsx — Title Spacing**
+- Adjust Tickets tab content spacing (lines 231-251)
+- Change outer container from `space-y-4` to `space-y-3` (or use responsive `space-y-3 sm:space-y-4`)
+- Tighten the title row gap slightly on mobile if needed (e.g., `gap-2` instead of implicit)
 
-### 3. Detail dialog — view mode (default)
-Refactored DialogContent into two modes controlled by local `mode: 'view' | 'edit'`.
+**4. Desktop Behavior**
+- Keep existing inline filter row for desktop (`sm:` breakpoint)
+- Ensure no visual regression on tablet/desktop
 
-**View mode** shows:
-- Title, badges (priority, status), property, created date, description, photos, voice notes.
-- Owner sees masked cost.
-- Admin-only footer:
-  - **Quick status update**: small inline `Select` to change status without entering edit mode (uses existing PUT `status`).
-  - **Edit Issue** button → switches to edit mode.
-  - **Delete** button (kept, with confirm).
-
-### 4. Detail dialog — edit mode (admin only)
-Triggered by "Edit Issue". Replaces view body with a form. Fields editable today (PUT supports these):
-- **Title** *(needs edge fn extension — see §6)*
-- **Description** *(needs edge fn extension)*
-- **Property** *(needs edge fn extension — `property_id`)*
-- **Status** (open / in_progress / resolved)
-- **Priority** (low / normal / high / urgent — match existing values)
-- **Repair cost** + currency
-- **Visible to owner** / **Visible to cleaner** / **Cost visible to owner** (Switches)
-
-Footer: `[Cancel]` returns to view mode without saving · `[Save changes]` PUTs and refreshes, then returns to view mode.
-
-**Not adding** "Assigned person/vendor" or "Internal admin notes" — `maintenance_tickets` table has no columns for these. Calling these out as out-of-scope; if user wants them I'll propose a migration in a follow-up.
-
-### 5. Component shape
-`TicketList.tsx` gains:
-- `properties?: { id: string; name: string }[]` prop (optional; falls back to deriving unique properties from tickets).
-- Internal state: `propertyFilter`, `statusFilter`, `mobileFiltersOpen`, `mode` (view|edit), `editForm` (snapshot of selected ticket).
-- Memoized `filteredTickets`.
-
-`Admin.tsx`: pass `properties={properties.map(...)}` to `<TicketList>`. No other changes.
-`Dashboard.tsx` (owner): pass owner-visible properties. Edit mode hidden (role !== admin).
-
-### 6. Edge function extension (`supabase/functions/maintenance-tickets/index.ts`)
-PUT branch currently whitelists status/repair_cost/visible_*/priority/cost_visible_to_owner. Add to whitelist:
-- `title` (string, non-empty)
-- `description` (string)
-- `property_id` (uuid, must exist)
-
-Validate types; reject empty title with 400. No schema changes. No SQL migration.
-
-### 7. Files to change
-- `src/components/TicketList.tsx` — filters bar + mobile Filters sheet + view/edit modes.
-- `src/pages/Admin.tsx` — pass `properties` prop to `TicketList` (1 line).
-- `src/pages/Dashboard.tsx` — pass `properties` prop to `TicketList` (1 line).
-- `supabase/functions/maintenance-tickets/index.ts` — extend PUT whitelist (title/description/property_id) with validation.
-
-No new dependencies. No schema migration. Auto-deploy on edge fn save.
+### Files to Edit
+- `src/components/TicketList.tsx`
+- `src/pages/Admin.tsx`
 
