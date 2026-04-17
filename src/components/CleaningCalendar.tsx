@@ -76,6 +76,11 @@ export default function CleaningCalendar({ pin, userProperties, onMarkCleaned, o
 
   const eventsForDay = (dateStr: string) => events.filter((e) => e.date === dateStr);
 
+  const adhocForDay = (dateStr: string) =>
+    adhocExpenses.filter(
+      (e) => e.date === dateStr && cleaningPropertyIds.includes(e.property_id)
+    );
+
   const navigate = (dir: -1 | 1) => {
     if (view === "week") setRefDate(dir === 1 ? addWeeks(refDate, 1) : subWeeks(refDate, 1));
     else setRefDate(dir === 1 ? addMonths(refDate, 1) : subMonths(refDate, 1));
