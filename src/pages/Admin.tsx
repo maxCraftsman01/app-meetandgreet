@@ -120,9 +120,11 @@ const Admin = () => {
   };
 
   const handleCopyLink = (pin: string, id: string) => {
-    navigator.clipboard.writeText(`${window.location.origin}?pin=${pin}`);
+    // Security: copy only the PIN, never a ?pin=... URL.
+    // Embedding credentials in URLs leaks them via history, logs, and Referer headers.
+    navigator.clipboard.writeText(pin);
     setCopiedId(id); setTimeout(() => setCopiedId(null), 2000);
-    toast.success("Owner link copied");
+    toast.success("Owner PIN copied — share it privately");
   };
 
   const handleSyncAll = async () => {

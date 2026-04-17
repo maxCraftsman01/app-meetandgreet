@@ -150,11 +150,12 @@ export function UserManagement({ adminPin }: { adminPin: string }) {
   };
 
   const handleCopyLink = (pin: string, userId: string) => {
-    const url = `${window.location.origin}?pin=${pin}`;
-    navigator.clipboard.writeText(url);
+    // Security: copy only the PIN, never a ?pin=... URL.
+    // Embedding credentials in URLs leaks them via history, logs, and Referer headers.
+    navigator.clipboard.writeText(pin);
     setCopiedId(userId);
     setTimeout(() => setCopiedId(null), 2000);
-    toast.success("Login link copied");
+    toast.success("Login PIN copied — share it privately");
   };
 
   if (loading) {
