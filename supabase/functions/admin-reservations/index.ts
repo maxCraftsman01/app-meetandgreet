@@ -1,12 +1,12 @@
 import { handleCors, json } from "../_shared/cors.ts";
-import { getSupabaseClient } from "../_shared/auth.ts";
+import { getSupabaseClient, validateAdminPin } from "../_shared/auth.ts";
 
 Deno.serve(async (req) => {
   const corsResp = handleCors(req);
   if (corsResp) return corsResp;
 
-  const pin = req.headers.get("x-admin-pin");
-  if (pin !== Deno.env.get("ADMIN_PIN")) {
+  const pin = req.headers.get("x-admin-pin") || "";
+  if (!(await validateAdminPin(pin))) {
     return json({ error: "Unauthorized" }, 401);
   }
 
