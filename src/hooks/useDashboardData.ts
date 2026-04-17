@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { getSession, clearSession, type PropertyAccess } from "@/lib/session";
-import { getOwnerData, fetchIcal, getCleanerTasks, markAsCleaned, resetCleaningStatus, getTickets } from "@/lib/api";
+import { getOwnerData, fetchIcal, getCleanerTasks, markAsCleaned, resetCleaningStatus, getTickets, fetchExpenses } from "@/lib/api";
 import { toast } from "sonner";
-import type { Booking, ManualReservation, Property, CleanerTask, Ticket } from "@/types";
+import type { Booking, ManualReservation, Property, CleanerTask, Ticket, Expense } from "@/types";
 import { CLEANING_STATUS_PRIORITY } from "@/lib/status-config";
 
 export function useDashboardData() {
