@@ -160,7 +160,7 @@ const Dashboard = () => {
 
                   {cleaningLoading ? (
                     <div className="flex justify-center py-20 text-muted-foreground">Loading...</div>
-                  ) : sortedTasks.length === 0 ? (
+                  ) : sortedTasks.length === 0 && todayAdhocExpenses.length === 0 ? (
                     <Card className="p-8 text-center text-muted-foreground">
                       <Sparkles className="w-8 h-8 mx-auto mb-3 opacity-40" />
                       <p>No cleaning tasks for today.</p>
@@ -227,16 +227,40 @@ const Dashboard = () => {
                           </motion.div>
                         );
                       })}
+
+                      {/* Ad-hoc cleaning expenses for today */}
+                      {todayAdhocExpenses.map((exp, i) => {
+                        const propName = userProperties.find((p) => p.id === exp.property_id)?.name ?? "Property";
+                        return (
+                          <motion.div key={`adhoc-${exp.id}`}
+                            initial={{ opacity: 0, y: 16, filter: "blur(4px)" }}
+                            animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                            transition={{ delay: (sortedTasks.length + i) * 0.08, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}>
+                            <Card className="p-5 border-2 border-amber-300 bg-amber-50">
+                              <div className="flex items-center gap-2 mb-1">
+                                <Receipt className="w-4 h-4 text-amber-700" />
+                                <span className="text-xs font-semibold uppercase tracking-wider text-amber-700">Ad-hoc</span>
+                              </div>
+                              <h3 className="font-semibold text-lg">{propName}</h3>
+                              <p className="text-sm font-medium mt-1">{exp.title}</p>
+                              {exp.description && (
+                                <p className="text-sm text-muted-foreground mt-1">{exp.description}</p>
+                              )}
+                              <p className="text-xs text-muted-foreground mt-2">{exp.date}</p>
+                            </Card>
+                          </motion.div>
+                        );
+                      })}
                     </div>
                   )}
                 </TabsContent>
 
                 <TabsContent value="week" className="mt-0">
-                  <CleaningCalendar view="week" pin={session!.pin} userProperties={userProperties} onMarkCleaned={handleMarkCleaned} onRevertCleaning={handleRevertCleaning} markingId={markingId} />
+                  <CleaningCalendar view="week" pin={session!.pin} userProperties={userProperties} onMarkCleaned={handleMarkCleaned} onRevertCleaning={handleRevertCleaning} markingId={markingId} adhocExpenses={cleaningExpenses} />
                 </TabsContent>
 
                 <TabsContent value="month" className="mt-0">
-                  <CleaningCalendar view="month" pin={session!.pin} userProperties={userProperties} onMarkCleaned={handleMarkCleaned} onRevertCleaning={handleRevertCleaning} markingId={markingId} />
+                  <CleaningCalendar view="month" pin={session!.pin} userProperties={userProperties} onMarkCleaned={handleMarkCleaned} onRevertCleaning={handleRevertCleaning} markingId={markingId} adhocExpenses={cleaningExpenses} />
                 </TabsContent>
               </Tabs>
             </TabsContent>
