@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
 import {
-  ChevronLeft, ChevronRight, CheckCircle2, Key, FileText,
+  ChevronLeft, ChevronRight, CheckCircle2, Key, FileText, Receipt,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -14,7 +14,7 @@ import {
   getDay, isToday, parseISO,
 } from "date-fns";
 import type { PropertyAccess } from "@/lib/session";
-import type { CalendarEvent } from "@/types";
+import type { CalendarEvent, Expense } from "@/types";
 import { CLEANING_STATUS_CONFIG, CLEANING_STATUS_PRIORITY, PROPERTY_COLORS } from "@/lib/status-config";
 
 interface Props {
@@ -24,9 +24,10 @@ interface Props {
   onRevertCleaning?: (reservationId: string) => Promise<void>;
   markingId: string | null;
   view: "week" | "month";
+  adhocExpenses?: Expense[];
 }
 
-export default function CleaningCalendar({ pin, userProperties, onMarkCleaned, onRevertCleaning, markingId, view }: Props) {
+export default function CleaningCalendar({ pin, userProperties, onMarkCleaned, onRevertCleaning, markingId, view, adhocExpenses = [] }: Props) {
   const [refDate, setRefDate] = useState(new Date());
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(false);
