@@ -50,20 +50,29 @@ Deno.serve(async (req) => {
     const cleanupCutoff = new Date(Date.now() - CLEANUP_MINUTES * 60 * 1000).toISOString();
     supabase.from("pin_attempts").delete().lt("attempted_at", cleanupCutoff).then(() => {});
 
-    const adminPin = Deno.env.get("ADMIN_PIN");
-    if (pin === adminPin) {
+    const envAdminPin = Deno.env.get("ADMIN_PIN");
+    if (envAdminPin && pin === envAdminPin) {
       await supabase.from("pin_attempts").delete().eq("ip_address", clientIp);
       return new Response(JSON.stringify({ role: "admin", token: pin }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const { data: user } = await supabase
+    const { data: userRows, error: userErr } = await supabase
       .from("app_users")
       .select("id, name, pin, is_admin")
       .eq("pin", pin)
-      .single();
+      .limit(1);
 
+    if (userErr) {
+      console.error("validate-pin app_users lookup error", userErr);
+      return new Response(JSON.stringify({ error: "Server error" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const user = userRows?.[0];
     if (!user) {
       await supabase.from("pin_attempts").insert({ ip_address: clientIp });
       return new Response(JSON.stringify({ error: "Invalid PIN" }), {
