@@ -169,12 +169,6 @@ const Admin = () => {
         </div>
       </header>
 
-      {activeTab === "tickets" && (
-        <div className="container px-4 pt-4">
-          <h2 className="text-lg font-semibold">Maintenance Issues</h2>
-        </div>
-      )}
-
       <main className="container px-4 py-8 pb-24 md:pb-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList className="hidden md:flex">
@@ -236,7 +230,8 @@ const Admin = () => {
 
           <TabsContent value="tickets">
             <div className="space-y-4">
-              <div className="flex items-center justify-end">
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-semibold">Maintenance Issues</h2>
                 <div className="flex gap-2">
                   <Button variant="outline" size="sm" onClick={loadTickets}><RefreshCw className="w-4 h-4 mr-1.5" />Refresh</Button>
                   <Dialog open={ticketFormOpen} onOpenChange={setTicketFormOpen}>

@@ -155,41 +155,23 @@ export const TicketList = ({ tickets, role, adminPin, currency = "EUR", onRefres
     }
   };
 
-  // Filter button labels (mobile)
-  const propertyLabel = propertyFilter === "all"
-    ? "All properties"
-    : (propertyOptions.find((p) => p.id === propertyFilter)?.name ?? "Property");
-  const statusLabelMap: Record<StatusFilter, string> = {
-    active: "Active",
-    all: "All",
-    open: "Open",
-    in_progress: "In Progress",
-    resolved: "Resolved",
-  };
-  const statusLabel = statusLabelMap[statusFilter];
-
-  // Filters bar (desktop inline + mobile dual buttons)
+  // Filters bar (desktop inline + mobile button)
   const FiltersBar = (
-    <div className="flex items-center gap-2 mb-3 flex-wrap">
-      {/* Mobile: two separate filter buttons */}
+    <div className="flex items-center gap-2 mb-3">
+      {/* Mobile: single Filters button */}
       <Button
         variant="outline"
         size="sm"
-        className="sm:hidden gap-1.5 max-w-[48%]"
+        className="sm:hidden gap-1.5"
         onClick={() => setMobileFiltersOpen(true)}
       >
-        <SlidersHorizontal className="w-3.5 h-3.5 shrink-0" />
-        <span className="text-xs text-muted-foreground">Property:</span>
-        <span className="truncate font-medium">{propertyLabel}</span>
-      </Button>
-      <Button
-        variant="outline"
-        size="sm"
-        className="sm:hidden gap-1.5 max-w-[48%]"
-        onClick={() => setMobileFiltersOpen(true)}
-      >
-        <span className="text-xs text-muted-foreground">Status:</span>
-        <span className="truncate font-medium">{statusLabel}</span>
+        <SlidersHorizontal className="w-4 h-4" />
+        Filters
+        {activeFilterCount > 0 && (
+          <Badge variant="secondary" className="ml-1 h-5 min-w-5 px-1.5 text-[10px]">
+            {activeFilterCount}
+          </Badge>
+        )}
       </Button>
 
       {/* Desktop: inline controls */}
