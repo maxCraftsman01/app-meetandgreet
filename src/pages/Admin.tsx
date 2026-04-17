@@ -250,6 +250,21 @@ const Admin = () => {
               )}
             </div>
           </TabsContent>
+
+          <TabsContent value="expenses">
+            <Tabs defaultValue="all-expenses" className="space-y-4">
+              <TabsList>
+                <TabsTrigger value="all-expenses">All Expenses</TabsTrigger>
+                <TabsTrigger value="statement">Owner Statement</TabsTrigger>
+              </TabsList>
+              <TabsContent value="all-expenses">
+                <ExpenseList />
+              </TabsContent>
+              <TabsContent value="statement">
+                <OwnerExpenseStatement properties={properties} />
+              </TabsContent>
+            </Tabs>
+          </TabsContent>
         </Tabs>
       </main>
 
