@@ -165,6 +165,31 @@ Reference baseline established 2026-04-12. All future conversations may referenc
 
 ---
 
+### Owner Expenses & Expense Statement (2026-04-17)
+- **Owner Finance Expenses sub-section** (`PropertyFinanceView.tsx`): Added collapsible "Property Expenses" section that surfaces expenses where `visible_to_owner = true`. Includes category badges, filtering controls, empty state, and per-section totals.
+- **Admin Owner Expense Statement** (`OwnerExpenseStatement.tsx`): New billing/reconciliation view with:
+  - Owner selector (filters by users with `can_view_finance` access)
+  - Per-property expense tables
+  - Grand totals with pending vs. paid breakdown
+  - Monthly breakdown toggle
+  - Print/export support via `@media print` CSS for clean PDF output
+- **Purpose**: Gives admins a one-page reconciliation document per owner and gives owners visibility into approved expenses charged against their property.
+
+---
+
+### Edge Function Auth Standardization (2026-04-17)
+- **Problem**: Several edge functions still authenticated admins via a strict `pin === Deno.env.get("ADMIN_PIN")` equality check, which rejected DB-defined admins from `app_users` and caused `401 Unauthorized` runtime errors (notably on `admin-properties`, `admin-pending-ical`, and `cleaner-operations`).
+- **Fix**: Audited every edge function and standardized all admin checks on the shared `validateAdminPin()` helper from `supabase/functions/_shared/auth.ts`, which accepts **both** the legacy env `ADMIN_PIN` and any user with `is_admin = true` in `app_users`.
+- **Functions updated**: `admin-properties`, `admin-pending-ical`, `admin-reservations`, `cleaner-operations`, `owner-reservations`, `owner-data`, `expenses`, `maintenance-tickets`, `validate-pin`, `fetch-ical`.
+- **Hardening applied alongside auth fix**:
+  - Replaced fragile `.single()` lookups with `.limit(1)` + safe array indexing (`rows?.[0]`) where uniqueness wasn't guaranteed
+  - Wrapped `req.json()` in try/catch so malformed bodies return `400` instead of crashing
+  - Standardized JSON error responses with correct status codes: `400` (validation/invalid input), `401` (unauthorized), `404` (missing resource), `500` (DB/runtime)
+  - Added server-side `console.error` logging for underlying Supabase errors to aid debugging
+- **Backwards compatibility**: Legacy env `ADMIN_PIN` continues to work; the helper short-circuits on it before hitting the database.
+
+---
+
 ## Current Pending Tasks
 
-- None active. Suggested next enhancement: auto-detect platform name (Airbnb, Booking.com, direct) from each listing URL and show as a badge label next to the link.
+- None active. Suggested next enhancement: add a small Deno test suite covering `validateAdminPin()` (legacy env PIN, DB admin PIN, non-admin PIN, empty PIN) so future auth regressions are caught automatically.
