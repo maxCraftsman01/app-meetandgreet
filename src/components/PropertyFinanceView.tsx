@@ -23,6 +23,27 @@ import {
 
 import type { Booking, ManualReservation, Property, Expense } from "@/types";
 
+const CATEGORY_ICON: Record<Expense["category"], typeof Wrench> = {
+  maintenance: Wrench,
+  repair: Wrench,
+  cleaning: Sparkles,
+  shopping: ShoppingCart,
+  supplies: ShoppingCart,
+  other: ClipboardList,
+};
+
+// Pick the icon for the highest-priority category present (maintenance > cleaning > shopping > other)
+const CATEGORY_PRIORITY: Expense["category"][] = [
+  "maintenance", "repair", "cleaning", "shopping", "supplies", "other",
+];
+function pickExpenseIcon(list: Expense[]): typeof Wrench | null {
+  if (list.length === 0) return null;
+  for (const cat of CATEGORY_PRIORITY) {
+    if (list.some((e) => e.category === cat)) return CATEGORY_ICON[cat];
+  }
+  return ClipboardList;
+}
+
 interface PropertyFinanceViewProps {
   property: Property;
   bookings: Booking[];
