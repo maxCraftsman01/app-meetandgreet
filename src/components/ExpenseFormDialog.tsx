@@ -114,9 +114,9 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, onSaved }: Prop
           getAdminUsers(session.pin),
           getTickets(session.pin, "admin"),
         ]);
-        setProperties(props || []);
-        setUsers(usrs || []);
-        setTickets(tkts || []);
+        setProperties(Array.isArray(props) ? props : []);
+        setUsers(Array.isArray(usrs?.users) ? usrs.users : Array.isArray(usrs) ? usrs : []);
+        setTickets(Array.isArray(tkts) ? tkts : []);
       } catch (err) {
         console.error("Failed to load form data", err);
       }
