@@ -1,12 +1,16 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { motion } from "framer-motion";
-import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, X, Copy, ExternalLink } from "lucide-react";
+import {
+  ChevronLeft, ChevronRight, ChevronDown, ChevronUp, X, Copy, ExternalLink,
+  Wrench, Sparkles, ShoppingCart, ClipboardList,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { createOwnerReservation } from "@/lib/api";
+import { createOwnerReservation, fetchExpenses } from "@/lib/api";
 import { toast } from "sonner";
 import {
   format, startOfMonth, endOfMonth, eachDayOfInterval, addMonths, subMonths,
@@ -17,7 +21,7 @@ import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid
 } from "recharts";
 
-import type { Booking, ManualReservation, Property } from "@/types";
+import type { Booking, ManualReservation, Property, Expense } from "@/types";
 
 interface PropertyFinanceViewProps {
   property: Property;
