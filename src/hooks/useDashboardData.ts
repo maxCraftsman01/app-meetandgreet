@@ -40,6 +40,9 @@ export function useDashboardData() {
     (a, b) => (CLEANING_STATUS_PRIORITY[a.status] ?? 5) - (CLEANING_STATUS_PRIORITY[b.status] ?? 5)
   );
 
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const todayAdhocExpenses = cleaningExpenses.filter((e) => e.date === todayStr);
+
   useEffect(() => {
     window.scrollTo(0, 0);
     if (!session || session.role !== "user") {
