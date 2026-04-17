@@ -70,8 +70,12 @@ export function useDashboardData() {
   const loadCleaningTasks = useCallback(async () => {
     setCleaningLoading(true);
     try {
-      const data = await getCleanerTasks(session!.pin);
-      setCleanerTasks(data);
+      const [tasks, expenses] = await Promise.all([
+        getCleanerTasks(session!.pin),
+        fetchExpenses({ category: "cleaning" }).catch(() => [] as Expense[]),
+      ]);
+      setCleanerTasks(tasks);
+      setCleaningExpenses(expenses);
     } catch {
       toast.error("Failed to load cleaning tasks");
     } finally {
