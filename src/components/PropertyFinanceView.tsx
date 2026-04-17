@@ -221,11 +221,69 @@ export const PropertyFinanceView = ({ property, bookings, manualReservations, pi
               const inRange = isInSelectedRange(day);
               const rangeHighlight = inRange ? "ring-2 ring-primary bg-primary/10" : "";
               const isClickable = info.isManual || info.isPending || info.status === "available";
+              const dayKey = format(day, "yyyy-MM-dd");
+              const dayExpenses = expensesByDate.get(dayKey) ?? [];
+              const ExpenseIcon = pickExpenseIcon(dayExpenses);
+
               return (
                 <div key={day.toISOString()} title={info.label}
                   onClick={() => handleCalendarDayClick(day, info)}
                   className={`relative aspect-square flex items-center justify-center rounded-lg text-sm font-medium transition-colors duration-150 ${pendingStyle} ${rangeHighlight} ${isToday(day) && !inRange ? "ring-2 ring-foreground ring-offset-1" : ""} border ${isClickable ? "cursor-pointer hover:opacity-80" : ""}`}>
                   {format(day, "d")}
+                  {dayExpenses.length > 0 && ExpenseIcon && (
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <button
+                          type="button"
+                          onClick={(e) => e.stopPropagation()}
+                          className="absolute bottom-0.5 left-1/2 -translate-x-1/2 rounded-full bg-amber-100 border border-amber-400 p-0.5 hover:bg-amber-200 transition-colors"
+                          aria-label={`${dayExpenses.length} expense${dayExpenses.length > 1 ? "s" : ""}`}
+                        >
+                          <ExpenseIcon className="w-2.5 h-2.5 text-amber-700" />
+                          {dayExpenses.length > 1 && (
+                            <span className="absolute -top-1 -right-1 text-[8px] font-bold bg-amber-600 text-white rounded-full w-3 h-3 flex items-center justify-center leading-none">
+                              {dayExpenses.length}
+                            </span>
+                          )}
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent
+                        className="w-64 p-3"
+                        align="center"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <p className="text-xs text-muted-foreground mb-2">
+                          {format(day, "MMMM d, yyyy")}
+                        </p>
+                        <div className="space-y-2">
+                          {dayExpenses.map((exp) => {
+                            const ItemIcon = pickExpenseIcon([exp]) ?? ClipboardList;
+                            return (
+                              <div key={exp.id} className="border-t border-border pt-2 first:border-t-0 first:pt-0">
+                                <div className="flex items-start gap-2">
+                                  <ItemIcon className="w-3.5 h-3.5 text-muted-foreground mt-0.5 shrink-0" />
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-medium leading-tight">{exp.title}</p>
+                                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground mt-0.5">
+                                      {exp.category}
+                                    </p>
+                                    {exp.description && (
+                                      <p className="text-xs text-muted-foreground mt-1">{exp.description}</p>
+                                    )}
+                                    {exp.amount != null && (
+                                      <p className="text-xs font-semibold mt-1 tabular-nums">
+                                        {exp.amount.toLocaleString()} {property.currency}
+                                      </p>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+                  )}
                 </div>
               );
             })}
