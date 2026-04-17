@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, LogOut, RefreshCw, Building2, List, Activity, Users, CalendarRange, Wrench } from "lucide-react";
+import { Plus, LogOut, RefreshCw, Building2, List, Activity, Users, CalendarRange, Wrench, Receipt } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
