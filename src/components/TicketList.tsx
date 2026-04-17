@@ -153,25 +153,36 @@ export const TicketList = ({ tickets, role, adminPin, currency = "EUR", onRefres
 
   // Filters bar (desktop inline + mobile button)
   const FiltersBar = (
-    <div className="flex items-center gap-2 mb-3">
-      {/* Mobile: single Filters button */}
-      <Button
-        variant="outline"
-        size="sm"
-        className="sm:hidden gap-1.5"
-        onClick={() => setMobileFiltersOpen(true)}
-      >
-        <SlidersHorizontal className="w-4 h-4" />
-        Filters
-        {activeFilterCount > 0 && (
-          <Badge variant="secondary" className="ml-1 h-5 min-w-5 px-1.5 text-[10px]">
-            {activeFilterCount}
-          </Badge>
+    <div className="mb-3 space-y-2">
+      {/* Mobile: stacked dropdowns */}
+      <div className="flex flex-col gap-2 sm:hidden">
+        <Select value={propertyFilter} onValueChange={setPropertyFilter}>
+          <SelectTrigger className="w-full"><SelectValue placeholder="All properties" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All properties</SelectItem>
+            {propertyOptions.map((p) => (
+              <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as StatusFilter)}>
+          <SelectTrigger className="w-full"><SelectValue placeholder="All statuses" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All statuses</SelectItem>
+            <SelectItem value="open">Open</SelectItem>
+            <SelectItem value="in_progress">In Progress</SelectItem>
+            <SelectItem value="resolved">Resolved</SelectItem>
+          </SelectContent>
+        </Select>
+        {filtersActive && (
+          <Button variant="ghost" size="sm" onClick={clearFilters} className="self-end gap-1 text-muted-foreground h-8">
+            <X className="w-3.5 h-3.5" /> Clear filters
+          </Button>
         )}
-      </Button>
+      </div>
 
       {/* Desktop: inline controls */}
-      <div className="hidden sm:flex items-center gap-2 flex-wrap flex-1 min-w-0">
+      <div className="hidden sm:flex items-center gap-2 flex-wrap">
         <Select value={propertyFilter} onValueChange={setPropertyFilter}>
           <SelectTrigger className="h-9 w-[200px]"><SelectValue /></SelectTrigger>
           <SelectContent>
@@ -184,20 +195,18 @@ export const TicketList = ({ tickets, role, adminPin, currency = "EUR", onRefres
         <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as StatusFilter)}>
           <SelectTrigger className="h-9 w-[160px]"><SelectValue /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="active">Active (Open + In Progress)</SelectItem>
-            <SelectItem value="all">All</SelectItem>
+            <SelectItem value="all">All statuses</SelectItem>
             <SelectItem value="open">Open</SelectItem>
             <SelectItem value="in_progress">In Progress</SelectItem>
             <SelectItem value="resolved">Resolved</SelectItem>
           </SelectContent>
         </Select>
+        {filtersActive && (
+          <Button variant="ghost" size="sm" onClick={clearFilters} className="gap-1 text-muted-foreground">
+            <X className="w-3.5 h-3.5" /> Clear
+          </Button>
+        )}
       </div>
-
-      {filtersActive && (
-        <Button variant="ghost" size="sm" onClick={clearFilters} className="gap-1 text-muted-foreground">
-          <X className="w-3.5 h-3.5" /> Clear
-        </Button>
-      )}
     </div>
   );
 
