@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, LogOut, RefreshCw, Building2, List, Activity, Users, CalendarRange, Wrench } from "lucide-react";
+import { Plus, LogOut, RefreshCw, Building2, List, Activity, Users, CalendarRange, Wrench, Receipt } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -18,12 +18,15 @@ import { TicketList } from "@/components/TicketList";
 import { PropertyFormDialog, emptyForm, type PropertyFormData } from "@/components/admin/PropertyFormDialog";
 import { PropertyGrid } from "@/components/admin/PropertyGrid";
 import { AdminMobileNav } from "@/components/admin/AdminMobileNav";
+import { ExpenseList } from "@/components/ExpenseList";
+import { OwnerExpenseStatement } from "@/components/OwnerExpenseStatement";
 import type { Property, Booking, ManualReservation, Ticket } from "@/types";
 
 const adminTabs = [
   { id: "daily-ops", label: "Daily Ops", shortLabel: "Ops", icon: Activity },
   { id: "timeline", label: "Timeline", shortLabel: "Time", icon: CalendarRange },
   { id: "tickets", label: "Issues", shortLabel: "Issues", icon: Wrench },
+  { id: "expenses", label: "Expenses", shortLabel: "Exp", icon: Receipt },
   { id: "properties", label: "Properties", shortLabel: "Props", icon: Building2 },
   { id: "users", label: "Users", shortLabel: "Users", icon: Users },
   { id: "master-list", label: "All Reservations", shortLabel: "Reserv", icon: List },
@@ -246,6 +249,21 @@ const Admin = () => {
                 <TicketList tickets={adminTickets} role="admin" adminPin={session!.pin} onRefresh={loadTickets} />
               )}
             </div>
+          </TabsContent>
+
+          <TabsContent value="expenses">
+            <Tabs defaultValue="all-expenses" className="space-y-4">
+              <TabsList>
+                <TabsTrigger value="all-expenses">All Expenses</TabsTrigger>
+                <TabsTrigger value="statement">Owner Statement</TabsTrigger>
+              </TabsList>
+              <TabsContent value="all-expenses">
+                <ExpenseList />
+              </TabsContent>
+              <TabsContent value="statement">
+                <OwnerExpenseStatement properties={properties} />
+              </TabsContent>
+            </Tabs>
           </TabsContent>
         </Tabs>
       </main>
