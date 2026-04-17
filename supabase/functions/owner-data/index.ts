@@ -47,7 +47,12 @@ Deno.serve(async (req) => {
     const url = new URL(req.url);
     const filterPropertyId = url.searchParams.get("property_id");
 
-    let propertiesQuery = supabase.from("properties").select("*");
+    // Exclude credentials (owner_pin, cleaner_pin, keybox_code) from finance responses.
+    // Admins receive the same safe column set here; admin-properties endpoint serves credential
+    // management separately and is gated by validateAdminPin.
+    const PROPERTY_PUBLIC_COLUMNS =
+      "id, name, owner_name, nightly_rate, currency, ical_urls, listing_urls, cleaning_notes, created_at";
+    let propertiesQuery = supabase.from("properties").select(PROPERTY_PUBLIC_COLUMNS);
     let bookingsQuery = supabase.from("bookings").select("*");
     let manualQuery = supabase.from("manual_reservations").select("*");
 
