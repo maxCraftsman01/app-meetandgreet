@@ -22,6 +22,7 @@ export function useDashboardData() {
   const [ticketsLoading, setTicketsLoading] = useState(false);
   const [reportDialogOpen, setReportDialogOpen] = useState(false);
   const [reportPropertyId, setReportPropertyId] = useState<string>("");
+  const [cleaningExpenses, setCleaningExpenses] = useState<Expense[]>([]);
 
   const userProperties: PropertyAccess[] = session?.properties || [];
   const hasAnyFinance = userProperties.some((p) => p.can_view_finance);
