@@ -280,46 +280,6 @@ export const TicketList = ({ tickets, role, adminPin, currency = "EUR", onRefres
         </div>
       )}
 
-      {/* Mobile Filters Sheet */}
-      <Sheet open={mobileFiltersOpen} onOpenChange={setMobileFiltersOpen}>
-        <SheetContent side="bottom" className="rounded-t-2xl">
-          <SheetHeader>
-            <SheetTitle>Filter issues</SheetTitle>
-          </SheetHeader>
-          <div className="space-y-4 py-4">
-            <div>
-              <label className="text-sm font-medium mb-1.5 block">Property</label>
-              <Select value={propertyFilter} onValueChange={setPropertyFilter}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All properties</SelectItem>
-                  {propertyOptions.map((p) => (
-                    <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <label className="text-sm font-medium mb-1.5 block">Status</label>
-              <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as StatusFilter)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="active">Active (Open + In Progress)</SelectItem>
-                  <SelectItem value="all">All</SelectItem>
-                  <SelectItem value="open">Open</SelectItem>
-                  <SelectItem value="in_progress">In Progress</SelectItem>
-                  <SelectItem value="resolved">Resolved</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <SheetFooter className="flex-row gap-2">
-            <Button variant="outline" className="flex-1" onClick={clearFilters}>Clear</Button>
-            <Button className="flex-1" onClick={() => setMobileFiltersOpen(false)}>Apply</Button>
-          </SheetFooter>
-        </SheetContent>
-      </Sheet>
-
       {/* Detail Dialog */}
       <Dialog open={!!selectedTicket} onOpenChange={(open) => { if (!open) { setSelectedTicket(null); setMode("view"); } }}>
         <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
