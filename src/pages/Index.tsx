@@ -22,14 +22,16 @@ const Index = () => {
   }, [navigate]);
 
   useEffect(() => {
-    const pin = searchParams.get("pin");
-    if (pin && pin.length === 8) {
-      const newDigits = pin.split("");
-      setDigits(newDigits);
-      handleSubmit(newDigits.join(""));
-    } else {
-      inputRefs.current[0]?.focus();
+    // Security: do NOT accept PINs from URL query params.
+    // Embedding credentials in URLs leaks them via browser history, server logs,
+    // and Referer headers. If a legacy ?pin=... param is present, strip it
+    // immediately and require the user to enter the PIN manually.
+    if (searchParams.get("pin")) {
+      const url = new URL(window.location.href);
+      url.searchParams.delete("pin");
+      window.history.replaceState({}, "", url.toString());
     }
+    inputRefs.current[0]?.focus();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
