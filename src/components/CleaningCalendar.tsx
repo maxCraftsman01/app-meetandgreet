@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
 import {
-  ChevronLeft, ChevronRight, CheckCircle2, Key, FileText,
+  ChevronLeft, ChevronRight, CheckCircle2, Key, FileText, Receipt,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -14,7 +14,7 @@ import {
   getDay, isToday, parseISO,
 } from "date-fns";
 import type { PropertyAccess } from "@/lib/session";
-import type { CalendarEvent } from "@/types";
+import type { CalendarEvent, Expense } from "@/types";
 import { CLEANING_STATUS_CONFIG, CLEANING_STATUS_PRIORITY, PROPERTY_COLORS } from "@/lib/status-config";
 
 interface Props {
@@ -24,9 +24,10 @@ interface Props {
   onRevertCleaning?: (reservationId: string) => Promise<void>;
   markingId: string | null;
   view: "week" | "month";
+  adhocExpenses?: Expense[];
 }
 
-export default function CleaningCalendar({ pin, userProperties, onMarkCleaned, onRevertCleaning, markingId, view }: Props) {
+export default function CleaningCalendar({ pin, userProperties, onMarkCleaned, onRevertCleaning, markingId, view, adhocExpenses = [] }: Props) {
   const [refDate, setRefDate] = useState(new Date());
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(false);
@@ -74,6 +75,11 @@ export default function CleaningCalendar({ pin, userProperties, onMarkCleaned, o
   }, [events]);
 
   const eventsForDay = (dateStr: string) => events.filter((e) => e.date === dateStr);
+
+  const adhocForDay = (dateStr: string) =>
+    adhocExpenses.filter(
+      (e) => e.date === dateStr && cleaningPropertyIds.includes(e.property_id)
+    );
 
   const navigate = (dir: -1 | 1) => {
     if (view === "week") setRefDate(dir === 1 ? addWeeks(refDate, 1) : subWeeks(refDate, 1));
@@ -132,6 +138,7 @@ export default function CleaningCalendar({ pin, userProperties, onMarkCleaned, o
                 {days.map((day) => {
                   const dateStr = format(day, "yyyy-MM-dd");
                   const dayEvents = eventsForDay(dateStr);
+                  const dayAdhoc = adhocForDay(dateStr);
                   const isExpanded = expandedDay === dateStr;
                   const todayRing = isToday(day) ? "ring-2 ring-primary ring-offset-1" : "";
 
@@ -159,6 +166,19 @@ export default function CleaningCalendar({ pin, userProperties, onMarkCleaned, o
                             </div>
                           );
                         })}
+                        {dayAdhoc.map((exp) => {
+                          const propName = userProperties.find((p) => p.id === exp.property_id)?.name ?? "Property";
+                          return (
+                            <div
+                              key={`adhoc-${exp.id}`}
+                              className="text-[10px] leading-tight rounded px-1.5 py-1 font-medium truncate bg-amber-50 text-amber-700 border border-amber-300 flex items-center gap-1"
+                              title={`Ad-hoc: ${exp.title} – ${propName}`}
+                            >
+                              <Receipt className="w-2.5 h-2.5 shrink-0" />
+                              <span className="truncate">{exp.title}</span>
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
                   );
@@ -178,29 +198,37 @@ export default function CleaningCalendar({ pin, userProperties, onMarkCleaned, o
                 {days.map((day) => {
                   const dateStr = format(day, "yyyy-MM-dd");
                   const dayEvents = eventsForDay(dateStr);
+                  const dayAdhoc = adhocForDay(dateStr);
                   const isExpanded = expandedDay === dateStr;
                   const todayRing = isToday(day) ? "ring-2 ring-foreground ring-offset-1" : "";
                   const hasEvents = dayEvents.length > 0;
+                  const hasAdhoc = dayAdhoc.length > 0;
+                  const hasAny = hasEvents || hasAdhoc;
                   const topStatus = getHighestPriorityStatus(dayEvents);
                   const cfg = topStatus ? CLEANING_STATUS_CONFIG[topStatus] : null;
 
                   const cellStyle = hasEvents && cfg
                     ? `${cfg.cellBg} ${cfg.cellBorder} ${cfg.cellText} cursor-pointer hover:opacity-80 border-2`
-                    : "border-transparent text-muted-foreground";
+                    : hasAdhoc
+                      ? "bg-amber-50 border-amber-300 text-amber-800 cursor-pointer hover:opacity-80 border-2"
+                      : "border-transparent text-muted-foreground";
 
                   return (
                     <div
                       key={dateStr}
-                      onClick={() => hasEvents ? setExpandedDay(isExpanded ? null : dateStr) : null}
+                      onClick={() => hasAny ? setExpandedDay(isExpanded ? null : dateStr) : null}
                       className={`relative aspect-square flex flex-col items-center justify-center rounded-lg text-sm transition-colors duration-150 ${todayRing} ${cellStyle}`}
                     >
-                      <span className={hasEvents ? "font-bold" : "font-medium"}>{format(day, "d")}</span>
+                      <span className={hasAny ? "font-bold" : "font-medium"}>{format(day, "d")}</span>
                       {hasEvents && cfg && (
                         <div className={`absolute bottom-1 left-1/2 -translate-x-1/2 h-1.5 w-3/5 rounded-full ${cfg.dot}`} />
                       )}
-                      {dayEvents.length > 1 && (
+                      {!hasEvents && hasAdhoc && (
+                        <div className="absolute bottom-1 left-1/2 -translate-x-1/2 h-1.5 w-3/5 rounded-full bg-amber-500" />
+                      )}
+                      {(dayEvents.length + dayAdhoc.length) > 1 && (
                         <Badge variant="secondary" className="absolute top-0.5 right-0.5 h-4 min-w-[16px] px-1 text-[10px] leading-none">
-                          {dayEvents.length}
+                          {dayEvents.length + dayAdhoc.length}
                         </Badge>
                       )}
                     </div>
@@ -226,7 +254,7 @@ export default function CleaningCalendar({ pin, userProperties, onMarkCleaned, o
                     Close
                   </Button>
                 </div>
-                {eventsForDay(expandedDay).length === 0 ? (
+                {eventsForDay(expandedDay).length === 0 && adhocForDay(expandedDay).length === 0 ? (
                   <p className="text-sm text-muted-foreground">No tasks this day.</p>
                 ) : (
                   <div className="space-y-3">
@@ -287,6 +315,26 @@ export default function CleaningCalendar({ pin, userProperties, onMarkCleaned, o
                                 </Button>
                               )}
                             </div>
+                          )}
+                        </div>
+                      );
+                    })}
+
+                    {adhocForDay(expandedDay).map((exp) => {
+                      const propName = userProperties.find((p) => p.id === exp.property_id)?.name ?? "Property";
+                      return (
+                        <div
+                          key={`adhoc-${exp.id}`}
+                          className="p-4 rounded-lg border-2 border-amber-300 bg-amber-50"
+                        >
+                          <div className="flex items-center gap-2 mb-2">
+                            <Receipt className="w-4 h-4 text-amber-700" />
+                            <span className="text-xs font-semibold uppercase tracking-wider text-amber-700">Ad-hoc</span>
+                          </div>
+                          <h4 className="font-semibold text-base">{propName}</h4>
+                          <p className="text-sm font-medium mt-1">{exp.title}</p>
+                          {exp.description && (
+                            <p className="text-sm text-muted-foreground mt-1">{exp.description}</p>
                           )}
                         </div>
                       );

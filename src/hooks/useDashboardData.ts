@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { getSession, clearSession, type PropertyAccess } from "@/lib/session";
-import { getOwnerData, fetchIcal, getCleanerTasks, markAsCleaned, resetCleaningStatus, getTickets } from "@/lib/api";
+import { getOwnerData, fetchIcal, getCleanerTasks, markAsCleaned, resetCleaningStatus, getTickets, fetchExpenses } from "@/lib/api";
 import { toast } from "sonner";
-import type { Booking, ManualReservation, Property, CleanerTask, Ticket } from "@/types";
+import type { Booking, ManualReservation, Property, CleanerTask, Ticket, Expense } from "@/types";
 import { CLEANING_STATUS_PRIORITY } from "@/lib/status-config";
 
 export function useDashboardData() {
@@ -22,6 +22,7 @@ export function useDashboardData() {
   const [ticketsLoading, setTicketsLoading] = useState(false);
   const [reportDialogOpen, setReportDialogOpen] = useState(false);
   const [reportPropertyId, setReportPropertyId] = useState<string>("");
+  const [cleaningExpenses, setCleaningExpenses] = useState<Expense[]>([]);
 
   const userProperties: PropertyAccess[] = session?.properties || [];
   const hasAnyFinance = userProperties.some((p) => p.can_view_finance);
@@ -38,6 +39,9 @@ export function useDashboardData() {
   const sortedTasks = [...filteredTasks].sort(
     (a, b) => (CLEANING_STATUS_PRIORITY[a.status] ?? 5) - (CLEANING_STATUS_PRIORITY[b.status] ?? 5)
   );
+
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const todayAdhocExpenses = cleaningExpenses.filter((e) => e.date === todayStr);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -69,8 +73,12 @@ export function useDashboardData() {
   const loadCleaningTasks = useCallback(async () => {
     setCleaningLoading(true);
     try {
-      const data = await getCleanerTasks(session!.pin);
-      setCleanerTasks(data);
+      const [tasks, expenses] = await Promise.all([
+        getCleanerTasks(session!.pin),
+        fetchExpenses({ category: "cleaning" }).catch(() => [] as Expense[]),
+      ]);
+      setCleanerTasks(tasks);
+      setCleaningExpenses(expenses);
     } catch {
       toast.error("Failed to load cleaning tasks");
     } finally {
@@ -168,6 +176,8 @@ export function useDashboardData() {
     hasAnyCleaning,
     cleaningLoading,
     sortedTasks,
+    cleaningExpenses,
+    todayAdhocExpenses,
     markingId,
     ownerTickets,
     ticketsLoading,
