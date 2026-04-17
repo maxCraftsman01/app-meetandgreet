@@ -88,6 +88,86 @@ export type Database = {
           },
         ]
       }
+      expenses: {
+        Row: {
+          amount: number | null
+          assigned_to: string | null
+          category: string
+          created_at: string
+          created_by: string
+          date: string
+          description: string
+          id: string
+          linked_ticket_id: string | null
+          paid_at: string | null
+          payment_status: string
+          property_id: string
+          title: string
+          visible_to_owner: boolean
+        }
+        Insert: {
+          amount?: number | null
+          assigned_to?: string | null
+          category: string
+          created_at?: string
+          created_by: string
+          date: string
+          description?: string
+          id?: string
+          linked_ticket_id?: string | null
+          paid_at?: string | null
+          payment_status?: string
+          property_id: string
+          title: string
+          visible_to_owner?: boolean
+        }
+        Update: {
+          amount?: number | null
+          assigned_to?: string | null
+          category?: string
+          created_at?: string
+          created_by?: string
+          date?: string
+          description?: string
+          id?: string
+          linked_ticket_id?: string | null
+          paid_at?: string | null
+          payment_status?: string
+          property_id?: string
+          title?: string
+          visible_to_owner?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expenses_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "app_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "app_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_linked_ticket_id_fkey"
+            columns: ["linked_ticket_id"]
+            isOneToOne: false
+            referencedRelation: "maintenance_tickets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       maintenance_tickets: {
         Row: {
           cost_visible_to_owner: boolean
