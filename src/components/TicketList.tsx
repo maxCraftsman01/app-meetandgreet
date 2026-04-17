@@ -7,9 +7,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
-import { Eye, EyeOff, Trash2, Image, Mic, ChevronRight, SlidersHorizontal, X, Pencil } from "lucide-react";
+import { Eye, EyeOff, Trash2, Image, Mic, ChevronRight, X, Pencil } from "lucide-react";
 import { updateTicket, deleteTicket } from "@/lib/api";
 import { toast } from "sonner";
 import type { Ticket } from "@/types";
@@ -25,7 +24,7 @@ interface TicketListProps {
   properties?: { id: string; name: string }[];
 }
 
-type StatusFilter = "active" | "all" | "open" | "in_progress" | "resolved";
+type StatusFilter = "all" | "open" | "in_progress" | "resolved";
 
 interface EditForm {
   title: string;
@@ -47,8 +46,7 @@ export const TicketList = ({ tickets, role, adminPin, currency = "EUR", onRefres
 
   // Filters
   const [propertyFilter, setPropertyFilter] = useState<string>("all");
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>("active");
-  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
 
   // Derive properties for filter dropdown
   const propertyOptions = useMemo(() => {
@@ -64,17 +62,15 @@ export const TicketList = ({ tickets, role, adminPin, currency = "EUR", onRefres
     return tickets.filter((t) => {
       if (propertyFilter !== "all" && t.property_id !== propertyFilter) return false;
       if (statusFilter === "all") return true;
-      if (statusFilter === "active") return t.status === "open" || t.status === "in_progress";
       return t.status === statusFilter;
     });
   }, [tickets, propertyFilter, statusFilter]);
 
-  const filtersActive = propertyFilter !== "all" || statusFilter !== "active";
-  const activeFilterCount = (propertyFilter !== "all" ? 1 : 0) + (statusFilter !== "active" ? 1 : 0);
+  const filtersActive = propertyFilter !== "all" || statusFilter !== "all";
 
   const clearFilters = () => {
     setPropertyFilter("all");
-    setStatusFilter("active");
+    setStatusFilter("all");
   };
 
   const openTicket = (ticket: Ticket) => {
@@ -157,25 +153,36 @@ export const TicketList = ({ tickets, role, adminPin, currency = "EUR", onRefres
 
   // Filters bar (desktop inline + mobile button)
   const FiltersBar = (
-    <div className="flex items-center gap-2 mb-3">
-      {/* Mobile: single Filters button */}
-      <Button
-        variant="outline"
-        size="sm"
-        className="sm:hidden gap-1.5"
-        onClick={() => setMobileFiltersOpen(true)}
-      >
-        <SlidersHorizontal className="w-4 h-4" />
-        Filters
-        {activeFilterCount > 0 && (
-          <Badge variant="secondary" className="ml-1 h-5 min-w-5 px-1.5 text-[10px]">
-            {activeFilterCount}
-          </Badge>
+    <div className="mb-3 space-y-2">
+      {/* Mobile: stacked dropdowns */}
+      <div className="flex flex-col gap-2 sm:hidden">
+        <Select value={propertyFilter} onValueChange={setPropertyFilter}>
+          <SelectTrigger className="w-full"><SelectValue placeholder="All properties" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All properties</SelectItem>
+            {propertyOptions.map((p) => (
+              <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as StatusFilter)}>
+          <SelectTrigger className="w-full"><SelectValue placeholder="All statuses" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All statuses</SelectItem>
+            <SelectItem value="open">Open</SelectItem>
+            <SelectItem value="in_progress">In Progress</SelectItem>
+            <SelectItem value="resolved">Resolved</SelectItem>
+          </SelectContent>
+        </Select>
+        {filtersActive && (
+          <Button variant="ghost" size="sm" onClick={clearFilters} className="self-end gap-1 text-muted-foreground h-8">
+            <X className="w-3.5 h-3.5" /> Clear filters
+          </Button>
         )}
-      </Button>
+      </div>
 
       {/* Desktop: inline controls */}
-      <div className="hidden sm:flex items-center gap-2 flex-wrap flex-1 min-w-0">
+      <div className="hidden sm:flex items-center gap-2 flex-wrap">
         <Select value={propertyFilter} onValueChange={setPropertyFilter}>
           <SelectTrigger className="h-9 w-[200px]"><SelectValue /></SelectTrigger>
           <SelectContent>
@@ -188,20 +195,18 @@ export const TicketList = ({ tickets, role, adminPin, currency = "EUR", onRefres
         <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as StatusFilter)}>
           <SelectTrigger className="h-9 w-[160px]"><SelectValue /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="active">Active (Open + In Progress)</SelectItem>
-            <SelectItem value="all">All</SelectItem>
+            <SelectItem value="all">All statuses</SelectItem>
             <SelectItem value="open">Open</SelectItem>
             <SelectItem value="in_progress">In Progress</SelectItem>
             <SelectItem value="resolved">Resolved</SelectItem>
           </SelectContent>
         </Select>
+        {filtersActive && (
+          <Button variant="ghost" size="sm" onClick={clearFilters} className="gap-1 text-muted-foreground">
+            <X className="w-3.5 h-3.5" /> Clear
+          </Button>
+        )}
       </div>
-
-      {filtersActive && (
-        <Button variant="ghost" size="sm" onClick={clearFilters} className="gap-1 text-muted-foreground">
-          <X className="w-3.5 h-3.5" /> Clear
-        </Button>
-      )}
     </div>
   );
 
@@ -274,46 +279,6 @@ export const TicketList = ({ tickets, role, adminPin, currency = "EUR", onRefres
           </AnimatePresence>
         </div>
       )}
-
-      {/* Mobile Filters Sheet */}
-      <Sheet open={mobileFiltersOpen} onOpenChange={setMobileFiltersOpen}>
-        <SheetContent side="bottom" className="rounded-t-2xl">
-          <SheetHeader>
-            <SheetTitle>Filter issues</SheetTitle>
-          </SheetHeader>
-          <div className="space-y-4 py-4">
-            <div>
-              <label className="text-sm font-medium mb-1.5 block">Property</label>
-              <Select value={propertyFilter} onValueChange={setPropertyFilter}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All properties</SelectItem>
-                  {propertyOptions.map((p) => (
-                    <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <label className="text-sm font-medium mb-1.5 block">Status</label>
-              <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as StatusFilter)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="active">Active (Open + In Progress)</SelectItem>
-                  <SelectItem value="all">All</SelectItem>
-                  <SelectItem value="open">Open</SelectItem>
-                  <SelectItem value="in_progress">In Progress</SelectItem>
-                  <SelectItem value="resolved">Resolved</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <SheetFooter className="flex-row gap-2">
-            <Button variant="outline" className="flex-1" onClick={clearFilters}>Clear</Button>
-            <Button className="flex-1" onClick={() => setMobileFiltersOpen(false)}>Apply</Button>
-          </SheetFooter>
-        </SheetContent>
-      </Sheet>
 
       {/* Detail Dialog */}
       <Dialog open={!!selectedTicket} onOpenChange={(open) => { if (!open) { setSelectedTicket(null); setMode("view"); } }}>
