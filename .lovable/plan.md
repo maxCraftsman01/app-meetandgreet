@@ -1,40 +1,20 @@
 
+## Update PROJECT_LOG.md with today's changes
 
-## Root cause
+**Summary:** Add three new entries to the "Post-Milestone Changes" section for 2026-04-17: Owner Expenses sub-section in Finance view, Owner Expense Statement in Admin panel, and Edge Function Authentication Standardization across all functions.
 
-The runtime error is `401 Unauthorized` from `admin-properties`, **not** a schema mismatch. The function only accepts the master env `ADMIN_PIN`:
+**Changes to add:**
 
-```ts
-if (pin !== Deno.env.get("ADMIN_PIN")) return json({ error: "Unauthorized" }, 401);
-```
+1. **Owner Expenses & Expense Statement (2026-04-17)**
+   - Owner Finance Expenses sub-section (`PropertyFinanceView.tsx`): Added collapsible "Property Expenses" section showing expenses where `visible_to_owner = true` with category badges, filtering controls, empty state, and totals
+   - Admin Owner Expense Statement (`OwnerExpenseStatement.tsx`): New billing/reconciliation view with owner selector, per-property expense tables, grand totals with pending/paid breakdown, monthly breakdown toggle, and print/export functionality via `@media print` CSS
 
-Other admin functions (`admin-users`, `admin-timeline`) use the shared `validateAdminPin()` helper, which accepts **either** the env `ADMIN_PIN` **or** any PIN belonging to an `app_users` row with `is_admin = true`. The currently logged-in admin is a DB admin, so every call to `admin-properties` (GET / POST / PUT / DELETE) returns 401.
+2. **Edge Function Auth Standardization (2026-04-17)**
+   - Audited and standardized all edge functions to use shared `validateAdminPin()` helper
+   - Updated: `admin-properties`, `admin-pending-ical`, `admin-reservations`, `cleaner-operations`, `owner-reservations`, `owner-data`, `expenses`, `maintenance-tickets`, `validate-pin`, `fetch-ical`
+   - Replaced legacy env-only `ADMIN_PIN` checks with database-aware validation supporting both legacy env PIN and DB admins from `app_users`
+   - Added defensive validation, safe array access (`.limit(1)` instead of `.single()`), structured JSON error responses (400/401/404/500), and proper error logging
 
-The `properties` table schema and the insert payload from `Admin.tsx` are already in sync — every column the form sends (`name`, `owner_name`, `owner_pin`, `cleaner_pin`, `ical_urls`, `nightly_rate`, `currency`, `keybox_code`, `cleaning_notes`, `listing_urls`) exists on the table. The only NOT NULL column without a default is `owner_pin`, which the form always supplies.
+**File to edit:** `PROJECT_LOG.md` — append two new subsections to "Post-Milestone Changes" section, replacing the current "None active" pending tasks line.
 
-So no SQL migration is required.
-
-## Fix (minimal, focused)
-
-Update `supabase/functions/admin-properties/index.ts`:
-
-1. Replace the env-only PIN check with `validateAdminPin()` (matches the pattern used by `admin-users` and `admin-timeline`).
-2. Add light defensive validation on POST/PUT payloads with clear error messages:
-   - POST requires non-empty `name`, `owner_name`, `owner_pin`.
-   - PUT requires `?id=` query param.
-   - DELETE requires `?id=` query param.
-   - Coerce `nightly_rate` to a number when present; default `currency` to `"EUR"`; coerce `ical_urls` / `listing_urls` to arrays if a string slips through.
-3. Log Supabase errors server-side and return structured JSON `{ error: string, details?: string }` with appropriate status codes (`400` validation, `401` auth, `404` not found, `500` DB).
-4. Wrap `req.json()` in try/catch so malformed bodies return `400`, not 500.
-
-No changes to `Admin.tsx`, `PropertyFormDialog.tsx`, `_shared/auth.ts`, `_shared/cors.ts`, or any other file.
-
-## SQL migration
-
-None required. The `properties` schema already supports the form payload.
-
-## Files to change
-
-- `supabase/functions/admin-properties/index.ts` — apply the fixes above.
-- Deploy `admin-properties` after the edit.
-
+**No SQL migrations or other file changes required.**
