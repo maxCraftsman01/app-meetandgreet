@@ -138,6 +138,7 @@ export default function CleaningCalendar({ pin, userProperties, onMarkCleaned, o
                 {days.map((day) => {
                   const dateStr = format(day, "yyyy-MM-dd");
                   const dayEvents = eventsForDay(dateStr);
+                  const dayAdhoc = adhocForDay(dateStr);
                   const isExpanded = expandedDay === dateStr;
                   const todayRing = isToday(day) ? "ring-2 ring-primary ring-offset-1" : "";
 
@@ -162,6 +163,19 @@ export default function CleaningCalendar({ pin, userProperties, onMarkCleaned, o
                               title={`${evt.property_name} – ${cfg.label}`}
                             >
                               {evt.property_name}
+                            </div>
+                          );
+                        })}
+                        {dayAdhoc.map((exp) => {
+                          const propName = userProperties.find((p) => p.id === exp.property_id)?.name ?? "Property";
+                          return (
+                            <div
+                              key={`adhoc-${exp.id}`}
+                              className="text-[10px] leading-tight rounded px-1.5 py-1 font-medium truncate bg-amber-50 text-amber-700 border border-amber-300 flex items-center gap-1"
+                              title={`Ad-hoc: ${exp.title} – ${propName}`}
+                            >
+                              <Receipt className="w-2.5 h-2.5 shrink-0" />
+                              <span className="truncate">{exp.title}</span>
                             </div>
                           );
                         })}
