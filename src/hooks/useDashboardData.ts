@@ -176,6 +176,8 @@ export function useDashboardData() {
     hasAnyCleaning,
     cleaningLoading,
     sortedTasks,
+    cleaningExpenses,
+    todayAdhocExpenses,
     markingId,
     ownerTickets,
     ticketsLoading,
