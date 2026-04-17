@@ -169,6 +169,12 @@ const Admin = () => {
         </div>
       </header>
 
+      {activeTab === "tickets" && (
+        <div className="container px-4 pt-4">
+          <h2 className="text-lg font-semibold">Maintenance Issues</h2>
+        </div>
+      )}
+
       <main className="container px-4 py-8 pb-24 md:pb-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList className="hidden md:flex">
