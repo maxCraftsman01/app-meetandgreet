@@ -24,7 +24,7 @@ interface TicketListProps {
   properties?: { id: string; name: string }[];
 }
 
-type StatusFilter = "active" | "all" | "open" | "in_progress" | "resolved";
+type StatusFilter = "all" | "open" | "in_progress" | "resolved";
 
 interface EditForm {
   title: string;
