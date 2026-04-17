@@ -236,8 +236,7 @@ const Admin = () => {
 
           <TabsContent value="tickets">
             <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold">Maintenance Issues</h2>
+              <div className="flex items-center justify-end">
                 <div className="flex gap-2">
                   <Button variant="outline" size="sm" onClick={loadTickets}><RefreshCw className="w-4 h-4 mr-1.5" />Refresh</Button>
                   <Dialog open={ticketFormOpen} onOpenChange={setTicketFormOpen}>
