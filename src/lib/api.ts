@@ -282,3 +282,74 @@ export async function deleteUser(adminPin: string, id: string) {
     params: { id },
   });
 }
+
+// ─── Expenses ──────────────────────────────────────────────
+import { getSession } from "./session";
+import type { Expense } from "@/types";
+
+function expenseAuthHeaders(): Record<string, string> {
+  const session = getSession();
+  if (!session) throw new Error("Not authenticated");
+  return session.role === "admin"
+    ? { "x-admin-pin": session.pin }
+    : { "x-user-pin": session.pin };
+}
+
+export async function fetchExpenses(filters?: {
+  property_id?: string;
+  category?: string;
+  payment_status?: string;
+  date_from?: string;
+  date_to?: string;
+}): Promise<Expense[]> {
+  const params: Record<string, string> = {};
+  if (filters?.property_id) params.property_id = filters.property_id;
+  if (filters?.category) params.category = filters.category;
+  if (filters?.payment_status) params.payment_status = filters.payment_status;
+  if (filters?.date_from) params.date_from = filters.date_from;
+  if (filters?.date_to) params.date_to = filters.date_to;
+  return callFunction("expenses", {
+    method: "GET",
+    headers: expenseAuthHeaders(),
+    params: Object.keys(params).length ? params : undefined,
+  });
+}
+
+export async function createExpense(
+  data: Omit<Expense, "id" | "created_at">
+): Promise<Expense> {
+  return callFunction("expenses", {
+    method: "POST",
+    headers: expenseAuthHeaders(),
+    body: data,
+  });
+}
+
+export async function updateExpense(
+  id: string,
+  data: Partial<Expense>
+): Promise<Expense> {
+  return callFunction("expenses", {
+    method: "PUT",
+    headers: expenseAuthHeaders(),
+    params: { id },
+    body: data,
+  });
+}
+
+export async function deleteExpense(id: string): Promise<void> {
+  await callFunction("expenses", {
+    method: "DELETE",
+    headers: expenseAuthHeaders(),
+    params: { id },
+  });
+}
+
+export async function markExpensePaid(id: string): Promise<Expense> {
+  return callFunction("expenses", {
+    method: "PUT",
+    headers: expenseAuthHeaders(),
+    params: { id },
+    body: { payment_status: "paid", paid_at: new Date().toISOString() },
+  });
+}
