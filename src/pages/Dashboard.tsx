@@ -27,6 +27,7 @@ const Dashboard = () => {
     selectedAccess, hasFinance, selectedProperty,
     userProperties, hasAnyFinance, hasAnyCleaning,
     cleaningLoading, sortedTasks, markingId,
+    cleaningExpenses, todayAdhocExpenses,
     ownerTickets, ticketsLoading,
     reportDialogOpen, setReportDialogOpen,
     reportPropertyId, setReportPropertyId,
