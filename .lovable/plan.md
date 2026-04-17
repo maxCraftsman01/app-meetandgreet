@@ -1,73 +1,46 @@
 
 
-## Plan: Filterable Issues panel with admin Edit mode
+## Plan: Mobile Issues Filter Buttons + Title Position
 
-### 1. New filter bar (TicketList.tsx)
-Add filter controls at top of the list (props-driven so the same component works for admin and dashboard):
+### 1. Replace single "Filters" button with two separate filter buttons (mobile)
+**In `TicketList.tsx`:**
+- Remove the single "Filters" button that opens the bottom sheet
+- Add two distinct buttons side by side: **Property** and **Status**
+- Each button shows current selection (or "All properties" / "Active")
+- Both buttons open the same Sheet, but the Sheet remains as-is with both controls inside
+- Keep the same Sheet layout - no need for separate sheets since both filters fit compactly
 
-- **Property filter** — Select with "All properties" + one item per property (built from `tickets` or passed-in `properties`).
-- **Status filter** — Tabs/Segmented on desktop, Select on mobile. Values: All · Open · In Progress · Resolved.
-- **Clear filters** button shown only when any filter is non-default.
-- **Default**: `status = active` (Open + In Progress) so the list opens focused on actionable issues. A toggle "Active only" off → "All" exposes Resolved.
+**Mobile button layout:**
+```
+[Property: All properties] [Status: Active ▼]  [Clear (if active)]
+```
 
-Layout:
-- Desktop (`sm:`): inline row above list — `[Property select] [Status segmented] [Clear]`.
-- Mobile (`<sm`): single "Filters" button (with active-count badge) → opens a `Sheet` (bottom drawer) containing the same controls + Clear + Apply.
+- Each button uses `variant="outline"` and `size="sm"`
+- Shows truncated current value (with `truncate max-w-[120px]`)
+- Active filter count badge only appears if filters are non-default
 
-Filtering happens client-side over the already-loaded `tickets` array — no API change.
+### 2. Move "Maintenance Issues" title up in Admin.tsx
+**In `Admin.tsx`:**
+- Remove the `<h2>Maintenance Issues</h2>` from inside the `TabsContent value="tickets"` area (currently at line 234)
+- Add the title as a page-level header between the `<header>` (Admin Panel) and the `<main>` content area
+- The title should only appear when the active tab is "tickets"
+- Position it at the same hierarchy level as the "Admin Panel" header, just below it
 
-### 2. Issue list (unchanged interaction)
-- Cards remain tap-to-open. **Remove** any inline edit affordance from row (none exists today beyond cost/visibility — those move to detail edit mode).
-- Keep status icon, priority badge, photo/voice icons, cost (admin/owner), chevron.
-- Empty state respects filters: "No issues match your filters" with Clear button.
+**Structure:**
+```
+<header>Admin Panel | Sync All | Logout</header>
+<h2 className="container px-4 py-2 text-lg font-semibold">Maintenance Issues</h2>  {/* only when tab === tickets */}
+<main>...</main>
+```
 
-### 3. Detail dialog — view mode (default)
-Refactored DialogContent into two modes controlled by local `mode: 'view' | 'edit'`.
+- This gives the Issues tab its own consistent page title, matching the pattern used by other main sections
 
-**View mode** shows:
-- Title, badges (priority, status), property, created date, description, photos, voice notes.
-- Owner sees masked cost.
-- Admin-only footer:
-  - **Quick status update**: small inline `Select` to change status without entering edit mode (uses existing PUT `status`).
-  - **Edit Issue** button → switches to edit mode.
-  - **Delete** button (kept, with confirm).
+### 3. Layout adjustments
+- Ensure the two mobile filter buttons wrap correctly with `flex-wrap gap-2`
+- Keep desktop inline selects unchanged (hidden on mobile, visible on `sm:`)
+- The Clear filters button stays inline next to the filter buttons when active
 
-### 4. Detail dialog — edit mode (admin only)
-Triggered by "Edit Issue". Replaces view body with a form. Fields editable today (PUT supports these):
-- **Title** *(needs edge fn extension — see §6)*
-- **Description** *(needs edge fn extension)*
-- **Property** *(needs edge fn extension — `property_id`)*
-- **Status** (open / in_progress / resolved)
-- **Priority** (low / normal / high / urgent — match existing values)
-- **Repair cost** + currency
-- **Visible to owner** / **Visible to cleaner** / **Cost visible to owner** (Switches)
-
-Footer: `[Cancel]` returns to view mode without saving · `[Save changes]` PUTs and refreshes, then returns to view mode.
-
-**Not adding** "Assigned person/vendor" or "Internal admin notes" — `maintenance_tickets` table has no columns for these. Calling these out as out-of-scope; if user wants them I'll propose a migration in a follow-up.
-
-### 5. Component shape
-`TicketList.tsx` gains:
-- `properties?: { id: string; name: string }[]` prop (optional; falls back to deriving unique properties from tickets).
-- Internal state: `propertyFilter`, `statusFilter`, `mobileFiltersOpen`, `mode` (view|edit), `editForm` (snapshot of selected ticket).
-- Memoized `filteredTickets`.
-
-`Admin.tsx`: pass `properties={properties.map(...)}` to `<TicketList>`. No other changes.
-`Dashboard.tsx` (owner): pass owner-visible properties. Edit mode hidden (role !== admin).
-
-### 6. Edge function extension (`supabase/functions/maintenance-tickets/index.ts`)
-PUT branch currently whitelists status/repair_cost/visible_*/priority/cost_visible_to_owner. Add to whitelist:
-- `title` (string, non-empty)
-- `description` (string)
-- `property_id` (uuid, must exist)
-
-Validate types; reject empty title with 400. No schema changes. No SQL migration.
-
-### 7. Files to change
-- `src/components/TicketList.tsx` — filters bar + mobile Filters sheet + view/edit modes.
-- `src/pages/Admin.tsx` — pass `properties` prop to `TicketList` (1 line).
-- `src/pages/Dashboard.tsx` — pass `properties` prop to `TicketList` (1 line).
-- `supabase/functions/maintenance-tickets/index.ts` — extend PUT whitelist (title/description/property_id) with validation.
-
-No new dependencies. No schema migration. Auto-deploy on edge fn save.
+### Files to edit:
+1. `src/components/TicketList.tsx` - Replace single Filters button with two separate buttons
+2. `src/pages/Admin.tsx` - Move "Maintenance Issues" title to page level under the Admin header
 
