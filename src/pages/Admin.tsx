@@ -246,7 +246,7 @@ const Admin = () => {
               {ticketsLoading ? (
                 <div className="flex justify-center py-20 text-muted-foreground">Loading...</div>
               ) : (
-                <TicketList tickets={adminTickets} role="admin" adminPin={session!.pin} onRefresh={loadTickets} />
+                <TicketList tickets={adminTickets} role="admin" adminPin={session!.pin} onRefresh={loadTickets} properties={properties.map((p) => ({ id: p.id, name: p.name }))} />
               )}
             </div>
           </TabsContent>
