@@ -228,9 +228,9 @@ const Admin = () => {
 
           <TabsContent value="daily-ops"><Card className="p-6"><DailyOperations adminPin={session!.pin} /></Card></TabsContent>
 
-          <TabsContent value="tickets">
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
+          <TabsContent value="tickets" className="mt-0 sm:mt-6">
+            <div className="space-y-3 sm:space-y-4">
+              <div className="flex items-center justify-between gap-2">
                 <h2 className="text-lg font-semibold">Maintenance Issues</h2>
                 <div className="flex gap-2">
                   <Button variant="outline" size="sm" onClick={loadTickets}><RefreshCw className="w-4 h-4 mr-1.5" />Refresh</Button>
