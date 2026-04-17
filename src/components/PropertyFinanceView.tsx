@@ -398,6 +398,12 @@ export const PropertyFinanceView = ({ property, bookings, manualReservations, pi
         </motion.div>
       )}
 
+      {/* Property Expenses */}
+      <PropertyExpensesSection
+        expenses={expenses.filter((e) => e.visible_to_owner)}
+        currency={property.currency}
+      />
+
       {/* Chart */}
       {chartData.length > 0 && (
         <motion.div initial={{ opacity: 0, y: 16, filter: "blur(4px)" }} animate={{ opacity: 1, y: 0, filter: "blur(0px)" }} transition={{ delay: 0.2, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}>
