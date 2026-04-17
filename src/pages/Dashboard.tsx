@@ -281,7 +281,7 @@ const Dashboard = () => {
               {ticketsLoading ? (
                 <div className="flex justify-center py-20 text-muted-foreground">Loading...</div>
               ) : (
-                <TicketList tickets={ownerTickets} role="owner" currency={selectedProperty?.currency} />
+                <TicketList tickets={ownerTickets} role="owner" currency={selectedProperty?.currency} properties={userProperties.filter((p) => p.can_view_finance).map((p) => ({ id: p.id, name: p.name }))} />
               )}
             </TabsContent>
           )}

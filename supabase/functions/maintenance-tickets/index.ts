@@ -131,7 +131,32 @@ Deno.serve(async (req) => {
       if (body.visible_to_cleaner !== undefined) updates.visible_to_cleaner = body.visible_to_cleaner;
       if (body.priority !== undefined) updates.priority = body.priority;
       if (body.cost_visible_to_owner !== undefined) updates.cost_visible_to_owner = body.cost_visible_to_owner;
-      const { data, error } = await supabase.from("maintenance_tickets").update(updates).eq("id", ticketId).select().single();
+      if (body.title !== undefined) {
+        if (typeof body.title !== "string" || body.title.trim().length === 0) {
+          return json({ error: "title must be a non-empty string" }, 400);
+        }
+        updates.title = body.title.trim();
+      }
+      if (body.description !== undefined) {
+        if (typeof body.description !== "string") {
+          return json({ error: "description must be a string" }, 400);
+        }
+        updates.description = body.description;
+      }
+      if (body.property_id !== undefined) {
+        if (typeof body.property_id !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(body.property_id)) {
+          return json({ error: "property_id must be a valid uuid" }, 400);
+        }
+        const { data: prop, error: propErr } = await supabase
+          .from("properties").select("id").eq("id", body.property_id).limit(1);
+        if (propErr) {
+          console.error("maintenance-tickets property lookup error", propErr);
+          return json({ error: "Server error validating property" }, 500);
+        }
+        if (!prop?.[0]) return json({ error: "property_id not found" }, 404);
+        updates.property_id = body.property_id;
+      }
+      const { data, error } = await supabase.from("maintenance_tickets").update(updates).eq("id", ticketId).select("*, ticket_media(*), properties:property_id(name)").single();
       if (error) throw error;
       return json(data);
     }
