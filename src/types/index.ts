@@ -105,6 +105,23 @@ export interface CalendarEvent {
   cleaning_notes: string | null;
 }
 
+export interface Expense {
+  id: string;
+  property_id: string;
+  date: string;
+  category: 'cleaning' | 'maintenance' | 'repair' | 'shopping' | 'supplies' | 'other';
+  title: string;
+  description: string;
+  amount: number | null;
+  payment_status: 'pending' | 'paid' | 'invoiced';
+  paid_at: string | null;
+  visible_to_owner: boolean;
+  assigned_to: string | null;
+  linked_ticket_id: string | null;
+  created_by: string;
+  created_at: string;
+}
+
 // ─── API Response Types ────────────────────────────────────
 
 export interface ValidatePinResponse {
