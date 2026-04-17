@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import {
   LogOut, RefreshCw, Building2,
   CheckCircle2, Key, FileText, Sparkles,
-  DollarSign, Brush, Wrench,
+  DollarSign, Brush, Wrench, Receipt,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
