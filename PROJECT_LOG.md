@@ -190,6 +190,41 @@ Reference baseline established 2026-04-12. All future conversations may referenc
 
 ---
 
+### Mobile Property Grid Rework (2026-04-17)
+- **Component**: `src/components/admin/PropertyGrid.tsx`
+- Compact admin summary cards for mobile scanning. Default card shows: property name, owner name, reservation count, pending payout count (explicit `0` when none), and status chips.
+- **Removed from default mobile card**: thumbnails, nightly rate, inline reservation list, inline payout details.
+- **CTAs**: Primary "View Dashboard"; Secondary "Manage" opens a `Drawer` containing the full reservation list and payout actions.
+- Desktop/tablet retain the existing rich inline detail view unchanged.
+
+---
+
+### Issues Panel with Filters & Admin Edit Mode (2026-04-17)
+- **Component**: `src/components/TicketList.tsx`
+- **Filters**: Property filter (All + per-property) and Status filter (All · Open · In Progress · Resolved). Desktop uses Tabs; initial mobile implementation used a Sheet (later replaced — see below).
+- **Detail flow**: Clicking a ticket opens a Dialog in **View mode** (default) with a quick status updater and an "Edit" button. Edit mode reveals a full form covering title, description, property, status, priority, repair cost, and visibility toggles (`visible_to_owner`, `visible_to_cleaner`, `cost_visible_to_owner`).
+- **No inline edit buttons** on list rows — editing is only accessible after opening the detail dialog.
+- **Edge function**: `supabase/functions/maintenance-tickets/index.ts` PUT whitelist extended to accept `title`, `description`, and `property_id` (with validation).
+- **Pages updated**: `src/pages/Admin.tsx` and `src/pages/Dashboard.tsx` now pass a `properties` prop to `TicketList` for the property filter dropdown.
+
+---
+
+### Mobile Issues Panel Layout Refinement (2026-04-17)
+- **Component**: `src/components/TicketList.tsx`
+- Replaced the mobile "Filters" button + `Sheet` with **two inline `Select` dropdowns** (Property, Status) shown directly in the panel.
+- **Defaults changed**: `statusFilter` default is now `"all"` ("All statuses") instead of `"active"`. The "Active" composite option was removed; `StatusFilter` type tightened to `"all" | "open" | "in_progress" | "resolved"`.
+- **Spacing**: `src/pages/Admin.tsx` Tickets tab uses `space-y-3` and `mt-0` on the `TabsContent` to tighten vertical gaps around the "Maintenance Issues" title on mobile.
+- Desktop inline filter row unchanged.
+
+---
+
+### Property Expenses Reordering (2026-04-17)
+- **Component**: `src/components/PropertyFinanceView.tsx`
+- Moved the **Property Expenses** section to render **below the Monthly Occupancy** chart.
+- Improves information hierarchy: revenue and occupancy are surfaced before expense reconciliation.
+
+---
+
 ## Current Pending Tasks
 
 - None active. Suggested next enhancement: add a small Deno test suite covering `validateAdminPin()` (legacy env PIN, DB admin PIN, non-admin PIN, empty PIN) so future auth regressions are caught automatically.
