@@ -1,12 +1,16 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { motion } from "framer-motion";
-import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, X, Copy, ExternalLink } from "lucide-react";
+import {
+  ChevronLeft, ChevronRight, ChevronDown, ChevronUp, X, Copy, ExternalLink,
+  Wrench, Sparkles, ShoppingCart, ClipboardList,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { createOwnerReservation } from "@/lib/api";
+import { createOwnerReservation, fetchExpenses } from "@/lib/api";
 import { toast } from "sonner";
 import {
   format, startOfMonth, endOfMonth, eachDayOfInterval, addMonths, subMonths,
@@ -17,7 +21,28 @@ import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid
 } from "recharts";
 
-import type { Booking, ManualReservation, Property } from "@/types";
+import type { Booking, ManualReservation, Property, Expense } from "@/types";
+
+const CATEGORY_ICON: Record<Expense["category"], typeof Wrench> = {
+  maintenance: Wrench,
+  repair: Wrench,
+  cleaning: Sparkles,
+  shopping: ShoppingCart,
+  supplies: ShoppingCart,
+  other: ClipboardList,
+};
+
+// Pick the icon for the highest-priority category present (maintenance > cleaning > shopping > other)
+const CATEGORY_PRIORITY: Expense["category"][] = [
+  "maintenance", "repair", "cleaning", "shopping", "supplies", "other",
+];
+function pickExpenseIcon(list: Expense[]): typeof Wrench | null {
+  if (list.length === 0) return null;
+  for (const cat of CATEGORY_PRIORITY) {
+    if (list.some((e) => e.category === cat)) return CATEGORY_ICON[cat];
+  }
+  return ClipboardList;
+}
 
 interface PropertyFinanceViewProps {
   property: Property;
@@ -38,6 +63,25 @@ export const PropertyFinanceView = ({ property, bookings, manualReservations, pi
   const [bookingPayout, setBookingPayout] = useState("");
   const [bookingSubmitting, setBookingSubmitting] = useState(false);
   const [payoutsExpanded, setPayoutsExpanded] = useState(false);
+  const [expenses, setExpenses] = useState<Expense[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchExpenses({ property_id: property.id })
+      .then((data) => { if (!cancelled) setExpenses(data); })
+      .catch(() => { /* silent — owners may have none */ });
+    return () => { cancelled = true; };
+  }, [property.id]);
+
+  const expensesByDate = useMemo(() => {
+    const map = new Map<string, Expense[]>();
+    for (const e of expenses) {
+      const arr = map.get(e.date) ?? [];
+      arr.push(e);
+      map.set(e.date, arr);
+    }
+    return map;
+  }, [expenses]);
 
   const propertyBookings = bookings.filter((b) => b.property_id === property.id);
   const propertyManual = manualReservations.filter((r) => r.property_id === property.id);
@@ -198,11 +242,69 @@ export const PropertyFinanceView = ({ property, bookings, manualReservations, pi
               const inRange = isInSelectedRange(day);
               const rangeHighlight = inRange ? "ring-2 ring-primary bg-primary/10" : "";
               const isClickable = info.isManual || info.isPending || info.status === "available";
+              const dayKey = format(day, "yyyy-MM-dd");
+              const dayExpenses = expensesByDate.get(dayKey) ?? [];
+              const ExpenseIcon = pickExpenseIcon(dayExpenses);
+
               return (
                 <div key={day.toISOString()} title={info.label}
                   onClick={() => handleCalendarDayClick(day, info)}
                   className={`relative aspect-square flex items-center justify-center rounded-lg text-sm font-medium transition-colors duration-150 ${pendingStyle} ${rangeHighlight} ${isToday(day) && !inRange ? "ring-2 ring-foreground ring-offset-1" : ""} border ${isClickable ? "cursor-pointer hover:opacity-80" : ""}`}>
                   {format(day, "d")}
+                  {dayExpenses.length > 0 && ExpenseIcon && (
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <button
+                          type="button"
+                          onClick={(e) => e.stopPropagation()}
+                          className="absolute bottom-0.5 left-1/2 -translate-x-1/2 rounded-full bg-amber-100 border border-amber-400 p-0.5 hover:bg-amber-200 transition-colors"
+                          aria-label={`${dayExpenses.length} expense${dayExpenses.length > 1 ? "s" : ""}`}
+                        >
+                          <ExpenseIcon className="w-2.5 h-2.5 text-amber-700" />
+                          {dayExpenses.length > 1 && (
+                            <span className="absolute -top-1 -right-1 text-[8px] font-bold bg-amber-600 text-white rounded-full w-3 h-3 flex items-center justify-center leading-none">
+                              {dayExpenses.length}
+                            </span>
+                          )}
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent
+                        className="w-64 p-3"
+                        align="center"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <p className="text-xs text-muted-foreground mb-2">
+                          {format(day, "MMMM d, yyyy")}
+                        </p>
+                        <div className="space-y-2">
+                          {dayExpenses.map((exp) => {
+                            const ItemIcon = pickExpenseIcon([exp]) ?? ClipboardList;
+                            return (
+                              <div key={exp.id} className="border-t border-border pt-2 first:border-t-0 first:pt-0">
+                                <div className="flex items-start gap-2">
+                                  <ItemIcon className="w-3.5 h-3.5 text-muted-foreground mt-0.5 shrink-0" />
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-medium leading-tight">{exp.title}</p>
+                                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground mt-0.5">
+                                      {exp.category}
+                                    </p>
+                                    {exp.description && (
+                                      <p className="text-xs text-muted-foreground mt-1">{exp.description}</p>
+                                    )}
+                                    {exp.amount != null && (
+                                      <p className="text-xs font-semibold mt-1 tabular-nums">
+                                        {exp.amount.toLocaleString()} {property.currency}
+                                      </p>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+                  )}
                 </div>
               );
             })}
