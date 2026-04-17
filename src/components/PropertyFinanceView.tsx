@@ -42,6 +42,25 @@ export const PropertyFinanceView = ({ property, bookings, manualReservations, pi
   const [bookingPayout, setBookingPayout] = useState("");
   const [bookingSubmitting, setBookingSubmitting] = useState(false);
   const [payoutsExpanded, setPayoutsExpanded] = useState(false);
+  const [expenses, setExpenses] = useState<Expense[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchExpenses({ property_id: property.id })
+      .then((data) => { if (!cancelled) setExpenses(data); })
+      .catch(() => { /* silent — owners may have none */ });
+    return () => { cancelled = true; };
+  }, [property.id]);
+
+  const expensesByDate = useMemo(() => {
+    const map = new Map<string, Expense[]>();
+    for (const e of expenses) {
+      const arr = map.get(e.date) ?? [];
+      arr.push(e);
+      map.set(e.date, arr);
+    }
+    return map;
+  }, [expenses]);
 
   const propertyBookings = bookings.filter((b) => b.property_id === property.id);
   const propertyManual = manualReservations.filter((r) => r.property_id === property.id);
