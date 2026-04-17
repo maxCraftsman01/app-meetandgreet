@@ -254,7 +254,7 @@ export default function CleaningCalendar({ pin, userProperties, onMarkCleaned, o
                     Close
                   </Button>
                 </div>
-                {eventsForDay(expandedDay).length === 0 ? (
+                {eventsForDay(expandedDay).length === 0 && adhocForDay(expandedDay).length === 0 ? (
                   <p className="text-sm text-muted-foreground">No tasks this day.</p>
                 ) : (
                   <div className="space-y-3">
@@ -315,6 +315,26 @@ export default function CleaningCalendar({ pin, userProperties, onMarkCleaned, o
                                 </Button>
                               )}
                             </div>
+                          )}
+                        </div>
+                      );
+                    })}
+
+                    {adhocForDay(expandedDay).map((exp) => {
+                      const propName = userProperties.find((p) => p.id === exp.property_id)?.name ?? "Property";
+                      return (
+                        <div
+                          key={`adhoc-${exp.id}`}
+                          className="p-4 rounded-lg border-2 border-amber-300 bg-amber-50"
+                        >
+                          <div className="flex items-center gap-2 mb-2">
+                            <Receipt className="w-4 h-4 text-amber-700" />
+                            <span className="text-xs font-semibold uppercase tracking-wider text-amber-700">Ad-hoc</span>
+                          </div>
+                          <h4 className="font-semibold text-base">{propName}</h4>
+                          <p className="text-sm font-medium mt-1">{exp.title}</p>
+                          {exp.description && (
+                            <p className="text-sm text-muted-foreground mt-1">{exp.description}</p>
                           )}
                         </div>
                       );
