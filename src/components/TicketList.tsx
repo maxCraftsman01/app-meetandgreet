@@ -46,8 +46,7 @@ export const TicketList = ({ tickets, role, adminPin, currency = "EUR", onRefres
 
   // Filters
   const [propertyFilter, setPropertyFilter] = useState<string>("all");
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>("active");
-  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
 
   // Derive properties for filter dropdown
   const propertyOptions = useMemo(() => {
@@ -63,17 +62,15 @@ export const TicketList = ({ tickets, role, adminPin, currency = "EUR", onRefres
     return tickets.filter((t) => {
       if (propertyFilter !== "all" && t.property_id !== propertyFilter) return false;
       if (statusFilter === "all") return true;
-      if (statusFilter === "active") return t.status === "open" || t.status === "in_progress";
       return t.status === statusFilter;
     });
   }, [tickets, propertyFilter, statusFilter]);
 
-  const filtersActive = propertyFilter !== "all" || statusFilter !== "active";
-  const activeFilterCount = (propertyFilter !== "all" ? 1 : 0) + (statusFilter !== "active" ? 1 : 0);
+  const filtersActive = propertyFilter !== "all" || statusFilter !== "all";
 
   const clearFilters = () => {
     setPropertyFilter("all");
-    setStatusFilter("active");
+    setStatusFilter("all");
   };
 
   const openTicket = (ticket: Ticket) => {
