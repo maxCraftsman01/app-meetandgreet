@@ -91,6 +91,7 @@ Deno.serve(async (req) => {
 
     const icalUrls = property.ical_urls || [];
     const allEvents: (ICalEvent & { sourceUrl: string })[] = [];
+    let successfulFetches = 0;
 
     for (const url of icalUrls) {
       try {
@@ -98,6 +99,7 @@ Deno.serve(async (req) => {
         if (res.ok) {
           const text = await res.text();
           allEvents.push(...parseICS(text).map((e) => ({ ...e, sourceUrl: url })));
+          successfulFetches++;
         }
       } catch { /* Skip failed URLs */ }
     }
@@ -143,9 +145,39 @@ Deno.serve(async (req) => {
       );
     }
 
+    // ─── Reconcile manual_reservations against current iCal feed ──────────
+    // Only run reconciliation when we successfully fetched at least one URL.
+    // This prevents flagging everything as cancelled if the feed is temporarily down.
+    let cancelledCount = 0;
+    if (icalUrls.length > 0 && successfulFetches > 0) {
+      const currentExternalIds = new Set(
+        allEvents.map((e) => `${property_id}_${e.startDate}_${e.endDate}`)
+      );
+
+      const { data: existingManual } = await supabase
+        .from("manual_reservations")
+        .select("id, external_id, status")
+        .eq("property_id", property_id)
+        .not("external_id", "is", null)
+        .neq("status", "Cancelled")
+        .neq("status", "Cancelled-iCal");
+
+      const orphans = (existingManual || []).filter(
+        (r: any) => r.external_id && !currentExternalIds.has(r.external_id)
+      );
+
+      if (orphans.length > 0) {
+        const { error: updErr } = await supabase
+          .from("manual_reservations")
+          .update({ status: "Cancelled-iCal", updated_at: new Date().toISOString() })
+          .in("id", orphans.map((r: any) => r.id));
+        if (!updErr) cancelledCount = orphans.length;
+      }
+    }
+
     const { data: bookings } = await supabase.from("bookings").select("*").eq("property_id", property_id).order("start_date");
 
-    return new Response(JSON.stringify({ bookings: bookings || [], synced: allEvents.length }), {
+    return new Response(JSON.stringify({ bookings: bookings || [], synced: allEvents.length, cancelled: cancelledCount }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
