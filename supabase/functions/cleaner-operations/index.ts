@@ -44,7 +44,7 @@ Deno.serve(async (req) => {
 
       if (fromParam && toParam) {
         const { data: reservations, error: resErr } = await supabase
-          .from("manual_reservations").select("*").neq("status", "Cancelled").eq("is_blocked", false)
+          .from("manual_reservations").select("*").neq("status", "Cancelled").neq("status", "Cancelled-iCal").eq("is_blocked", false)
           .lte("check_in", toParam).gte("check_out", fromParam);
         if (resErr) {
           console.error("reservations query error", resErr);
@@ -87,7 +87,7 @@ Deno.serve(async (req) => {
 
       const { data: reservations, error: resErr } = await supabase
         .from("manual_reservations").select("*").or(`check_in.eq.${today},check_out.eq.${today}`)
-        .neq("status", "Cancelled").eq("is_blocked", false);
+        .neq("status", "Cancelled").neq("status", "Cancelled-iCal").eq("is_blocked", false);
       if (resErr) {
         console.error("reservations query error", resErr);
         return json({ error: "Failed to load reservations", details: resErr.message }, 500);
@@ -152,7 +152,7 @@ Deno.serve(async (req) => {
       if (fromParam && toParam) {
         const { data: reservations, error: resErr } = await supabase
           .from("manual_reservations").select("*").in("property_id", propertyIds)
-          .neq("status", "Cancelled").eq("is_blocked", false).lte("check_in", toParam).gte("check_out", fromParam);
+          .neq("status", "Cancelled").neq("status", "Cancelled-iCal").eq("is_blocked", false).lte("check_in", toParam).gte("check_out", fromParam);
         if (resErr) {
           console.error("reservations query error", resErr);
           return json({ error: "Failed to load reservations", details: resErr.message }, 500);
@@ -195,7 +195,7 @@ Deno.serve(async (req) => {
       const today = new Date().toISOString().split("T")[0];
       const { data: reservations, error: resErr } = await supabase
         .from("manual_reservations").select("*").in("property_id", propertyIds)
-        .or(`check_in.eq.${today},check_out.eq.${today}`).neq("status", "Cancelled").eq("is_blocked", false);
+        .or(`check_in.eq.${today},check_out.eq.${today}`).neq("status", "Cancelled").neq("status", "Cancelled-iCal").eq("is_blocked", false);
       if (resErr) {
         console.error("reservations query error", resErr);
         return json({ error: "Failed to load reservations", details: resErr.message }, 500);
