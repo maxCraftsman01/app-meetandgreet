@@ -25,6 +25,7 @@ import {
 } from "recharts";
 
 import type { Booking, ManualReservation, Property, Expense } from "@/types";
+import { isActiveReservation } from "@/lib/status-config";
 
 const CATEGORY_ICON: Record<Expense["category"], typeof Wrench> = {
   maintenance: Wrench,
@@ -96,7 +97,7 @@ export const PropertyFinanceView = ({ property, bookings, manualReservations, pi
 
   const getDayInfo = (day: Date) => {
     for (const r of propertyManual) {
-      if (r.status === "Cancelled") continue;
+      if (!isActiveReservation(r)) continue;
       const start = startOfDay(parseISO(r.check_in));
       const end = startOfDay(parseISO(r.check_out));
       if (isWithinInterval(day, { start, end: endOfDay(end) })) {
@@ -174,7 +175,7 @@ export const PropertyFinanceView = ({ property, bookings, manualReservations, pi
   };
 
   const financials = useMemo(() => {
-    const activeManual = propertyManual.filter((r) => r.status !== "Cancelled");
+    const activeManual = propertyManual.filter(isActiveReservation);
     const totalRevenue = activeManual.reduce((sum, r) => sum + r.net_payout, 0);
     const totalNights = activeManual.reduce((sum, r) => sum + Math.max(0, differenceInDays(parseISO(r.check_out), parseISO(r.check_in))), 0);
     return { reservations: activeManual.length, totalNights, occupancy: Math.round(totalNights / 365 * 100), totalRevenue };
@@ -188,7 +189,7 @@ export const PropertyFinanceView = ({ property, bookings, manualReservations, pi
       let booked = 0;
       for (const day of mDays) {
         for (const r of propertyManual) {
-          if (r.status === "Cancelled") continue;
+          if (!isActiveReservation(r)) continue;
           if (isWithinInterval(day, { start: startOfDay(parseISO(r.check_in)), end: endOfDay(startOfDay(parseISO(r.check_out))) })) { booked++; break; }
         }
       }
@@ -197,7 +198,7 @@ export const PropertyFinanceView = ({ property, bookings, manualReservations, pi
   }, [propertyManual]);
 
   const recentPayouts = useMemo(() => {
-    return [...propertyManual].filter((r) => r.status !== "Cancelled").sort((a, b) => b.check_in.localeCompare(a.check_in)).slice(0, 10);
+    return [...propertyManual].filter(isActiveReservation).sort((a, b) => b.check_in.localeCompare(a.check_in)).slice(0, 10);
   }, [propertyManual]);
 
   const statusColors: Record<string, string> = {
