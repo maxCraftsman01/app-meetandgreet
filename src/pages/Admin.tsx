@@ -129,7 +129,16 @@ const Admin = () => {
 
   const handleSyncAll = async () => {
     setSyncing(true);
-    try { await Promise.all(properties.map((p) => fetchIcal(p.id, session!.pin))); toast.success("All calendars synced"); loadProperties(); }
+    try {
+      const results = await Promise.all(properties.map((p) => fetchIcal(p.id, session!.pin)));
+      const totalCancelled = results.reduce((sum, r: any) => sum + (r?.cancelled || 0), 0);
+      if (totalCancelled > 0) {
+        toast.success(`All calendars synced · ${totalCancelled} cancelled by guest`);
+      } else {
+        toast.success("All calendars synced");
+      }
+      loadProperties();
+    }
     catch { toast.error("Sync failed"); }
     finally { setSyncing(false); }
   };
