@@ -23,7 +23,8 @@ Deno.serve(async (req) => {
     const { data: manualRes, error: mErr } = await supabase
       .from("manual_reservations")
       .select("external_id, check_in, check_out, property_id")
-      .neq("status", "Cancelled");
+      .neq("status", "Cancelled")
+      .neq("status", "Cancelled-iCal");
     if (mErr) throw mErr;
 
     const matchedIds = new Set((manualRes || []).filter(r => r.external_id).map(r => r.external_id));

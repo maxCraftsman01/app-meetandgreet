@@ -48,6 +48,18 @@ export const TICKET_STATUS_COLORS: Record<string, string> = {
   resolved: "bg-emerald-100 text-emerald-800",
 };
 
+// ─── Reservation Status Helpers ─────────────────────────
+
+/**
+ * Returns true when a manual reservation should count as "active"
+ * (visible in finance, occupancy, payouts, cleaning, etc.).
+ * Excludes both manual cancellations and iCal-detected cancellations.
+ */
+export function isActiveReservation(r: { status?: string } | null | undefined): boolean {
+  if (!r || !r.status) return true;
+  return r.status !== "Cancelled" && r.status !== "Cancelled-iCal";
+}
+
 // ─── Property Colors (for calendar) ──────────────────────
 
 export const PROPERTY_COLORS = [
