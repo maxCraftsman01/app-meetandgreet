@@ -96,7 +96,13 @@ export function useDashboardData() {
         ...prev.filter((b) => b.property_id !== selectedPropertyId),
         ...(result.bookings || []),
       ]);
-      toast.success(`Synced ${result.synced} events`);
+      const cancelled = (result as any).cancelled || 0;
+      if (cancelled > 0) {
+        toast.success(`Synced ${result.synced} events · ${cancelled} cancelled by guest`);
+        loadData();
+      } else {
+        toast.success(`Synced ${result.synced} events`);
+      }
     } catch {
       toast.error("Sync failed");
     } finally {
