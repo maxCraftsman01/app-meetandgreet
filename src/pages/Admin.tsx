@@ -132,9 +132,13 @@ const Admin = () => {
     try {
       const results = await Promise.all(properties.map((p) => fetchIcal(p.id, session!.pin)));
       const totalCancelled = results.reduce((sum, r: any) => sum + (r?.cancelled || 0), 0);
+      const skippedCount = results.filter((r: any) => r?.skipped).length;
+      if (skippedCount > 0) {
+        toast.warning(`${skippedCount} propert${skippedCount === 1 ? "y" : "ies"} skipped — too many bookings would be cancelled. Check iCal feeds.`);
+      }
       if (totalCancelled > 0) {
         toast.success(`All calendars synced · ${totalCancelled} cancelled by guest`);
-      } else {
+      } else if (skippedCount === 0) {
         toast.success("All calendars synced");
       }
       loadProperties();
