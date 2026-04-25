@@ -55,6 +55,6 @@ Deno.serve(async (req) => {
 
     return json({ error: "Method not allowed" }, 405);
   } catch (err) {
-    return json({ error: err.message }, 500);
+    return json({ error: (err instanceof Error ? err.message : String(err)) }, 500);
   }
 });

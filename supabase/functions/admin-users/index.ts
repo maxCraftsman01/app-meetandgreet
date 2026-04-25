@@ -134,6 +134,6 @@ Deno.serve(async (req) => {
     return json({ error: "Method not allowed" }, 405);
   } catch (err) {
     console.error("admin-users error:", err);
-    return json({ error: err.message || "Internal server error" }, 500);
+    return json({ error: (err instanceof Error ? err.message : String(err)) || "Internal server error" }, 500);
   }
 });

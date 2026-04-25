@@ -28,6 +28,7 @@ import { format, parseISO } from "date-fns";
 interface ICalEvent {
   summary: string;
   guest_name?: string;
+  identifier?: string | null;
   start_date: string;
   end_date: string;
   source_url: string | null;
@@ -60,6 +61,7 @@ export function PendingPayouts({ adminPin, properties, propertyId }: Props) {
   const [convertDialog, setConvertDialog] = useState<ICalEvent | null>(null);
   const [payout, setPayout] = useState("");
   const [status, setStatus] = useState("Confirmed");
+  const [guestName, setGuestName] = useState("");
   const [saving, setSaving] = useState(false);
 
   const load = async () => {
@@ -98,7 +100,7 @@ export function PendingPayouts({ adminPin, properties, propertyId }: Props) {
     try {
       await createReservation(adminPin, {
         property_id: convertDialog.property_id,
-        guest_name: convertDialog.guest_name || convertDialog.summary || "",
+        guest_name: guestName.trim() || convertDialog.identifier || convertDialog.summary || "Guest",
         check_in: convertDialog.start_date,
         check_out: convertDialog.end_date,
         source: detectPlatform(convertDialog.source_url),
@@ -110,6 +112,7 @@ export function PendingPayouts({ adminPin, properties, propertyId }: Props) {
       setConvertDialog(null);
       setPayout("");
       setStatus("Confirmed");
+      setGuestName("");
       load();
     } catch (err: any) {
       toast.error(err.message);
@@ -153,8 +156,10 @@ export function PendingPayouts({ adminPin, properties, propertyId }: Props) {
               >
                 <div className="space-y-0.5 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-medium text-sm truncate">{evt.guest_name || evt.summary || "Guest"}</span>
-                    <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-orange-100 text-orange-800">
+                    <span className="font-medium text-sm truncate">
+                      {evt.identifier || evt.summary || "Guest"}
+                    </span>
+                    <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-warning/15 text-warning">
                       Pending
                     </span>
                     {!propertyId && (
@@ -178,6 +183,7 @@ export function PendingPayouts({ adminPin, properties, propertyId }: Props) {
                     setConvertDialog(evt);
                     setPayout("");
                     setStatus("Confirmed");
+                    setGuestName(evt.identifier || "");
                   }}
                 >
                   <DollarSign className="w-3 h-3 mr-1" />
@@ -197,8 +203,16 @@ export function PendingPayouts({ adminPin, properties, propertyId }: Props) {
           {convertDialog && (
             <div className="grid gap-3 py-2">
               <div>
-                <Label className="text-muted-foreground text-xs">Guest</Label>
-                <p className="font-medium">{convertDialog.guest_name || convertDialog.summary || "Guest"}</p>
+                <Label htmlFor="guest-ref">Guest / Reference</Label>
+                <Input
+                  id="guest-ref"
+                  value={guestName}
+                  onChange={(e) => setGuestName(e.target.value)}
+                  placeholder="e.g. HMK4RANB2E or guest name"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Pre-filled from iCal. Edit to use a real name if you have it.
+                </p>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
