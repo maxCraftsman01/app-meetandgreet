@@ -38,6 +38,6 @@ Deno.serve(async (req) => {
     return json({ properties, reservations, bookings, users: users || [], access: access || [] });
   } catch (err) {
     console.error("admin-timeline error:", err);
-    return json({ error: err.message || "Internal error" }, 500);
+    return json({ error: (err instanceof Error ? err.message : String(err)) || "Internal error" }, 500);
   }
 });
