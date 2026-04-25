@@ -156,8 +156,10 @@ export function PendingPayouts({ adminPin, properties, propertyId }: Props) {
               >
                 <div className="space-y-0.5 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-medium text-sm truncate">{evt.guest_name || evt.summary || "Guest"}</span>
-                    <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-orange-100 text-orange-800">
+                    <span className="font-medium text-sm truncate">
+                      {evt.identifier || evt.summary || "Guest"}
+                    </span>
+                    <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-warning/15 text-warning">
                       Pending
                     </span>
                     {!propertyId && (
@@ -181,6 +183,7 @@ export function PendingPayouts({ adminPin, properties, propertyId }: Props) {
                     setConvertDialog(evt);
                     setPayout("");
                     setStatus("Confirmed");
+                    setGuestName(evt.identifier || "");
                   }}
                 >
                   <DollarSign className="w-3 h-3 mr-1" />
@@ -200,8 +203,16 @@ export function PendingPayouts({ adminPin, properties, propertyId }: Props) {
           {convertDialog && (
             <div className="grid gap-3 py-2">
               <div>
-                <Label className="text-muted-foreground text-xs">Guest</Label>
-                <p className="font-medium">{convertDialog.guest_name || convertDialog.summary || "Guest"}</p>
+                <Label htmlFor="guest-ref">Guest / Reference</Label>
+                <Input
+                  id="guest-ref"
+                  value={guestName}
+                  onChange={(e) => setGuestName(e.target.value)}
+                  placeholder="e.g. HMK4RANB2E or guest name"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Pre-filled from iCal. Edit to use a real name if you have it.
+                </p>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
