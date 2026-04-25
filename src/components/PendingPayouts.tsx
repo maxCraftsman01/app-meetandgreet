@@ -28,6 +28,7 @@ import { format, parseISO } from "date-fns";
 interface ICalEvent {
   summary: string;
   guest_name?: string;
+  identifier?: string | null;
   start_date: string;
   end_date: string;
   source_url: string | null;
@@ -60,6 +61,7 @@ export function PendingPayouts({ adminPin, properties, propertyId }: Props) {
   const [convertDialog, setConvertDialog] = useState<ICalEvent | null>(null);
   const [payout, setPayout] = useState("");
   const [status, setStatus] = useState("Confirmed");
+  const [guestName, setGuestName] = useState("");
   const [saving, setSaving] = useState(false);
 
   const load = async () => {
@@ -98,7 +100,7 @@ export function PendingPayouts({ adminPin, properties, propertyId }: Props) {
     try {
       await createReservation(adminPin, {
         property_id: convertDialog.property_id,
-        guest_name: convertDialog.guest_name || convertDialog.summary || "",
+        guest_name: guestName.trim() || convertDialog.identifier || convertDialog.summary || "Guest",
         check_in: convertDialog.start_date,
         check_out: convertDialog.end_date,
         source: detectPlatform(convertDialog.source_url),
@@ -110,6 +112,7 @@ export function PendingPayouts({ adminPin, properties, propertyId }: Props) {
       setConvertDialog(null);
       setPayout("");
       setStatus("Confirmed");
+      setGuestName("");
       load();
     } catch (err: any) {
       toast.error(err.message);

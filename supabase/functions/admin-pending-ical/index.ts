@@ -1,6 +1,22 @@
 import { handleCors, json } from "../_shared/cors.ts";
 import { getSupabaseClient, validateAdminPin } from "../_shared/auth.ts";
 
+function extractIdentifier(b: { description?: string | null; uid?: string | null }): string | null {
+  if (b.description) {
+    const m = b.description.match(/\/reservations\/details\/([A-Z0-9]{8,12})/i);
+    if (m) return m[1].toUpperCase();
+  }
+  if (b.uid) {
+    const hexMatch = b.uid.match(/([a-f0-9]{8,})/i);
+    const hex8 = hexMatch ? hexMatch[1].substring(0, 8).toLowerCase() : null;
+    if (hex8) {
+      if (b.uid.toLowerCase().includes("@booking.com")) return `BDC-${hex8}`;
+      return `REF-${hex8}`;
+    }
+  }
+  return null;
+}
+
 Deno.serve(async (req) => {
   const corsResp = handleCors(req);
   if (corsResp) return corsResp;
@@ -32,12 +48,14 @@ Deno.serve(async (req) => {
       (manualRes || []).map(r => `${r.property_id}_${r.check_in}_${r.check_out}`)
     );
 
-    const pending = (bookings || []).filter((b) => {
-      const extId = `${b.property_id}_${b.start_date}_${b.end_date}`;
-      if (matchedIds.has(extId)) return false;
-      if (matchedDates.has(`${b.property_id}_${b.start_date}_${b.end_date}`)) return false;
-      return true;
-    });
+    const pending = (bookings || [])
+      .filter((b) => {
+        const extId = `${b.property_id}_${b.start_date}_${b.end_date}`;
+        if (matchedIds.has(extId)) return false;
+        if (matchedDates.has(`${b.property_id}_${b.start_date}_${b.end_date}`)) return false;
+        return true;
+      })
+      .map((b) => ({ ...b, identifier: extractIdentifier(b) }));
 
     return json(pending);
   } catch (err) {
