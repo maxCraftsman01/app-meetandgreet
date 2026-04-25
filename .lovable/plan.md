@@ -1,37 +1,113 @@
 
 
-## Confirmation: How the cancellation detection works
+## Plan: Fix past-reservation false-cancellation + add safety threshold
 
-Yes — exactly. Here's the flow in plain terms:
+### The bug (recap)
+In `fetch-ical/index.ts` reconciliation, ANY `manual_reservation` with `external_id` not in the current iCal feed gets flagged `Cancelled-iCal`. But Airbnb/Booking iCal feeds drop past events after a few days — so completed stays get wrongly flagged, removing them from revenue and payouts.
 
-### What gets auto-flagged
-Only manual reservations that **originally came from iCal** (have an `external_id` like `propertyId_checkin_checkout`) get touched. These are the rows you created by clicking "Confirm" on a pending Airbnb/Booking event in PendingPayouts.
+### Fix #1 — Only reconcile future reservations
 
-**Direct bookings you typed in by hand never have an `external_id`, so the sync will never auto-cancel them.** That's the safety guarantee.
+In `supabase/functions/fetch-ical/index.ts`, scope the reconciliation query to reservations whose `check_out >= today`:
 
-### What happens on every sync
-1. `fetch-ical` pulls the current iCal feed and rebuilds the `bookings` table (mirror layer).
-2. It then looks at `manual_reservations` for the same property where `external_id IS NOT NULL` and status is still active.
-3. Any row whose `external_id` is **no longer in the current feed** = the guest cancelled on Airbnb/Booking.
-4. Those rows get `status = "Cancelled-iCal"` (a new status, distinct from manual `Cancelled`).
-5. They are **NOT deleted** — only re-labelled.
+```ts
+const today = new Date().toISOString().split("T")[0];
 
-### What you see as admin
-- **Sync toast**: "Synced 12 events · 1 cancelled by guest"
-- **Master Reservation List**: cancelled rows stay visible with a red **"Cancelled by guest"** badge so you can review them.
-- **Finance / Timeline / Payouts / Cleaning lists**: these rows disappear from active calculations (no revenue, no cleaning task, no payout).
-- **Action you take**: open the row → either delete it permanently, or if it was a false alarm (Airbnb republished), edit status back to `Confirmed`.
+const { data: existingManual } = await supabase
+  .from("manual_reservations")
+  .select("id, external_id, status, check_out")
+  .eq("property_id", property_id)
+  .not("external_id", "is", null)
+  .neq("status", "Cancelled")
+  .neq("status", "Cancelled-iCal")
+  .gte("check_out", today);   // ← key change
+```
 
-### Why "flag" instead of "delete"
-- Audit trail preserved — you always see what happened.
-- Reversible — false cancellations from a temporarily broken iCal feed don't lose data.
-- Distinguishes guest cancellations (`Cancelled-iCal`) from your own manual cancellations (`Cancelled`).
+Past stays become **immutable** — once a guest has checked out, no iCal sync can ever change their status. This is the correct invariant.
 
-### Edge cases handled
-- **Guest re-books same dates** → next sync sees the `external_id` again, but the row is already `Cancelled-iCal` and excluded from the "skip" filter, so it shows up again in PendingPayouts for you to re-confirm. (Or we can auto-restore — tell me which you prefer.)
-- **iCal feed temporarily fails to load** → `fetch-ical` already skips failed URLs silently. **Risk**: if ALL URLs fail, the feed looks empty and everything would get flagged. Mitigation in the plan: only run reconciliation when `allEvents.length > 0` AND at least one iCal URL fetched successfully.
-- **Manual reservations with no `external_id`** → never touched.
+### Fix #2 — 50% safety threshold
 
-### Ready to implement?
-The plan from the previous turn is unchanged. Approve and I'll switch to default mode and ship it. If you want the "auto-restore on re-appearance" behavior instead of re-queuing in PendingPayouts, say so and I'll adjust step 1.
+Before running the UPDATE, check the ratio of orphans to total active future reservations. If more than 50% of future reservations would be cancelled in a single sync, **skip and log a warning** instead.
+
+```ts
+const totalActive = (existingManual || []).length;
+const orphans = (existingManual || []).filter(
+  (r) => r.external_id && !currentExternalIds.has(r.external_id)
+);
+
+let cancelledCount = 0;
+let skippedReason: string | null = null;
+
+if (orphans.length > 0) {
+  // Safety: don't mass-cancel if >50% would be flagged
+  if (totalActive >= 4 && orphans.length / totalActive > 0.5) {
+    console.warn(
+      `[fetch-ical] Skipping reconciliation for property ${property_id}: ` +
+      `${orphans.length}/${totalActive} (>50%) would be cancelled. ` +
+      `Possible feed issue.`
+    );
+    skippedReason = `safety_threshold:${orphans.length}/${totalActive}`;
+  } else {
+    const { error: updErr } = await supabase
+      .from("manual_reservations")
+      .update({ status: "Cancelled-iCal", updated_at: new Date().toISOString() })
+      .in("id", orphans.map((r) => r.id));
+    if (!updErr) cancelledCount = orphans.length;
+  }
+}
+```
+
+Threshold only kicks in when there are at least 4 active future reservations — otherwise small properties with 1-2 bookings would always trip it (1 of 2 = 50%).
+
+Return both values to the client:
+```ts
+return new Response(JSON.stringify({
+  bookings: bookings || [],
+  synced: allEvents.length,
+  cancelled: cancelledCount,
+  skipped: skippedReason,
+}), { ... });
+```
+
+### Fix #3 — Repair existing wrongly-cancelled rows
+
+One-time SQL migration to restore past reservations that were incorrectly flagged by the previous version of the logic:
+
+```sql
+UPDATE public.manual_reservations
+SET status = 'Confirmed', updated_at = now()
+WHERE status = 'Cancelled-iCal'
+  AND check_out < CURRENT_DATE;
+```
+
+This brings back revenue/payouts for any past stay that was wrongly cancelled. Future reservations correctly flagged as cancelled stay flagged.
+
+### Fix #4 — Surface the safety-threshold skip in the UI
+
+In `src/pages/Admin.tsx` (`handleSyncAll`) and `src/hooks/useDashboardData.ts` (`handleSync`), if the response contains `skipped`, show a warning toast:
+
+> ⚠️ Sync paused for [Property]: too many bookings would be cancelled. Check the iCal feed.
+
+This way you immediately know if Airbnb returned a partial/broken feed.
+
+### Fix #5 — Update memory
+
+Update `mem://logic/ical-cancellation-reconciliation` to record:
+- "future-only" rule (`check_out >= today`)
+- 50% safety threshold (only applies when ≥4 active future reservations)
+
+### Files to change
+1. `supabase/functions/fetch-ical/index.ts` — date filter + threshold logic + extended response.
+2. **New SQL migration** — restore past `Cancelled-iCal` rows.
+3. `src/pages/Admin.tsx` — handle `skipped` field in sync toast.
+4. `src/hooks/useDashboardData.ts` — same.
+5. `mem://logic/ical-cancellation-reconciliation` — updated rule.
+
+No schema change. No new dependencies.
+
+### Verification after deploy
+1. Run sync once — confirm past reservations stay `Confirmed` and revenue snaps back.
+2. Inspect `manual_reservations` where `status = 'Cancelled-iCal'` — should only contain future or current stays where the guest genuinely cancelled.
+3. Sync toast should still show "X synced · Y cancelled by guest" when a real future cancellation happens.
+
+Approve and I'll switch to default mode and ship.
 
