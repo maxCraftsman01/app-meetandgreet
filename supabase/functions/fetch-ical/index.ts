@@ -146,38 +146,54 @@ Deno.serve(async (req) => {
     }
 
     // ─── Reconcile manual_reservations against current iCal feed ──────────
-    // Only run reconciliation when we successfully fetched at least one URL.
-    // This prevents flagging everything as cancelled if the feed is temporarily down.
+    // Rules:
+    // 1. Only run when at least one iCal URL fetched successfully (avoids data loss on transient failure).
+    // 2. Only consider FUTURE reservations (check_out >= today). Past stays are immutable —
+    //    Airbnb/Booking iCal feeds drop completed events, so absence does NOT mean cancellation.
+    // 3. Safety threshold: if >50% of active future reservations would be cancelled in one sync
+    //    AND there are at least 4 of them, skip and log a warning (likely partial/broken feed).
     let cancelledCount = 0;
+    let skippedReason: string | null = null;
     if (icalUrls.length > 0 && successfulFetches > 0) {
+      const today = new Date().toISOString().split("T")[0];
       const currentExternalIds = new Set(
         allEvents.map((e) => `${property_id}_${e.startDate}_${e.endDate}`)
       );
 
       const { data: existingManual } = await supabase
         .from("manual_reservations")
-        .select("id, external_id, status")
+        .select("id, external_id, status, check_out")
         .eq("property_id", property_id)
         .not("external_id", "is", null)
         .neq("status", "Cancelled")
-        .neq("status", "Cancelled-iCal");
+        .neq("status", "Cancelled-iCal")
+        .gte("check_out", today);
 
+      const totalActive = (existingManual || []).length;
       const orphans = (existingManual || []).filter(
         (r: any) => r.external_id && !currentExternalIds.has(r.external_id)
       );
 
       if (orphans.length > 0) {
-        const { error: updErr } = await supabase
-          .from("manual_reservations")
-          .update({ status: "Cancelled-iCal", updated_at: new Date().toISOString() })
-          .in("id", orphans.map((r: any) => r.id));
-        if (!updErr) cancelledCount = orphans.length;
+        if (totalActive >= 4 && orphans.length / totalActive > 0.5) {
+          console.warn(
+            `[fetch-ical] Skipping reconciliation for property ${property_id}: ` +
+            `${orphans.length}/${totalActive} (>50%) would be cancelled. Possible feed issue.`
+          );
+          skippedReason = `safety_threshold:${orphans.length}/${totalActive}`;
+        } else {
+          const { error: updErr } = await supabase
+            .from("manual_reservations")
+            .update({ status: "Cancelled-iCal", updated_at: new Date().toISOString() })
+            .in("id", orphans.map((r: any) => r.id));
+          if (!updErr) cancelledCount = orphans.length;
+        }
       }
     }
 
     const { data: bookings } = await supabase.from("bookings").select("*").eq("property_id", property_id).order("start_date");
 
-    return new Response(JSON.stringify({ bookings: bookings || [], synced: allEvents.length, cancelled: cancelledCount }), {
+    return new Response(JSON.stringify({ bookings: bookings || [], synced: allEvents.length, cancelled: cancelledCount, skipped: skippedReason }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
