@@ -97,7 +97,10 @@ export function useDashboardData() {
         ...(result.bookings || []),
       ]);
       const cancelled = (result as any).cancelled || 0;
-      if (cancelled > 0) {
+      const skipped = (result as any).skipped as string | null;
+      if (skipped) {
+        toast.warning(`Sync paused: too many bookings would be cancelled. Check the iCal feed.`);
+      } else if (cancelled > 0) {
         toast.success(`Synced ${result.synced} events · ${cancelled} cancelled by guest`);
         loadData();
       } else {
