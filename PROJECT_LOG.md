@@ -225,6 +225,25 @@ Reference baseline established 2026-04-12. All future conversations may referenc
 
 ---
 
+### iCal Cancellation Reconciliation Safety Threshold (2026-04-25)
+- **File**: `supabase/functions/fetch-ical/index.ts`
+- **Bug fixed**: Reconciliation was flagging ANY `manual_reservation` whose `external_id` was missing from the current iCal feed as `Cancelled-iCal`. Airbnb/Booking feeds drop past events after a few days, so completed stays were wrongly cancelled and disappeared from revenue.
+- **Fix**: Reconciliation now only considers reservations where `check_out >= today` (future or in-progress). Past stays are never auto-cancelled.
+- **Memory updated**: `mem://logic/ical-cancellation-reconciliation`.
+
+---
+
+### Reservation Identifier Cleanup & Edit Preservation (2026-04-25)
+- **Problem**: Airbnb/Booking iCal feeds anonymize guest names. The system was storing internal hex hashes (e.g., `1418fb94`) as `guest_name`, making reservations impossible to cross-reference with the host dashboard.
+- **One-time SQL backfill**: Updated 10 existing rows in `manual_reservations` — replaced hash-style names with real Airbnb confirmation codes (`HMK4RANB2E`, etc.) extracted from the `bookings.description` URL, plus `BDC-<uid8>` for Booking.com and `REF-<uid8>` fallback.
+- **Edge function** (`supabase/functions/admin-pending-ical/index.ts`): Added `extractIdentifier()` helper that parses the Airbnb code from `DESCRIPTION` (`/reservations/details/<CODE>`) or generates a `BDC-` / `REF-` prefixed UID hash. Each pending booking is enriched with an `identifier` field.
+- **UI** (`src/components/PendingPayouts.tsx`): The "Confirm Reservation" dialog pre-fills an editable **Guest / Reference** input with the extracted identifier. Admins can override at any time.
+- **Edit preservation** (already true, now documented): `fetch-ical` is read-only against `manual_reservations.guest_name` and other admin-edited fields. Sync only writes to the `bookings` mirror table and flips `status` to `Cancelled-iCal` for orphan future reservations. Manual edits are preserved indefinitely.
+- **Misc TS hygiene**: Fixed `unknown`-typed `catch` blocks across `admin-reservations`, `admin-timeline`, `admin-users`, `fetch-ical`, `owner-data` edge functions.
+- **Memory updated**: `mem://features/ical-integration`.
+
+---
+
 ## Current Pending Tasks
 
 - None active. Suggested next enhancement: add a small Deno test suite covering `validateAdminPin()` (legacy env PIN, DB admin PIN, non-admin PIN, empty PIN) so future auth regressions are caught automatically.
