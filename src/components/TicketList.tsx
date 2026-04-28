@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,8 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Eye, EyeOff, Trash2, Image, Mic, ChevronRight, X, Pencil } from "lucide-react";
-import { updateTicket, deleteTicket } from "@/lib/api";
+import { Eye, EyeOff, Trash2, Image, Mic, ChevronRight, X, Pencil, Camera } from "lucide-react";
+import { updateTicket, deleteTicket, uploadTicketMedia } from "@/lib/api";
 import { toast } from "sonner";
 import type { Ticket } from "@/types";
 import { TICKET_PRIORITY_COLORS, TICKET_STATUS_ICONS, TICKET_STATUS_COLORS } from "@/lib/status-config";
@@ -26,6 +26,7 @@ interface TicketListProps {
 
 type StatusFilter = "all" | "open" | "in_progress" | "resolved";
 
+interface ExistingPhoto { id: string; storage_path: string; }
 interface EditForm {
   title: string;
   description: string;
@@ -36,6 +37,9 @@ interface EditForm {
   visible_to_owner: boolean;
   visible_to_cleaner: boolean;
   cost_visible_to_owner: boolean;
+  existingPhotos: ExistingPhoto[];
+  removedPhotoIds: string[];
+  newPhotos: File[];
 }
 
 export const TicketList = ({ tickets, role, adminPin, currency = "EUR", onRefresh, properties }: TicketListProps) => {
@@ -80,6 +84,8 @@ export const TicketList = ({ tickets, role, adminPin, currency = "EUR", onRefres
   };
 
   const enterEditMode = (ticket: Ticket) => {
+    const photos = (ticket.ticket_media || []).filter((m) => m.media_type === "photo")
+      .map((m) => ({ id: m.id, storage_path: m.storage_path }));
     setEditForm({
       title: ticket.title,
       description: ticket.description || "",
@@ -90,6 +96,9 @@ export const TicketList = ({ tickets, role, adminPin, currency = "EUR", onRefres
       visible_to_owner: ticket.visible_to_owner,
       visible_to_cleaner: ticket.visible_to_cleaner,
       cost_visible_to_owner: ticket.cost_visible_to_owner,
+      existingPhotos: photos,
+      removedPhotoIds: [],
+      newPhotos: [],
     });
     setMode("edit");
   };
@@ -106,6 +115,21 @@ export const TicketList = ({ tickets, role, adminPin, currency = "EUR", onRefres
     }
   };
 
+  const editFileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleEditPhotoAdd = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!editForm) return;
+    const files = Array.from(e.target.files || []);
+    const remainingExisting = editForm.existingPhotos.filter((p) => !editForm.removedPhotoIds.includes(p.id)).length;
+    const slots = Math.max(0, 5 - remainingExisting - editForm.newPhotos.length);
+    if (slots === 0) {
+      toast.error("Maximum 5 photos");
+    } else {
+      setEditForm({ ...editForm, newPhotos: [...editForm.newPhotos, ...files.slice(0, slots)] });
+    }
+    e.target.value = "";
+  };
+
   const handleSaveEdit = async () => {
     if (!adminPin || !selectedTicket || !editForm) return;
     if (!editForm.title.trim()) {
@@ -114,6 +138,13 @@ export const TicketList = ({ tickets, role, adminPin, currency = "EUR", onRefres
     }
     setSaving(true);
     try {
+      // Upload new photos first
+      const media_add: { media_type: string; storage_path: string }[] = [];
+      for (const photo of editForm.newPhotos) {
+        const url = await uploadTicketMedia(photo, selectedTicket.id);
+        media_add.push({ media_type: "photo", storage_path: url });
+      }
+
       const updated = await updateTicket(adminPin, selectedTicket.id, {
         title: editForm.title.trim(),
         description: editForm.description,
@@ -124,10 +155,11 @@ export const TicketList = ({ tickets, role, adminPin, currency = "EUR", onRefres
         visible_to_owner: editForm.visible_to_owner,
         visible_to_cleaner: editForm.visible_to_cleaner,
         cost_visible_to_owner: editForm.cost_visible_to_owner,
+        ...(media_add.length > 0 ? { media_add } : {}),
+        ...(editForm.removedPhotoIds.length > 0 ? { media_remove: editForm.removedPhotoIds } : {}),
       });
       toast.success("Issue updated");
       onRefresh?.();
-      // Update selected ticket with response (preserves media + property name)
       if (updated && typeof updated === "object") {
         setSelectedTicket({ ...selectedTicket, ...updated });
       }
@@ -437,6 +469,56 @@ export const TicketList = ({ tickets, role, adminPin, currency = "EUR", onRefres
                     value={editForm.repair_cost}
                     onChange={(e) => setEditForm({ ...editForm, repair_cost: e.target.value })}
                     placeholder="0"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium mb-1.5 block">Photos (max 5)</label>
+                  <div className="flex flex-wrap gap-2">
+                    {editForm.existingPhotos.filter((p) => !editForm.removedPhotoIds.includes(p.id)).map((p) => (
+                      <div key={p.id} className="relative w-16 h-16 rounded-lg overflow-hidden border border-border">
+                        <img src={p.storage_path} alt="" className="w-full h-full object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => setEditForm({ ...editForm, removedPhotoIds: [...editForm.removedPhotoIds, p.id] })}
+                          className="absolute top-0 right-0 bg-destructive text-destructive-foreground rounded-bl p-0.5"
+                          aria-label="Remove photo"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ))}
+                    {editForm.newPhotos.map((f, i) => (
+                      <div key={i} className="relative w-16 h-16 rounded-lg overflow-hidden border border-primary">
+                        <img src={URL.createObjectURL(f)} alt="" className="w-full h-full object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => setEditForm({ ...editForm, newPhotos: editForm.newPhotos.filter((_, j) => j !== i) })}
+                          className="absolute top-0 right-0 bg-destructive text-destructive-foreground rounded-bl p-0.5"
+                          aria-label="Remove new photo"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ))}
+                    {(editForm.existingPhotos.filter((p) => !editForm.removedPhotoIds.includes(p.id)).length + editForm.newPhotos.length) < 5 && (
+                      <button
+                        type="button"
+                        onClick={() => editFileInputRef.current?.click()}
+                        className="w-16 h-16 rounded-lg border-2 border-dashed border-border flex items-center justify-center text-muted-foreground hover:border-primary hover:text-primary transition-colors"
+                        aria-label="Add photo"
+                      >
+                        <Camera className="w-5 h-5" />
+                      </button>
+                    )}
+                  </div>
+                  <input
+                    ref={editFileInputRef}
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    multiple
+                    className="hidden"
+                    onChange={handleEditPhotoAdd}
                   />
                 </div>
                 <div className="space-y-3 pt-2 border-t border-border">

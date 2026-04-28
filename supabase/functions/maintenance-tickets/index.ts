@@ -156,7 +156,46 @@ Deno.serve(async (req) => {
         if (!prop?.[0]) return json({ error: "property_id not found" }, 404);
         updates.property_id = body.property_id;
       }
-      const { data, error } = await supabase.from("maintenance_tickets").update(updates).eq("id", ticketId).select("*, ticket_media(*), properties:property_id(name)").single();
+      // Media removals (best-effort delete from storage too)
+      if (Array.isArray(body.media_remove) && body.media_remove.length > 0) {
+        const ids = body.media_remove.filter((x: unknown) => typeof x === "string");
+        if (ids.length > 0) {
+          const { data: mediaRows } = await supabase
+            .from("ticket_media").select("id, storage_path").eq("ticket_id", ticketId).in("id", ids);
+          const objectPaths: string[] = [];
+          for (const row of mediaRows || []) {
+            const marker = "/ticket-media/";
+            const idx = row.storage_path?.indexOf(marker);
+            if (typeof idx === "number" && idx >= 0) {
+              objectPaths.push(row.storage_path.substring(idx + marker.length));
+            }
+          }
+          if (objectPaths.length > 0) {
+            try { await supabase.storage.from("ticket-media").remove(objectPaths); }
+            catch (e) { console.error("ticket-media storage remove failed", e); }
+          }
+          await supabase.from("ticket_media").delete().eq("ticket_id", ticketId).in("id", ids);
+        }
+      }
+
+      // Media additions
+      if (Array.isArray(body.media_add) && body.media_add.length > 0) {
+        const inserts = body.media_add
+          .filter((m: any) => m && typeof m.storage_path === "string" && typeof m.media_type === "string")
+          .map((m: any) => ({ ticket_id: ticketId, media_type: m.media_type, storage_path: m.storage_path }));
+        if (inserts.length > 0) {
+          const { error: insErr } = await supabase.from("ticket_media").insert(inserts);
+          if (insErr) throw insErr;
+        }
+      }
+
+      const hasFieldUpdates = Object.keys(updates).length > 0;
+      if (hasFieldUpdates) {
+        const { error: updErr } = await supabase.from("maintenance_tickets").update(updates).eq("id", ticketId);
+        if (updErr) throw updErr;
+      }
+      const { data, error } = await supabase.from("maintenance_tickets")
+        .select("*, ticket_media(*), properties:property_id(name)").eq("id", ticketId).single();
       if (error) throw error;
       return json(data);
     }
