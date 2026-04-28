@@ -84,6 +84,8 @@ export const TicketList = ({ tickets, role, adminPin, currency = "EUR", onRefres
   };
 
   const enterEditMode = (ticket: Ticket) => {
+    const photos = (ticket.ticket_media || []).filter((m) => m.media_type === "photo")
+      .map((m) => ({ id: m.id, storage_path: m.storage_path }));
     setEditForm({
       title: ticket.title,
       description: ticket.description || "",
@@ -94,6 +96,9 @@ export const TicketList = ({ tickets, role, adminPin, currency = "EUR", onRefres
       visible_to_owner: ticket.visible_to_owner,
       visible_to_cleaner: ticket.visible_to_cleaner,
       cost_visible_to_owner: ticket.cost_visible_to_owner,
+      existingPhotos: photos,
+      removedPhotoIds: [],
+      newPhotos: [],
     });
     setMode("edit");
   };
