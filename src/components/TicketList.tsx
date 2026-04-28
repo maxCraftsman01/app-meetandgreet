@@ -115,6 +115,21 @@ export const TicketList = ({ tickets, role, adminPin, currency = "EUR", onRefres
     }
   };
 
+  const editFileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleEditPhotoAdd = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!editForm) return;
+    const files = Array.from(e.target.files || []);
+    const remainingExisting = editForm.existingPhotos.filter((p) => !editForm.removedPhotoIds.includes(p.id)).length;
+    const slots = Math.max(0, 5 - remainingExisting - editForm.newPhotos.length);
+    if (slots === 0) {
+      toast.error("Maximum 5 photos");
+    } else {
+      setEditForm({ ...editForm, newPhotos: [...editForm.newPhotos, ...files.slice(0, slots)] });
+    }
+    e.target.value = "";
+  };
+
   const handleSaveEdit = async () => {
     if (!adminPin || !selectedTicket || !editForm) return;
     if (!editForm.title.trim()) {
@@ -123,6 +138,13 @@ export const TicketList = ({ tickets, role, adminPin, currency = "EUR", onRefres
     }
     setSaving(true);
     try {
+      // Upload new photos first
+      const media_add: { media_type: string; storage_path: string }[] = [];
+      for (const photo of editForm.newPhotos) {
+        const url = await uploadTicketMedia(photo, selectedTicket.id);
+        media_add.push({ media_type: "photo", storage_path: url });
+      }
+
       const updated = await updateTicket(adminPin, selectedTicket.id, {
         title: editForm.title.trim(),
         description: editForm.description,
@@ -133,10 +155,11 @@ export const TicketList = ({ tickets, role, adminPin, currency = "EUR", onRefres
         visible_to_owner: editForm.visible_to_owner,
         visible_to_cleaner: editForm.visible_to_cleaner,
         cost_visible_to_owner: editForm.cost_visible_to_owner,
+        ...(media_add.length > 0 ? { media_add } : {}),
+        ...(editForm.removedPhotoIds.length > 0 ? { media_remove: editForm.removedPhotoIds } : {}),
       });
       toast.success("Issue updated");
       onRefresh?.();
-      // Update selected ticket with response (preserves media + property name)
       if (updated && typeof updated === "object") {
         setSelectedTicket({ ...selectedTicket, ...updated });
       }
