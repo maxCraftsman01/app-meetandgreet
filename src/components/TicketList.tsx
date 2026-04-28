@@ -26,6 +26,7 @@ interface TicketListProps {
 
 type StatusFilter = "all" | "open" | "in_progress" | "resolved";
 
+interface ExistingPhoto { id: string; storage_path: string; }
 interface EditForm {
   title: string;
   description: string;
@@ -36,6 +37,9 @@ interface EditForm {
   visible_to_owner: boolean;
   visible_to_cleaner: boolean;
   cost_visible_to_owner: boolean;
+  existingPhotos: ExistingPhoto[];
+  removedPhotoIds: string[];
+  newPhotos: File[];
 }
 
 export const TicketList = ({ tickets, role, adminPin, currency = "EUR", onRefresh, properties }: TicketListProps) => {
