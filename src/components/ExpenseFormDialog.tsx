@@ -1,11 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { format } from "date-fns";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, Check, X, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
 import { Calendar } from "@/components/ui/calendar";
 import {
   Dialog,
@@ -25,6 +26,14 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { getSession } from "@/lib/session";
@@ -75,7 +84,7 @@ interface FormState {
   paid_at: string | null;
   visible_to_owner: boolean;
   assigned_to: string | null;
-  linked_ticket_id: string | null;
+  linked_ticket_ids: string[];
 }
 
 const emptyForm: FormState = {
@@ -89,7 +98,7 @@ const emptyForm: FormState = {
   paid_at: null,
   visible_to_owner: false,
   assigned_to: null,
-  linked_ticket_id: null,
+  linked_ticket_ids: [],
 };
 
 export function ExpenseFormDialog({ open, onOpenChange, expense, onSaved }: Props) {
@@ -101,6 +110,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, onSaved }: Prop
   const [properties, setProperties] = useState<Property[]>([]);
   const [users, setUsers] = useState<AppUser[]>([]);
   const [tickets, setTickets] = useState<Ticket[]>([]);
+  const [ticketPickerOpen, setTicketPickerOpen] = useState(false);
 
   // Load dropdown data when dialog opens
   useEffect(() => {
@@ -138,12 +148,56 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, onSaved }: Prop
         paid_at: expense.paid_at,
         visible_to_owner: expense.visible_to_owner,
         assigned_to: expense.assigned_to,
-        linked_ticket_id: expense.linked_ticket_id,
+        linked_ticket_ids: expense.linked_ticket_ids ?? [],
       });
     } else {
       setForm(emptyForm);
     }
   }, [expense, open]);
+
+  // When property changes, drop linked tickets that don't belong to it
+  useEffect(() => {
+    if (!form.property_id || tickets.length === 0) return;
+    setForm((prev) => {
+      const allowed = new Set(
+        tickets.filter((t) => t.property_id === prev.property_id).map((t) => t.id),
+      );
+      const filtered = prev.linked_ticket_ids.filter((id) => allowed.has(id));
+      if (filtered.length === prev.linked_ticket_ids.length) return prev;
+      return { ...prev, linked_ticket_ids: filtered };
+    });
+  }, [form.property_id, tickets]);
+
+  // Tickets restricted to the selected property
+  const availableTickets = useMemo(
+    () => (form.property_id ? tickets.filter((t) => t.property_id === form.property_id) : []),
+    [tickets, form.property_id],
+  );
+
+  const ticketsById = useMemo(() => {
+    const m = new Map<string, Ticket>();
+    for (const t of tickets) m.set(t.id, t);
+    return m;
+  }, [tickets]);
+
+  const toggleTicket = (id: string) => {
+    setForm((prev) => {
+      const has = prev.linked_ticket_ids.includes(id);
+      return {
+        ...prev,
+        linked_ticket_ids: has
+          ? prev.linked_ticket_ids.filter((x) => x !== id)
+          : [...prev.linked_ticket_ids, id],
+      };
+    });
+  };
+
+  const removeTicket = (id: string) => {
+    setForm((prev) => ({
+      ...prev,
+      linked_ticket_ids: prev.linked_ticket_ids.filter((x) => x !== id),
+    }));
+  };
 
   const handleSave = async () => {
     if (!form.property_id) {
@@ -176,7 +230,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, onSaved }: Prop
             : null,
         visible_to_owner: form.visible_to_owner,
         assigned_to: form.assigned_to,
-        linked_ticket_id: form.linked_ticket_id,
+        linked_ticket_ids: form.linked_ticket_ids,
         created_by: session?.user_id ?? "",
       };
 
@@ -184,7 +238,7 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, onSaved }: Prop
         await updateExpense(expense.id, payload);
         toast({ title: "Expense updated" });
       } else {
-        await createExpense(payload);
+        await createExpense(payload as any);
         toast({ title: "Expense created" });
       }
       onOpenChange(false);
@@ -361,28 +415,96 @@ export function ExpenseFormDialog({ open, onOpenChange, expense, onSaved }: Prop
             </Select>
           </div>
 
-          {/* Linked Ticket */}
+          {/* Linked Tickets — multi-select chips */}
           <div>
-            <Label>Linked Ticket</Label>
-            <Select
-              value={form.linked_ticket_id ?? "none"}
-              onValueChange={(v) =>
-                setForm({ ...form, linked_ticket_id: v === "none" ? null : v })
-              }
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="None" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">None</SelectItem>
-                {tickets.map((t) => (
-                  <SelectItem key={t.id} value={t.id}>
-                    {t.title}
-                    {t.properties?.name ? ` — ${t.properties.name}` : ""}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Label>Linked Issues</Label>
+            <p className="text-xs text-muted-foreground mb-2">
+              {form.property_id
+                ? "Link one or more maintenance issues to this expense."
+                : "Select a property first to link issues."}
+            </p>
+
+            {form.linked_ticket_ids.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mb-2">
+                {form.linked_ticket_ids.map((id) => {
+                  const t = ticketsById.get(id);
+                  return (
+                    <Badge
+                      key={id}
+                      variant="secondary"
+                      className="pl-2 pr-1 py-1 gap-1 max-w-[260px]"
+                    >
+                      <span className="truncate">{t?.title ?? "Unknown issue"}</span>
+                      <button
+                        type="button"
+                        onClick={() => removeTicket(id)}
+                        className="rounded-full hover:bg-background/60 p-0.5"
+                        aria-label={`Remove ${t?.title ?? "ticket"}`}
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  );
+                })}
+              </div>
+            )}
+
+            <Popover open={ticketPickerOpen} onOpenChange={setTicketPickerOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="w-full justify-start"
+                  disabled={!form.property_id}
+                >
+                  <Plus className="h-4 w-4 mr-1.5" />
+                  {form.linked_ticket_ids.length > 0 ? "Add or remove issues" : "Link issues"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                <Command>
+                  <CommandInput placeholder="Search issues..." />
+                  <CommandList>
+                    <CommandEmpty>
+                      {availableTickets.length === 0
+                        ? "No issues for this property."
+                        : "No issues match."}
+                    </CommandEmpty>
+                    <CommandGroup>
+                      {availableTickets.map((t) => {
+                        const checked = form.linked_ticket_ids.includes(t.id);
+                        return (
+                          <CommandItem
+                            key={t.id}
+                            value={`${t.title} ${t.status}`}
+                            onSelect={() => toggleTicket(t.id)}
+                            className="flex items-center gap-2"
+                          >
+                            <div
+                              className={cn(
+                                "h-4 w-4 rounded border flex items-center justify-center shrink-0",
+                                checked
+                                  ? "bg-primary border-primary text-primary-foreground"
+                                  : "border-input",
+                              )}
+                            >
+                              {checked && <Check className="h-3 w-3" />}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="truncate text-sm">{t.title}</p>
+                              <p className="text-[10px] text-muted-foreground capitalize">
+                                {t.status.replace("_", " ")} · {t.priority}
+                              </p>
+                            </div>
+                          </CommandItem>
+                        );
+                      })}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
           </div>
 
           {/* Visible to Owner */}
