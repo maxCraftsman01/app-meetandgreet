@@ -88,6 +88,27 @@ export type Database = {
           },
         ]
       }
+      expense_tickets: {
+        Row: {
+          created_at: string
+          expense_id: string
+          id: string
+          ticket_id: string
+        }
+        Insert: {
+          created_at?: string
+          expense_id: string
+          id?: string
+          ticket_id: string
+        }
+        Update: {
+          created_at?: string
+          expense_id?: string
+          id?: string
+          ticket_id?: string
+        }
+        Relationships: []
+      }
       expenses: {
         Row: {
           amount: number | null
@@ -98,7 +119,6 @@ export type Database = {
           date: string
           description: string
           id: string
-          linked_ticket_id: string | null
           paid_at: string | null
           payment_status: string
           property_id: string
@@ -114,7 +134,6 @@ export type Database = {
           date: string
           description?: string
           id?: string
-          linked_ticket_id?: string | null
           paid_at?: string | null
           payment_status?: string
           property_id: string
@@ -130,7 +149,6 @@ export type Database = {
           date?: string
           description?: string
           id?: string
-          linked_ticket_id?: string | null
           paid_at?: string | null
           payment_status?: string
           property_id?: string
@@ -150,13 +168,6 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "app_users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "expenses_linked_ticket_id_fkey"
-            columns: ["linked_ticket_id"]
-            isOneToOne: false
-            referencedRelation: "maintenance_tickets"
             referencedColumns: ["id"]
           },
           {
