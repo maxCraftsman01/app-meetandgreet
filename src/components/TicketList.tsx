@@ -471,6 +471,56 @@ export const TicketList = ({ tickets, role, adminPin, currency = "EUR", onRefres
                     placeholder="0"
                   />
                 </div>
+                <div>
+                  <label className="text-sm font-medium mb-1.5 block">Photos (max 5)</label>
+                  <div className="flex flex-wrap gap-2">
+                    {editForm.existingPhotos.filter((p) => !editForm.removedPhotoIds.includes(p.id)).map((p) => (
+                      <div key={p.id} className="relative w-16 h-16 rounded-lg overflow-hidden border border-border">
+                        <img src={p.storage_path} alt="" className="w-full h-full object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => setEditForm({ ...editForm, removedPhotoIds: [...editForm.removedPhotoIds, p.id] })}
+                          className="absolute top-0 right-0 bg-destructive text-destructive-foreground rounded-bl p-0.5"
+                          aria-label="Remove photo"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ))}
+                    {editForm.newPhotos.map((f, i) => (
+                      <div key={i} className="relative w-16 h-16 rounded-lg overflow-hidden border border-primary">
+                        <img src={URL.createObjectURL(f)} alt="" className="w-full h-full object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => setEditForm({ ...editForm, newPhotos: editForm.newPhotos.filter((_, j) => j !== i) })}
+                          className="absolute top-0 right-0 bg-destructive text-destructive-foreground rounded-bl p-0.5"
+                          aria-label="Remove new photo"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ))}
+                    {(editForm.existingPhotos.filter((p) => !editForm.removedPhotoIds.includes(p.id)).length + editForm.newPhotos.length) < 5 && (
+                      <button
+                        type="button"
+                        onClick={() => editFileInputRef.current?.click()}
+                        className="w-16 h-16 rounded-lg border-2 border-dashed border-border flex items-center justify-center text-muted-foreground hover:border-primary hover:text-primary transition-colors"
+                        aria-label="Add photo"
+                      >
+                        <Camera className="w-5 h-5" />
+                      </button>
+                    )}
+                  </div>
+                  <input
+                    ref={editFileInputRef}
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    multiple
+                    className="hidden"
+                    onChange={handleEditPhotoAdd}
+                  />
+                </div>
                 <div className="space-y-3 pt-2 border-t border-border">
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-medium">Visible to Owner</span>
