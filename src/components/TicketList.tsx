@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,8 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Eye, EyeOff, Trash2, Image, Mic, ChevronRight, X, Pencil } from "lucide-react";
-import { updateTicket, deleteTicket } from "@/lib/api";
+import { Eye, EyeOff, Trash2, Image, Mic, ChevronRight, X, Pencil, Camera } from "lucide-react";
+import { updateTicket, deleteTicket, uploadTicketMedia } from "@/lib/api";
 import { toast } from "sonner";
 import type { Ticket } from "@/types";
 import { TICKET_PRIORITY_COLORS, TICKET_STATUS_ICONS, TICKET_STATUS_COLORS } from "@/lib/status-config";
