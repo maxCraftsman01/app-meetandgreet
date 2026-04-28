@@ -117,9 +117,16 @@ export interface Expense {
   paid_at: string | null;
   visible_to_owner: boolean;
   assigned_to: string | null;
-  linked_ticket_id: string | null;
+  linked_ticket_ids: string[];
+  linked_tickets?: LinkedTicketSummary[];
   created_by: string;
   created_at: string;
+}
+
+export interface LinkedTicketSummary {
+  id: string;
+  title: string;
+  status?: string;
 }
 
 // ─── API Response Types ────────────────────────────────────
