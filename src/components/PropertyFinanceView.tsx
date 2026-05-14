@@ -101,6 +101,9 @@ export const PropertyFinanceView = ({ property, bookings, manualReservations, pi
       const start = startOfDay(parseISO(r.check_in));
       const end = startOfDay(parseISO(r.check_out));
       if (isWithinInterval(day, { start, end: endOfDay(end) })) {
+        if (r.is_blocked) {
+          return { status: "blocked", label: "Blocked", isManual: true, isPending: false, reservation: r };
+        }
         return { status: "booked", label: `${r.guest_name} (${r.source})`, isManual: true, isPending: false, reservation: r };
       }
     }
