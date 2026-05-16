@@ -1,27 +1,33 @@
-# Fix blocked-day color on owner dashboard calendar
+# Exclude blocked days from booked-nights and occupancy
 
-## The problem
-On the owner dashboard (Finance view), blocked days for **Lagos Old Town** are rendered in red — the same color as guest reservations — instead of the gray "Blocked" color shown in the legend.
+## Problem
+On the owner dashboard Finance view, owner-created **blocks** (manual reservations with `is_blocked = true`, e.g. for renovations/repairs) are being counted as:
+- "Nights booked" total
+- Overall occupancy %
+- Bars in the "Monthly occupancy" chart
+
+Blocks are not guest stays and should not inflate these metrics.
 
 ## Root cause
-In `src/components/PropertyFinanceView.tsx`, `getDayInfo()` returns the day's status from two sources:
+In `src/components/PropertyFinanceView.tsx`, both calculations filter manual reservations with `isActiveReservation(r)` only — which keeps anything not cancelled, including blocks.
 
-1. **Manual reservations** (`manual_reservations` table) — every active record is returned as `status: "booked"`, ignoring its `is_blocked` flag.
-2. **iCal bookings** (`bookings` table) — correctly checks `b.status === "blocked"` and returns `status: "blocked"`.
+- `financials` (line 180–185) sums nights/revenue over all active manual rows.
+- `chartData` (line 187–201) counts any day covered by an active manual row as "booked" for the monthly bars.
+- `recentPayouts` (line 203–205) also lists blocks (net_payout 0) alongside real payouts.
 
-Owner-created blocks are saved as `manual_reservations` rows with `is_blocked = true` (verified in DB for Lagos Old Town: 2 rows with `is_blocked: true`, `guest_name: "Blocked"`). Because branch (1) doesn't look at `is_blocked`, those days get the red "booked" style from `statusColors.booked`.
-
-## Fix
-One-line logic change in `PropertyFinanceView.tsx` `getDayInfo()` — when a manual reservation matches the day, check `is_blocked`:
+## Fix (frontend only)
+Add an `is_blocked` filter alongside `isActiveReservation` in the three memos:
 
 ```ts
-if (r.is_blocked) {
-  return { status: "blocked", label: "Blocked", isManual: true, isPending: false, reservation: r };
-}
-return { status: "booked", label: `${r.guest_name} (${r.source})`, isManual: true, isPending: false, reservation: r };
+const guestReservations = propertyManual.filter(r => isActiveReservation(r) && !r.is_blocked);
 ```
 
-This routes those days through the existing `statusColors.blocked` style (`bg-status-blocked-light border-status-blocked`) — the same gray tokens used in the legend, so visuals match the label.
+Then derive:
+- `financials`: reservations count, totalNights, totalRevenue, occupancy — all from `guestReservations`.
+- `chartData`: inner loop iterates `guestReservations` instead of `propertyManual`.
+- `recentPayouts`: source from `guestReservations` so the payouts list stops showing 0€ "Blocked" rows.
+
+The calendar `getDayInfo()` logic (already fixed last turn to render blocks as gray) is unchanged — blocks still appear on the calendar with the blocked color, they just don't count toward booked-nights / occupancy / monthly chart.
 
 ## Out of scope
-No DB, edge function, or other component changes. The day-click handler already treats `isManual` days as detail-only (no range selection), so blocked manual days keep their existing tap-to-view-details behavior.
+No DB, edge function, or other component changes. The legend, color tokens, and tap-to-detail behavior stay as-is.

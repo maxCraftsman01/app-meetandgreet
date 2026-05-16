@@ -177,12 +177,16 @@ export const PropertyFinanceView = ({ property, bookings, manualReservations, pi
     }
   };
 
+  const guestReservations = useMemo(
+    () => propertyManual.filter((r) => isActiveReservation(r) && !r.is_blocked),
+    [propertyManual]
+  );
+
   const financials = useMemo(() => {
-    const activeManual = propertyManual.filter(isActiveReservation);
-    const totalRevenue = activeManual.reduce((sum, r) => sum + r.net_payout, 0);
-    const totalNights = activeManual.reduce((sum, r) => sum + Math.max(0, differenceInDays(parseISO(r.check_out), parseISO(r.check_in))), 0);
-    return { reservations: activeManual.length, totalNights, occupancy: Math.round(totalNights / 365 * 100), totalRevenue };
-  }, [propertyManual]);
+    const totalRevenue = guestReservations.reduce((sum, r) => sum + r.net_payout, 0);
+    const totalNights = guestReservations.reduce((sum, r) => sum + Math.max(0, differenceInDays(parseISO(r.check_out), parseISO(r.check_in))), 0);
+    return { reservations: guestReservations.length, totalNights, occupancy: Math.round(totalNights / 365 * 100), totalRevenue };
+  }, [guestReservations]);
 
   const chartData = useMemo(() => {
     const year = new Date().getFullYear();
@@ -191,18 +195,17 @@ export const PropertyFinanceView = ({ property, bookings, manualReservations, pi
       const mDays = eachDayOfInterval({ start: startOfMonth(m), end: endOfMonth(m) });
       let booked = 0;
       for (const day of mDays) {
-        for (const r of propertyManual) {
-          if (!isActiveReservation(r)) continue;
+        for (const r of guestReservations) {
           if (isWithinInterval(day, { start: startOfDay(parseISO(r.check_in)), end: endOfDay(startOfDay(parseISO(r.check_out))) })) { booked++; break; }
         }
       }
       return { month: format(m, "MMM"), occupancy: Math.round(booked / mDays.length * 100) };
     });
-  }, [propertyManual]);
+  }, [guestReservations]);
 
   const recentPayouts = useMemo(() => {
-    return [...propertyManual].filter(isActiveReservation).sort((a, b) => b.check_in.localeCompare(a.check_in)).slice(0, 10);
-  }, [propertyManual]);
+    return [...guestReservations].sort((a, b) => b.check_in.localeCompare(a.check_in)).slice(0, 10);
+  }, [guestReservations]);
 
   const statusColors: Record<string, string> = {
     booked: "bg-status-booked-light border-status-booked text-status-booked",
