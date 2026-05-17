@@ -117,6 +117,9 @@ All functions share centralized helpers from `supabase/functions/_shared/cors.ts
 | — | Completed refactoring steps 6–8 (dashboard hooks, admin split, shared edge modules) |
 | 2026-04-12 | Established `MILESTONE_2026_04_12-stable` baseline |
 | 2026-04-14 | Added `listing_urls` to properties — admin textarea form + owner Finance "Listing Links" card with copy-to-clipboard |
+| 2026-04-28 | Expense form linked-tickets moved from single dropdown to multi-select chip picker |
+| 2026-05-17 | Blocked days on owner Finance calendar fixed to render gray instead of red |
+| 2026-05-17 | Blocked days excluded from "Nights booked", occupancy %, and Monthly Occupancy chart calculations |
 
 ---
 
@@ -241,6 +244,36 @@ Reference baseline established 2026-04-12. All future conversations may referenc
 - **Edit preservation** (already true, now documented): `fetch-ical` is read-only against `manual_reservations.guest_name` and other admin-edited fields. Sync only writes to the `bookings` mirror table and flips `status` to `Cancelled-iCal` for orphan future reservations. Manual edits are preserved indefinitely.
 - **Misc TS hygiene**: Fixed `unknown`-typed `catch` blocks across `admin-reservations`, `admin-timeline`, `admin-users`, `fetch-ical`, `owner-data` edge functions.
 - **Memory updated**: `mem://features/ical-integration`.
+
+---
+
+### Expense Form Multi-Select Linked Tickets (2026-04-28)
+- **DB migration**: `linked_ticket_ids` changed from `uuid` (single reference) to `uuid[]` array; backfilled existing single values into arrays.
+- **Component**: `src/components/ExpenseFormDialog.tsx` — replaced single `Select` dropdown with a multi-select chip picker using `Command` (shadcn/ui multi-select pattern).
+- **Edge function**: `supabase/functions/expenses/index.ts` updated to read/write `linked_ticket_ids` as an array.
+- **Types**: `Expense.linked_ticket_ids` updated from `string | null` to `string[]`.
+
+---
+
+### Blocked Days Calendar Color Fix (2026-05-17)
+- **Component**: `src/components/PropertyFinanceView.tsx`
+- **Bug**: Owner-created blocks (`is_blocked = true`) rendered with the same red "booked" color as guest reservations, making them indistinguishable.
+- **Fix**: `getDayInfo()` now checks `r.is_blocked === true` and returns `status: "blocked"` with gray styling (`bg-status-blocked-light border-status-blocked`) instead of `status: "booked"`.
+- **No data changes** — purely visual; blocks still appear on the calendar but are now visually distinct.
+
+---
+
+### Blocked Days Excluded from Occupancy & Revenue Metrics (2026-05-17)
+- **Component**: `src/components/PropertyFinanceView.tsx`
+- **Problem**: Blocked days (manual reservations with `is_blocked = true`, used for renovations/repairs) were incorrectly counted in:
+  - "Nights booked" total
+  - Overall occupancy percentage
+  - Monthly occupancy chart bars
+- **Fix**: Added a `guestReservations` memo that filters `propertyManual` with `isActiveReservation(r) && !r.is_blocked`. All financial metrics now derive from this filtered set:
+  - `financials`: total revenue, nights booked, occupancy rate
+  - `chartData`: monthly occupancy bars count only guest stays
+  - `recentPayouts`: lists only real payouts (blocks with €0 no longer appear)
+- **Calendar unchanged**: Blocks still render on the calendar with the gray "blocked" color (see fix above); they are simply excluded from numerical summaries.
 
 ---
 
