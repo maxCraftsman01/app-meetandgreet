@@ -117,6 +117,9 @@ All functions share centralized helpers from `supabase/functions/_shared/cors.ts
 | — | Completed refactoring steps 6–8 (dashboard hooks, admin split, shared edge modules) |
 | 2026-04-12 | Established `MILESTONE_2026_04_12-stable` baseline |
 | 2026-04-14 | Added `listing_urls` to properties — admin textarea form + owner Finance "Listing Links" card with copy-to-clipboard |
+| 2026-04-28 | Expense form linked-tickets moved from single dropdown to multi-select chip picker |
+| 2026-05-17 | Blocked days on owner Finance calendar fixed to render gray instead of red |
+| 2026-05-17 | Blocked days excluded from "Nights booked", occupancy %, and Monthly Occupancy chart calculations |
 
 ---
 
