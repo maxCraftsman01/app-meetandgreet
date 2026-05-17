@@ -247,6 +247,36 @@ Reference baseline established 2026-04-12. All future conversations may referenc
 
 ---
 
+### Expense Form Multi-Select Linked Tickets (2026-04-28)
+- **DB migration**: `linked_ticket_ids` changed from `uuid` (single reference) to `uuid[]` array; backfilled existing single values into arrays.
+- **Component**: `src/components/ExpenseFormDialog.tsx` — replaced single `Select` dropdown with a multi-select chip picker using `Command` (shadcn/ui multi-select pattern).
+- **Edge function**: `supabase/functions/expenses/index.ts` updated to read/write `linked_ticket_ids` as an array.
+- **Types**: `Expense.linked_ticket_ids` updated from `string | null` to `string[]`.
+
+---
+
+### Blocked Days Calendar Color Fix (2026-05-17)
+- **Component**: `src/components/PropertyFinanceView.tsx`
+- **Bug**: Owner-created blocks (`is_blocked = true`) rendered with the same red "booked" color as guest reservations, making them indistinguishable.
+- **Fix**: `getDayInfo()` now checks `r.is_blocked === true` and returns `status: "blocked"` with gray styling (`bg-status-blocked-light border-status-blocked`) instead of `status: "booked"`.
+- **No data changes** — purely visual; blocks still appear on the calendar but are now visually distinct.
+
+---
+
+### Blocked Days Excluded from Occupancy & Revenue Metrics (2026-05-17)
+- **Component**: `src/components/PropertyFinanceView.tsx`
+- **Problem**: Blocked days (manual reservations with `is_blocked = true`, used for renovations/repairs) were incorrectly counted in:
+  - "Nights booked" total
+  - Overall occupancy percentage
+  - Monthly occupancy chart bars
+- **Fix**: Added a `guestReservations` memo that filters `propertyManual` with `isActiveReservation(r) && !r.is_blocked`. All financial metrics now derive from this filtered set:
+  - `financials`: total revenue, nights booked, occupancy rate
+  - `chartData`: monthly occupancy bars count only guest stays
+  - `recentPayouts`: lists only real payouts (blocks with €0 no longer appear)
+- **Calendar unchanged**: Blocks still render on the calendar with the gray "blocked" color (see fix above); they are simply excluded from numerical summaries.
+
+---
+
 ## Current Pending Tasks
 
 - None active. Suggested next enhancement: add a small Deno test suite covering `validateAdminPin()` (legacy env PIN, DB admin PIN, non-admin PIN, empty PIN) so future auth regressions are caught automatically.
